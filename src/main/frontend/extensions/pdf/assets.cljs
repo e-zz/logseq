@@ -57,6 +57,10 @@
       key
   ))
 
+(defn is-pure-pdf-url?
+  [url]
+  (string/ends-with? url "_pure.pdf"))
+
 (defn resolve-area-image-file
   [img-stamp current {:keys [page id] :as _hl}]
   (when-let [key (pure-pdf-key (:key current))]
