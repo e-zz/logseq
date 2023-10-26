@@ -46,6 +46,9 @@ on:
   schedule: # Every workday at the 2 P.M. (UTC) we run a scheduled nightly build
     - cron: '0 14 * * MON-FRI'
 
+permissions:
+  contents: write
+
 env:
   CLOJURE_VERSION: '1.10.1.763'
   NODE_VERSION: '18'
