@@ -554,7 +554,7 @@ jobs:
   release:
     # NOTE: For now, we only have beta channel to be released on Github
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'beta' }}
-    needs: [ build-macos-x64, build-macos-arm64, build-linux, build-windows, e2e-test ]
+    needs: [  build-linux, build-windows, e2e-test ]
     runs-on: ubuntu-20.04
     steps:
       - name: Download MacOS x64 Artifacts
