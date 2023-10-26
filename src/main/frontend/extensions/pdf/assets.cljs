@@ -18,6 +18,7 @@
             [frontend.util :as util]
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.extensions.pdf.windows :as pdf-windows]
+            [frontend.extensions.zotero.setting :as setting]
             [logseq.common.path :as path]
             [logseq.graph-parser.config :as gp-config]
             [logseq.graph-parser.util.block-ref :as block-ref]
@@ -172,9 +173,12 @@
           format (state/get-preferred-format)
           repo-dir (config/get-repo-dir (state/get-current-repo))
           asset-dir (util/node-path.join repo-dir gp-config/local-assets-dir)
+          zotero-dir (setting/setting :zotero-linked-attachment-base-directory)
           url (if (string/includes? file-path asset-dir)
                 (str ".." (last (string/split file-path repo-dir)))
-                file-path)]
+                (if (and (setting/setting :use-relative-attachment-path?) (string/includes? file-path zotero-dir))
+                  (str "$ZOTERO" (last (string/split file-path zotero-dir)))
+                  file-path))]
       (if-not page
         (let [label (:filename pdf-current)]
           (page-handler/create! page-name {:redirect?        false :create-first-block? false
@@ -239,7 +243,12 @@
   (let [id        (:block/uuid block)
         page      (db-utils/pull (:db/id (:block/page block)))
         page-name (:block/original-name page)
-        file-path (:file-path (:block/properties page))
+        _file-path (:file-path (:block/properties page))
+        rel-pdf-path (setting/setting :use-relative-attachment-path?) 
+        pdf-root (setting/setting :zotero-linked-attachment-base-directory)
+        file-path (if (and rel-pdf-path (string/includes? _file-path "$ZOTERO"))
+                    (string/replace-first _file-path "$ZOTERO" pdf-root)
+                    _file-path)
         hl-page   (:hl-page (:block/properties block))]
     (when-let [target-key (and page-name (subs page-name 5))]
       (p/let [hls (resolve-hls-data-by-key$ target-key)

@@ -222,7 +222,17 @@
         [:input.form-input.block
          {:default-value (setting/setting :zotero-linked-attachment-base-directory)
           :placeholder   "/Users/Sarah/Dropbox"
-          :on-blur       (fn [e] (setting/set-setting! :zotero-linked-attachment-base-directory (util/evalue e)))}]]]])])
+          :on-blur       (fn [e] (setting/set-setting! :zotero-linked-attachment-base-directory (util/evalue e)))}]]]]) 
+   (when (setting/setting :include-attachments?)
+     [:div.row
+    [:label.title.w-72
+     {:for "logseq_include_attachment_links"}
+     "Use relative path for attached files in Logseq?"]
+    [:div
+     [:div.rounded-md.sm:max-w-xs
+      (ui/toggle (setting/setting :use-relative-attachment-path?)
+                 (fn [] (setting/set-setting! :use-relative-attachment-path? (not (setting/setting :use-relative-attachment-path?))))
+                 true)]]])])
 
 (rum/defc prefer-citekey-setting <
   rum/reactive
