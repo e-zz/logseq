@@ -46,6 +46,22 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
+(defn is-pure-pdf?
+  [key]
+  (string/ends-with? key "_pure"))
+
+(defn pure-pdf-key
+;; key the twin file is the same as the original file 
+  [key]
+  (if (is-pure-pdf? key)
+      (string/replace-first key "_pure" "")
+      key
+  ))
+
+(defn is-pure-pdf-url?
+  [url]
+  (string/ends-with? url "_pure.pdf"))
+
 (defn resolve-area-image-file
   [img-stamp current {:keys [page id] :as _hl}]
   (when-let [key (:key current)]

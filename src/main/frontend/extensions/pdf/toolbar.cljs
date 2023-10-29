@@ -296,10 +296,10 @@
          (fn [idx itm]
            (let [parent (str parent "-items-" idx)]
              (rum/with-key
-              (pdf-outline-item
-               viewer
-               (merge itm {:parent parent})
-               ops) parent))) items)])]))
+               (pdf-outline-item
+                viewer
+                (merge itm {:parent parent})
+                ops) parent))) items)])]))
 
 (rum/defc pdf-outline
   [^js viewer _visible? set-visible!]
@@ -344,11 +344,11 @@
          [:section
           (map-indexed (fn [idx itm]
                          (rum/with-key
-                          (pdf-outline-item
-                           viewer
-                           (merge itm {:parent idx})
-                           {:upt-outline-node! upt-outline-node!})
-                          idx))
+                           (pdf-outline-item
+                            viewer
+                            (merge itm {:parent idx})
+                            {:upt-outline-node! upt-outline-node!})
+                           idx))
                        outline-data)]
          [:section.is-empty "No outlines"])])))
 
@@ -357,37 +357,37 @@
 
   (let [[active, set-active!] (rum/use-state false)]
     (rum/with-context
-     [hls-state *highlights-ctx*]
-     (let [hls (sort-by :page (or (seq (:initial-hls hls-state))
-                                  (:latest-hls hls-state)))]
+      [hls-state *highlights-ctx*]
+      (let [hls (sort-by :page (or (seq (:initial-hls hls-state))
+                                   (:latest-hls hls-state)))]
 
-       (for [{:keys [id content properties page] :as hl} hls
-             :let [goto-ref! #(pdf-assets/goto-block-ref! hl)]]
-         [:div.extensions__pdf-highlights-list-item
-          {:key             id
-           :class           (when (= active id) "active")
-           :on-click        (fn []
-                              (pdf-utils/scroll-to-highlight viewer hl)
-                              (set-active! id))
-           :on-double-click goto-ref!}
-          [:h6.flex
-           [:span.flex.items-center
-            [:small {:data-color (:color properties)}]
-            [:strong "Page " page]]
+        (for [{:keys [id content properties page] :as hl} hls
+              :let [goto-ref! #(pdf-assets/goto-block-ref! hl)]]
+          [:div.extensions__pdf-highlights-list-item
+           {:key             id
+            :class           (when (= active id) "active")
+            :on-click        (fn []
+                               (pdf-utils/scroll-to-highlight viewer hl)
+                               (set-active! id))
+            :on-double-click goto-ref!}
+           [:h6.flex
+            [:span.flex.items-center
+             [:small {:data-color (:color properties)}]
+             [:strong "Page " page]]
 
-           [:button
-            {:title    (t :pdf/linked-ref)
-             :on-click goto-ref!}
-            (ui/icon "external-link")]]
+            [:button
+             {:title    (t :pdf/linked-ref)
+              :on-click goto-ref!}
+             (ui/icon "external-link")]]
 
 
-          (if-let [img-stamp (:image content)]
-            (let [fpath (pdf-assets/resolve-area-image-file
-                         img-stamp (state/get-current-pdf) hl)
-                  fpath (editor-handler/make-asset-url fpath)]
-              [:p.area-wrap
-               [:img {:src fpath}]])
-            [:p.text-wrap (:text content)])])))))
+           (if-let [img-stamp (:image content)]
+             (let [fpath (pdf-assets/resolve-area-image-file
+                          img-stamp (state/get-current-pdf) hl)
+                   fpath (editor-handler/make-asset-url fpath)]
+               [:p.area-wrap
+                [:img {:src fpath}]])
+             [:p.text-wrap (:text content)])])))))
 
 (rum/defc pdf-outline-&-highlights
   [^js viewer visible? set-visible!]
@@ -428,6 +428,41 @@
        (if contents?
          (pdf-outline viewer contents? set-outline-visible!)
          (pdf-highlights-list viewer))]]]))
+
+(defn get-active-pdf-viewer []
+  (let [top (.-top js/window)]
+    (or (.-lsActivePdfViewer top) (.-lsPdfViewer top))))
+
+;; completely refresh current pdf with the twin "_pure" pdf 
+(defn refresh-current-pdf!
+  [e]
+  (when-let [current (state/get-current-pdf)]
+    (util/stop e)
+    (let [current_
+          (let [url_ (get-in current [:url])
+                key_ (get-in current [:key])
+                if-pure (pdf-assets/is-pure-pdf-url? url_)
+                key (pdf-assets/pure-pdf-key key_)
+                key-pure (str key "_pure")
+                url (if if-pure
+                      (string/replace-first url_ "_pure.pdf" ".pdf")
+                      url_)
+                url-pure (if if-pure
+                           url_
+                           (string/replace-first url_ ".pdf" "_pure.pdf"))]
+            (prn [key if-pure (string/replace-first url_ "_pure.pdf" ".pdf")  url url-pure])
+            (if if-pure
+              (-> current
+                  (assoc-in [:url] url)
+                  (assoc-in [:key] key)
+                  (assoc-in [:hls-file] (str "assets/" key ".edn")))
+              (-> current
+                  (assoc-in [:url] url-pure)
+                  (assoc-in [:key] key)
+                  (assoc-in [:hls-file] (str "assets/" key ".edn")))))]
+      (state/set-state! :pdf/current current_))))
+
+
 
 (rum/defc ^:large-vars/cleanup-todo pdf-toolbar
   [^js viewer {:keys [on-external-window!]}]
@@ -545,6 +580,23 @@
          (ui/icon (if in-system-window?
                     "window-minimize"
                     "window-maximize"))]
+        [:a.button
+         {:title   "Refresh"
+          :on-click 
+          (fn [e] 
+            (let [page-num (.-currentPageNumber viewer)]
+              (prn (str "before refresh" page-num))
+              (prn (state/get-current-pdf))
+              (refresh-current-pdf! e)
+              (prn (state/get-current-pdf))
+              (prn (str "after refresh" (.-currentPageNumber viewer)))
+              (js/setTimeout #(do
+                                (def new-viewer (get-active-pdf-viewer))
+                                (.scrollPageIntoView new-viewer #js {:pageNumber page-num})
+                                (prn (str "after scroll" (.-currentPageNumber viewer))))
+                             2800)) )
+            }
+         (ui/icon "yin-yang")]
 
         ;; pager
         [:div.pager.flex.items-center.ml-1
