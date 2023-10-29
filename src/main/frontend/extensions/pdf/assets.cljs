@@ -18,6 +18,7 @@
             [frontend.util :as util]
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.extensions.pdf.windows :as pdf-windows]
+            [frontend.extensions.zotero.setting :as setting]
             [logseq.common.path :as path]
             [logseq.graph-parser.config :as gp-config]
             [logseq.graph-parser.util.block-ref :as block-ref]
@@ -236,6 +237,40 @@
               ;; open pdf viewer
               (state/set-current-pdf! (inflate-asset file-path)))
             (js/console.debug "[Unmatched highlight ref]" block)))))))
+
+(defn zotero-clean-sync-pollution [pdf-path]
+  ;; Check if pdf-path is a sub-path of any of the base-dirs in the config 
+  ;; If so, replace the base-dir of another device with the one in the selected profile 
+  ;; and return it. Otherwise return nil
+  ;; FEAT Suggest users to check profiles if pdf-path is not a sub-path of any of the base-dirs in the config
+  (when-let [base-dirs (->> (setting/sub-zotero-config) vals
+                            (map :zotero-linked-attachment-base-directory)
+                            vec rest)]
+    (let [pollution-source
+          (reduce (fn [longest-path path]
+                    (if (and (clojure.string/includes? pdf-path path)
+                             (> (count path) (count longest-path)))
+                      path longest-path))
+                  nil base-dirs)]
+      (if pollution-source
+        (string/replace pdf-path pollution-source
+                        (setting/setting :zotero-linked-attachment-base-directory))
+        nil))))
+
+(defn handle-false-missing-pdf-error!
+  ;; Handle :file-path pollution on hls pages caused by multi-profiles workflow
+  ;; Return true if missing pdf is found and handled, otherwise return false
+  [pdf-current]
+  (let [file-path (-> (:original-path pdf-current)
+                      (zotero-clean-sync-pollution))]
+    (prn " --- in handle-false-missing-pdf-error!")
+    (prn pdf-current)
+    (prn (inflate-asset file-path))
+    (if file-path
+      (do
+        (state/set-state! :pdf/current (inflate-asset file-path))
+        true)
+      false)))
 
 (defn goto-block-ref!
   [{:keys [id] :as hl}]
