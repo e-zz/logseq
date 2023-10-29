@@ -237,6 +237,38 @@
               (state/set-current-pdf! (inflate-asset file-path)))
             (js/console.debug "[Unmatched highlight ref]" block)))))))
 
+;; handle :file-path  pollution caused by multi-device usage
+(defn zotero-clean-sync-pollution [pdf-path]
+  ;; check if pdf-path is a sub-path of any of the base-dirs. 
+  ;; If so, replace the base-dir polluted by other device with the correct one,
+  ;; otherwise return the original pdf-path
+  ;; TODO add warning if pdf-path is not a sub-path of any of the base-dirs
+  (when-let [base-dirs (->> (setting/sub-zotero-config) vals
+                            (map :zotero-linked-attachment-base-directory)
+                            vec rest)]
+    (let [pollution-source
+          (reduce (fn [longest-path path]
+                    (if (and (clojure.string/includes? pdf-path path)
+                             (> (count path) (count longest-path)))
+                      path longest-path))
+                  nil base-dirs)]
+      (if pollution-source
+        (string/replace pdf-path pollution-source (setting/setting :zotero-linked-attachment-base-directory))
+        nil))))
+
+;; Return true if missing pdf is found and handled, otherwise return nil
+(defn handle-false-missing-pdf-error!
+  [pdf-current]
+  (let [file-path (-> (:original-path pdf-current)
+                      (zotero-clean-sync-pollution))]
+                      (prn " --- in handle-false-missing-pdf-error!")
+                      (prn pdf-current)
+                      (prn (inflate-asset file-path))
+    (if file-path
+      (do (state/set-state! :pdf/current (inflate-asset file-path))
+          true)
+      nil)))
+
 (defn goto-block-ref!
   [{:keys [id] :as hl}]
   (when id
