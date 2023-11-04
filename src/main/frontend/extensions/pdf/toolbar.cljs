@@ -429,6 +429,41 @@
          (pdf-outline viewer contents? set-outline-visible!)
          (pdf-highlights-list viewer))]]]))
 
+(defn get-active-pdf-viewer []
+  (let [top (.-top js/window)]
+    (or (.-lsActivePdfViewer top) (.-lsPdfViewer top))))
+
+;; completely refresh current pdf with the twin "_pure" pdf 
+(defn refresh-current-pdf!
+  [e]
+  (when-let [current (state/get-current-pdf)]
+    (util/stop e)
+    (let [current_
+          (let [url_ (get-in current [:url])
+                key_ (get-in current [:key])
+                if-pure (pdf-assets/is-pure-pdf-url? url_)
+                key (pdf-assets/pure-pdf-key key_)
+                key-pure (str key "_pure")
+                url (if if-pure
+                      (string/replace-first url_ "_pure.pdf" ".pdf")
+                      url_)
+                url-pure (if if-pure
+                           url_
+                           (string/replace-first url_ ".pdf" "_pure.pdf"))]
+                           (prn [key if-pure (string/replace-first url_ "_pure.pdf" ".pdf")  url url-pure])
+            (if if-pure
+              (-> current
+                  (assoc-in [:url] url)
+                  (assoc-in [:key] key)
+                  (assoc-in [:hls-file] (str "assets/" key ".edn")))
+              (-> current
+                  (assoc-in [:url] url-pure)
+                  (assoc-in [:key] key)
+                  (assoc-in [:hls-file] (str "assets/" key ".edn")))))]
+      (state/set-state! :pdf/current current_))))
+      
+
+
 (rum/defc ^:large-vars/cleanup-todo pdf-toolbar
   [^js viewer {:keys [on-external-window!]}]
   (let [[area-mode?, set-area-mode!] (use-atom *area-mode?)
@@ -545,6 +580,23 @@
          (ui/icon (if in-system-window?
                     "window-minimize"
                     "window-maximize"))]
+        [:a.button
+         {:title   "Refresh"
+          :on-click 
+          (fn [e] 
+            (let [page-num (.-currentPageNumber viewer)]
+              (prn (str "before refresh" page-num))
+              (prn (state/get-current-pdf))
+              (refresh-current-pdf! e)
+              (prn (state/get-current-pdf))
+              (prn (str "after refresh" (.-currentPageNumber viewer)))
+              (js/setTimeout #(do
+                                (def new-viewer (get-active-pdf-viewer))
+                                (.scrollPageIntoView new-viewer #js {:pageNumber page-num})
+                                (prn (str "after scroll" (.-currentPageNumber viewer))))
+                             2800)) )
+            }
+         (ui/icon "yin-yang")]
 
         ;; pager
         [:div.pager.flex.items-center.ml-1
