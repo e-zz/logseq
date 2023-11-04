@@ -45,9 +45,25 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
+(defn is-pure-pdf?
+  [key]
+  (string/ends-with? key "_pure"))
+
+(defn pure-pdf-key
+;; key the twin file is the same as the original file 
+  [key]
+  (if (is-pure-pdf? key)
+      (string/replace-first key "_pure" "")
+      key
+  ))
+
+(defn is-pure-pdf-url?
+  [url]
+  (string/ends-with? url "_pure.pdf"))
+
 (defn resolve-area-image-file
   [img-stamp current {:keys [page id] :as _hl}]
-  (when-let [key (:key current)]
+  (when-let [key (pure-pdf-key (:key current))]
     (-> (str gp-config/local-assets-dir "/" key "/")
         (str (util/format "%s_%s_%s.png" page id img-stamp)))))
 
@@ -137,7 +153,7 @@
 
 (defn unlink-hl-area-image$
   [^js _viewer current hl]
-  (when-let [fkey (and (area-highlight? hl) (:key current))]
+  (when-let [fkey (and (area-highlight? hl) (pure-pdf-key (:key current)))]
     (let [repo-cur (state/get-current-repo)
           repo-dir (config/get-repo-dir repo-cur)
           fstamp   (get-in hl [:content :image])
@@ -149,7 +165,7 @@
 
 (defn ensure-ref-page!
   [pdf-current]
-  (when-let [page-name (util/trim-safe (:key pdf-current))]
+  (when-let [page-name (util/trim-safe (pure-pdf-key (:key pdf-current)))]
     (let [page-name (str "hls__" page-name)
           page (db-model/get-page page-name)
           file-path (:original-path pdf-current)
@@ -276,10 +292,12 @@
      (state/get-current-pdf) hl {:edit-block? false})
     (rfe/push-state :page {:name (str id)})))
 
+
 (defn goto-annotations-page!
   ([current] (goto-annotations-page! current nil))
   ([current id]
-   (when-let [name (:key current)]
+   (when-let [name (pure-pdf-key (:key current))]
+
      (rfe/push-state :page {:name (str "hls__" name)} (if id {:anchor (str "block-content-" + id)} nil)))))
 
 (defn open-lightbox
