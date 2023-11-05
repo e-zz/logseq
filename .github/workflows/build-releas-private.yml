@@ -1,6 +1,6 @@
 # This is the main desktop application release workflow for both nightly and beta/stable releases.
 
-name: Build-Desktop-Release
+name: Build-Desktop-Release-Priv
 
 on:
   workflow_dispatch:
@@ -46,6 +46,9 @@ on:
         default: false
 #   schedule: # Every workday at the 2 P.M. (UTC) we run a scheduled nightly build
 #     - cron: '0 14 * * MON-FRI'
+
+permissions:
+  contents: write
 
 env:
   CLOJURE_VERSION: '1.11.1.1413'
@@ -333,8 +336,8 @@ jobs:
 
   release:
     # NOTE: For now, we only have beta channel to be released on Github
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'beta' }}
-    needs: [ build-linux, build-windows, e2e-test ]
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'priv' }}
+    needs: [ build-linux, build-windows ]
     runs-on: ubuntu-20.04
     steps:
 
@@ -365,10 +368,8 @@ jobs:
 
       - name: Generate SHA256 checksums
         run: |
-          sha256sum *-darwin-* > SHA256SUMS.txt
           sha256sum *-win-* >> SHA256SUMS.txt
           sha256sum *-linux-* >> SHA256SUMS.txt
-          sha256sum *.apk >> SHA256SUMS.txt
           sha256sum RELEASES >> SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -387,6 +388,5 @@ jobs:
             ./SHA256SUMS.txt
             ./*.zip
             ./*.exe
-            ./*.nupkg
             ./RELEASES
             ./*.AppImage
