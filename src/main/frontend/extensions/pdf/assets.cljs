@@ -18,6 +18,7 @@
             [frontend.util :as util]
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.extensions.pdf.windows :as pdf-windows]
+            [frontend.extensions.zotero.setting :as zotero-setting]
             [logseq.common.path :as path]
             [logseq.graph-parser.config :as gp-config]
             [logseq.graph-parser.util.block-ref :as block-ref]
@@ -259,7 +260,7 @@
   ;; If so, replace the base-dir polluted by other device with the correct one,
   ;; otherwise return the original pdf-path
   ;; TODO add warning if pdf-path is not a sub-path of any of the base-dirs
-  (when-let [base-dirs (->> (setting/sub-zotero-config) vals
+  (when-let [base-dirs (->> (zotero-setting/sub-zotero-config) vals
                             (map :zotero-linked-attachment-base-directory)
                             vec rest)]
     (let [pollution-source
@@ -269,7 +270,7 @@
                       path longest-path))
                   nil base-dirs)]
       (if pollution-source
-        (string/replace pdf-path pollution-source (setting/setting :zotero-linked-attachment-base-directory))
+        (string/replace pdf-path pollution-source (zotero-setting/setting :zotero-linked-attachment-base-directory))
         nil))))
 
 ;; Return true if missing pdf is found and handled, otherwise return nil
