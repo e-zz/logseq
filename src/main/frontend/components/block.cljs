@@ -912,6 +912,22 @@
                      (:block/uuid block)
                      (whiteboard-handler/closest-shape (.-target e)))
 
+                    (util/meta-key? e)
+                    ;; release click event with meta key, instead of calling (route-handler/redirect-to-page! id)
+                    (do (prn "in block ref handler")
+                        (let [page (get block :block/page)
+                              block-id (str "block-content-"  (:block/uuid block))]
+                          (prn  page)
+                          (route-handler/redirect-to-page! (get page :block/name))
+                          
+                          (let [elem (.getElementById js/document block-id)]
+                          (prn (.-id elem))
+                          (state/set-selection-blocks! [elem])
+                          (prn "scroll")
+                          (js/setTimeout #(prn "delayed") 2000)
+                          ;; (js/setTimeout #(util/scroll-to-block elem) 2000)
+                          ;; (util/scroll-to-top)
+                              )))
                     :else
                     (match [block-type (util/electron?)]
                       ;; pdf annotation
