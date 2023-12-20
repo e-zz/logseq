@@ -118,7 +118,7 @@ export const scrollToHighlight = (viewer, highlight) => {
     ignoreDestinationZoom: true
   })
 
-  setTimeout(blinkHighlight, 200)
+  setTimeout(blinkHighlight, 50)
 
   // blink highlight
   function blinkHighlight () {
