@@ -52,12 +52,12 @@ permissions:
 
 env:
   CLOJURE_VERSION: '1.11.1.1413'
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   JAVA_VERSION: '11'
 
 jobs:
   compile-cljs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check build options
         if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta') && github.event.inputs.git-ref != 'dev' }}
@@ -170,14 +170,14 @@ jobs:
           SENTRY_PROJECT: logseq
 
       - name: Cache Static File
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: static
           path: static
 
   e2e-test:
     name: E2E Test Shard ${{ matrix.shard }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         shard: [1, 2, 3]
@@ -187,7 +187,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -226,12 +226,12 @@ jobs:
           DEBUG: "pw:api"
           RELEASE: true # skip dev only test
 
-  build-linux:
-    runs-on: ubuntu-20.04
+  build-linux-x64:
+    runs-on: ubuntu-22.04
     needs: [ compile-cljs ]
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -267,9 +267,63 @@ jobs:
           mv static/out/make/zip/linux/x64/*-linux-x64-*.zip ./builds/Logseq-linux-x64-${{ steps.ref.outputs.version }}.zip
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: logseq-linux-builds
+          name: logseq-linux-x64-builds
+          path: builds
+
+  build-linux-arm64:
+    runs-on: ubuntu-22.04
+    needs: [ compile-cljs ]
+    steps:
+      - name: Download The Static Asset
+        uses: actions/download-artifact@v4
+        with:
+          name: static
+          path: static
+
+      - name: Retrieve tag version
+        id: ref
+        run: |
+          pkgver=$(cat ./static/VERSION)
+          echo "version=$pkgver" >> $GITHUB_OUTPUT
+
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Fetch deps
+        env:
+          npm_config_arch: arm64
+        run: |
+          yarn install --target_arch=arm64 --target_platform=linux
+          rsapi_version=`node -e 'console.log(require("@logseq/rsapi/package.json").optionalDependencies["@logseq/rsapi-linux-arm64-gnu"])'`
+          temp_dir=`mktemp -d`
+          cd "$temp_dir"
+          echo '{"dependencies": {"@logseq/rsapi-linux-arm64-gnu": "'"$rsapi_version"'"}}' > package.json
+          yarn install --ignore-platform
+          cd -
+          mv "$temp_dir/node_modules/@logseq/rsapi-linux-arm64-gnu" node_modules/@logseq/rsapi-linux-arm64-gnu
+          rm -rf "$temp_dir" "node_modules/@logseq/rsapi-linux-x64-gnu"
+        working-directory: ./static
+
+      - name: Build/Release Electron App
+        run: yarn electron:make-linux-arm64
+        working-directory: ./static
+
+      - name: Save artifacts
+        run: |
+          mkdir -p builds
+          # NOTE: save VERSION file to builds directory
+          cp static/VERSION ./builds/VERSION
+          # mv static/out/make/*-*.AppImage ./builds/Logseq-linux-arm64-${{ steps.ref.outputs.version }}.AppImage
+          mv static/out/make/zip/linux/arm64/*-linux-arm64-*.zip ./builds/Logseq-linux-arm64-${{ steps.ref.outputs.version }}.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-linux-arm64-builds
           path: builds
 
   build-windows:
@@ -277,7 +331,7 @@ jobs:
     needs: [ compile-cljs ]
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -306,52 +360,186 @@ jobs:
         run: yarn run postinstall
         working-directory: ./static/node_modules/dugite/
 
-      - name: Prepare Code Sign
-        if: ${{ github.repository == 'logseq/logseq' }}
-        run: |
-          [IO.File]::WriteAllBytes($(Get-Location).Path + "\codesign.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
-        env:
-          CERTIFICATE: ${{ secrets.CODE_SIGN_CERTIFICATE }}
-
       - name: Build/Release Electron app
         run: yarn electron:make
         working-directory: ./static
         env:
-          CODE_SIGN_CERTIFICATE_FILE: ../codesign.pfx
-          CODE_SIGN_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
+          DEBUG: electron-packager
+        #env:
+        #  CODE_SIGN_CERTIFICATE_FILE: ../codesign.pfx
+        #  CODE_SIGN_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
 
-      - name: Save Artifact
+      - name: Save Artifact for Code Signing
         run: |
           mkdir builds
           mv static\out\make\squirrel.windows\x64\*.exe    builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.exe
+
+      - name: Upload Artifact for Code Signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-win64-unsigned-builds
+          path: builds
+
+      - name: Save Artifact
+        run: |
+          rm builds\*.exe
           mv static\out\make\squirrel.windows\x64\*.nupkg  builds\Logseq-win-x64-${{ steps.ref.outputs.version }}-full.nupkg
+          mv static\out\make\zip\win32\x64\*.zip           builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.zip
+          mv static\out\make\wix\x64\Logseq.msi            builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.msi
           mv static\out\make\squirrel.windows\x64\RELEASES builds\RELEASES
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: logseq-win64-builds
           path: builds
 
+  
+  # reuse workflow via workflow_call
+  build-android:
+    uses: ./.github/workflows/build-android.yml
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
+    with:
+      build-target: "${{ github.event.inputs.build-target }}"
+      # if scheduled, use production mode
+      enable-file-sync-production: "${{ github.event_name == 'schedule' || github.event.inputs.enable-file-sync-production == 'true' }}"
+    secrets:
+      ANDROID_KEYSTORE: "${{ secrets.ANDROID_KEYSTORE }}"
+      ANDROID_KEYSTORE_PASSWORD: "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+
+  codesign-windows:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta' }}
+    needs: [ build-windows ]
+    runs-on: [self-hosted, macos, token]
+    steps:
+      - name: Remove old builds
+        run: rm -rf ./builds && mkdir ./builds
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win64-unsigned-builds
+          path: ./builds
+
+      - name: Sign Windows Executable
+        run: |
+          ls -lah ./builds
+          jsign --storetype ETOKEN --storepass "${PASS}" -t http://timestamp.sectigo.com ./builds/*.exe
+        env:
+          PASS: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-win64-signed-builds
+          path: builds
+
+  nightly-release:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-target == 'nightly' }}
+    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, build-android, e2e-test ]
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Download The Linux x64 Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-linux-x64-builds
+          path: ./
+
+      - name: Download The Linux arm64 Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-linux-arm64-builds
+          path: ./
+
+      - name: Download The Windows Artifact (Signed)
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win64-signed-builds
+          path: ./
+
+      - name: Download The Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win64-builds
+          path: ./
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-android-builds
+          path: ./
+
+      - name: Generate SHA256 checksums
+        run: |
+          sha256sum *-darwin-* > SHA256SUMS.txt
+          sha256sum *-win-* >> SHA256SUMS.txt
+          sha256sum *-linux-* >> SHA256SUMS.txt
+          sha256sum *.apk >> SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: List files
+        run: ls -rl
+
+      - name: Update Nightly Release
+        uses: andelf/nightly-release@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          name: 'Desktop/Android APP Nightly Release $$'
+          draft: false
+          prerelease: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.is-pre-release) || (github.event_name == 'schedule')}}
+          body: |
+            This is a nightly release of the Logseq desktop app.
+            It's unstable compared to the official releases, **use it with caution**!
+          files: |
+            ./SHA256SUMS.txt
+            ./*.zip
+            ./*.dmg
+            ./*.exe
+            ./*.msi
+            ./*.AppImage
+            ./*.apk
 
   release:
     # NOTE: For now, we only have beta channel to be released on Github
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'priv' }}
-    needs: [ build-linux, build-windows ]
-    runs-on: ubuntu-20.04
+    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, build-android, e2e-test ]
+    runs-on: ubuntu-22.04
     steps:
 
-      - name: Download The Linux Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download The Linux x64 Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: logseq-linux-builds
+          name: logseq-linux-x64-builds
+          path: ./
+
+      - name: Download The Linux arm64 Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-linux-arm64-builds
+          path: ./
+
+      - name: Download The Windows Artifact (Signed)
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win64-signed-builds
           path: ./
 
       - name: Download The Windows Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-win64-builds
           path: ./
+
+      # - name: Download Android Artifacts
+      #   uses: actions/download-artifact@v4
+      #   if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
+      #   with:
+      #     name: logseq-android-builds
+      #     path: ./
 
       - name: List files
         run: ls -rl
@@ -368,8 +556,10 @@ jobs:
 
       - name: Generate SHA256 checksums
         run: |
+          sha256sum *-darwin-* > SHA256SUMS.txt
           sha256sum *-win-* >> SHA256SUMS.txt
           sha256sum *-linux-* >> SHA256SUMS.txt
+          sha256sum *.apk >> SHA256SUMS.txt
           sha256sum RELEASES >> SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -387,6 +577,10 @@ jobs:
             ./VERSION
             ./SHA256SUMS.txt
             ./*.zip
+            ./*.dmg
             ./*.exe
+            ./*.msi
+            ./*.nupkg
             ./RELEASES
             ./*.AppImage
+            # ./*.apk
