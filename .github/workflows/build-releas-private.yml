@@ -465,11 +465,11 @@ jobs:
           name: logseq-win64-builds
           path: ./
 
-      - name: Download Android Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-android-builds
-          path: ./
+      # - name: Download Android Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: logseq-android-builds
+      #     path: ./
 
       - name: Generate SHA256 checksums
         run: |
