@@ -506,7 +506,7 @@ jobs:
   release:
     # NOTE: For now, we only have beta channel to be released on Github
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'priv' }}
-    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, build-android, e2e-test ]
+    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, e2e-test ]
     runs-on: ubuntu-22.04
     steps:
 
