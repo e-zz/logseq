@@ -409,7 +409,7 @@ jobs:
       SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
 
   codesign-windows:
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta' }}
     needs: [ build-windows ]
     runs-on: [self-hosted, macos, token]
     steps:
@@ -436,7 +436,7 @@ jobs:
           path: builds
 
   nightly-release:
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-target == 'nightly' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.inputs.build-target == 'nightly' }}
     needs: [ build-linux-x64, build-linux-arm64, codesign-windows, e2e-test ]
     runs-on: ubuntu-22.04
     steps:
