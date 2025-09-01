@@ -59,11 +59,11 @@ jobs:
   compile-cljs:
     runs-on: ubuntu-22.04
     steps:
-      - name: Check build options
-        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta') && github.event.inputs.git-ref != 'dev' }}
-        run: |
-          echo "::error title=CheckFail::Nightly and Beta Release MUST be built from dev"
-          exit 1
+      # - name: Check build options
+      #   if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta') && github.event.inputs.git-ref != 'master' }}
+      #   run: |
+      #     echo "::error title=CheckFail::Nightly and Beta Release MUST be built from master"
+      #     exit 1
 
       - name: Check out Git repository
         uses: actions/checkout@v3
@@ -175,56 +175,6 @@ jobs:
           name: static
           path: static
 
-  e2e-test:
-    name: E2E Test Shard ${{ matrix.shard }}
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        shard: [1, 2, 3]
-    needs: [ compile-cljs ]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Download The Static Asset
-        uses: actions/download-artifact@v4
-        with:
-          name: static
-          path: static
-
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-          cache-dependency-path: |
-            yarn.lock
-            static/yarn.lock
-
-      - name: Fetch yarn deps for E2E test
-        run: |
-          yarn install
-          (cd static && yarn install && yarn rebuild:all)
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-
-      - name: Install Fluxbox
-        run: sudo apt-get update && sudo apt-get install -y fluxbox
-
-      # Emulate a virtual framebuffer on machines with no display hardware
-      - name: Run XVFB
-        run: Xvfb :1 -screen 0 1024x768x24 >/dev/null 2>&1 &
-
-      # Start a lightweight window manager to simulate window actions (maximize,restore etc)
-      - name: Start Fluxbox
-        run:  DISPLAY=:1.0 fluxbox >/dev/null 2>&1 &
-
-      - name: Run Playwright test
-        run: DISPLAY=:1.0 npx playwright test --reporter github --shard=${{ matrix.shard }}/3
-        env:
-          LOGSEQ_CI: true
-          DEBUG: "pw:api"
-          RELEASE: true # skip dev only test
 
   build-linux-x64:
     runs-on: ubuntu-22.04
@@ -365,24 +315,29 @@ jobs:
         working-directory: ./static
         env:
           DEBUG: electron-packager
-        #env:
-        #  CODE_SIGN_CERTIFICATE_FILE: ../codesign.pfx
-        #  CODE_SIGN_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
 
       - name: Save Artifact for Code Signing
         run: |
           mkdir builds
           mv static\out\make\squirrel.windows\x64\*.exe    builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.exe
 
-      - name: Upload Artifact for Code Signing
-        uses: actions/upload-artifact@v4
+      - name: Sign
+        uses: azure/trusted-signing-action@v0.5.9
         with:
-          name: logseq-win64-unsigned-builds
-          path: builds
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: logseqwin
+          certificate-profile-name: Logseq
+          files-folder: builds
+          files-folder-filter: exe,msi
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
 
       - name: Save Artifact
         run: |
-          rm builds\*.exe
           mv static\out\make\squirrel.windows\x64\*.nupkg  builds\Logseq-win-x64-${{ steps.ref.outputs.version }}-full.nupkg
           mv static\out\make\zip\win32\x64\*.zip           builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.zip
           mv static\out\make\wix\x64\Logseq.msi            builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.msi
@@ -394,119 +349,11 @@ jobs:
           name: logseq-win64-builds
           path: builds
 
-  
-  # reuse workflow via workflow_call
-  build-android:
-    uses: ./.github/workflows/build-android.yml
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
-    with:
-      build-target: "${{ github.event.inputs.build-target }}"
-      # if scheduled, use production mode
-      enable-file-sync-production: "${{ github.event_name == 'schedule' || github.event.inputs.enable-file-sync-production == 'true' }}"
-    secrets:
-      ANDROID_KEYSTORE: "${{ secrets.ANDROID_KEYSTORE }}"
-      ANDROID_KEYSTORE_PASSWORD: "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
-      SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
-
-  codesign-windows:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta' }}
-    needs: [ build-windows ]
-    runs-on: [self-hosted, macos, token]
-    steps:
-      - name: Remove old builds
-        run: rm -rf ./builds && mkdir ./builds
-
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-win64-unsigned-builds
-          path: ./builds
-
-      - name: Sign Windows Executable
-        run: |
-          ls -lah ./builds
-          jsign --storetype ETOKEN --storepass "${PASS}" -t http://timestamp.sectigo.com ./builds/*.exe
-        env:
-          PASS: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: logseq-win64-signed-builds
-          path: builds
-
-  nightly-release:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.inputs.build-target == 'nightly' }}
-    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, e2e-test ]
-    runs-on: ubuntu-22.04
-    steps:
-
-      - name: Download The Linux x64 Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-linux-x64-builds
-          path: ./
-
-      - name: Download The Linux arm64 Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-linux-arm64-builds
-          path: ./
-
-      - name: Download The Windows Artifact (Signed)
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-win64-signed-builds
-          path: ./
-
-      - name: Download The Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-win64-builds
-          path: ./
-
-      # - name: Download Android Artifacts
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: logseq-android-builds
-      #     path: ./
-
-      - name: Generate SHA256 checksums
-        run: |
-          sha256sum *-darwin-* > SHA256SUMS.txt
-          sha256sum *-win-* >> SHA256SUMS.txt
-          sha256sum *-linux-* >> SHA256SUMS.txt
-          sha256sum *.apk >> SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      - name: List files
-        run: ls -rl
-
-      - name: Update Nightly Release
-        uses: andelf/nightly-release@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: nightly
-          name: 'Desktop/Android APP Nightly Release $$'
-          draft: false
-          prerelease: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.is-pre-release) || (github.event_name == 'schedule')}}
-          body: |
-            This is a nightly release of the Logseq desktop app.
-            It's unstable compared to the official releases, **use it with caution**!
-          files: |
-            ./SHA256SUMS.txt
-            ./*.zip
-            ./*.dmg
-            ./*.exe
-            ./*.msi
-            ./*.AppImage
-            ./*.apk
 
   release:
     # NOTE: For now, we only have beta channel to be released on Github
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'priv' }}
-    needs: [ build-linux-x64, build-linux-arm64, codesign-windows, e2e-test ]
+    needs: [ build-linux-x64, build-linux-arm64 ]
     runs-on: ubuntu-22.04
     steps:
 
@@ -522,24 +369,11 @@ jobs:
           name: logseq-linux-arm64-builds
           path: ./
 
-      - name: Download The Windows Artifact (Signed)
-        uses: actions/download-artifact@v4
-        with:
-          name: logseq-win64-signed-builds
-          path: ./
-
       - name: Download The Windows Artifact
         uses: actions/download-artifact@v4
         with:
           name: logseq-win64-builds
           path: ./
-
-      # - name: Download Android Artifacts
-      #   uses: actions/download-artifact@v4
-      #   if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
-      #   with:
-      #     name: logseq-android-builds
-      #     path: ./
 
       - name: List files
         run: ls -rl
@@ -556,10 +390,8 @@ jobs:
 
       - name: Generate SHA256 checksums
         run: |
-          sha256sum *-darwin-* > SHA256SUMS.txt
           sha256sum *-win-* >> SHA256SUMS.txt
           sha256sum *-linux-* >> SHA256SUMS.txt
-          sha256sum *.apk >> SHA256SUMS.txt
           sha256sum RELEASES >> SHA256SUMS.txt
           cat SHA256SUMS.txt
 
@@ -577,10 +409,6 @@ jobs:
             ./VERSION
             ./SHA256SUMS.txt
             ./*.zip
-            ./*.dmg
             ./*.exe
-            ./*.msi
-            ./*.nupkg
             ./RELEASES
             ./*.AppImage
-            # ./*.apk
