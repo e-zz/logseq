@@ -321,20 +321,20 @@ jobs:
           mkdir builds
           mv static\out\make\squirrel.windows\x64\*.exe    builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.exe
 
-      - name: Sign
-        uses: azure/trusted-signing-action@v0.5.9
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: https://eus.codesigning.azure.net/
-          trusted-signing-account-name: logseqwin
-          certificate-profile-name: Logseq
-          files-folder: builds
-          files-folder-filter: exe,msi
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
+      # - name: Sign
+      #   uses: azure/trusted-signing-action@v0.5.9
+      #   with:
+      #     azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+      #     endpoint: https://eus.codesigning.azure.net/
+      #     trusted-signing-account-name: logseqwin
+      #     certificate-profile-name: Logseq
+      #     files-folder: builds
+      #     files-folder-filter: exe,msi
+      #     file-digest: SHA256
+      #     timestamp-rfc3161: http://timestamp.acs.microsoft.com
+      #     timestamp-digest: SHA256
 
       - name: Save Artifact
         run: |
