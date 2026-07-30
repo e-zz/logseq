@@ -122,9 +122,7 @@ jobs:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
 
       - name: Fetch OCaml deps
-        working-directory: cli
-        shell: bash
-        run: opam install . --deps-only --with-test --yes
+        run: cd cli && opam install . --deps-only --with-test --yes
 
       - name: Fetch CLI pnpm deps
         run: pnpm --dir cli install --frozen-lockfile --ignore-workspace
