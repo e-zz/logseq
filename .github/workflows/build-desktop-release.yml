@@ -123,6 +123,7 @@ jobs:
 
       - name: Fetch OCaml deps
         working-directory: cli
+        shell: bash
         run: opam install . --deps-only --with-test --yes
 
       - name: Fetch CLI pnpm deps
