@@ -166,6 +166,10 @@ jobs:
           pnpm db-worker-node:bundle
           if [ "${{ github.repository }}" = "logseq/logseq" ]; then opam exec -- pnpm cli:release; fi
           pnpm webpack-app-build
+          # Forks don't build the OCaml CLI; stub it so prepare-desktop-runtime-js can stage it
+          if [ "${{ github.repository }}" != "logseq/logseq" ]; then
+            printf '#!/usr/bin/env node\nconsole.error("logseq-cli: not built (fork build)");\nprocess.exit(1);\n' > static/logseq-cli.js
+          fi
           pnpm desktop:prepare-runtime-js
         env:
           LOGSEQ_SENTRY_DSN: ${{ secrets.LOGSEQ_SENTRY_DSN }}
