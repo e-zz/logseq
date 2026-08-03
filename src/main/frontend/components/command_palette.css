@@ -1,22 +1,15 @@
-.cp__palette, .cp__select {
+ .cp__select {
   --palettle-input-height: 64px;
   --palettle-container-height: 75vh;
 
   &-main {
     max-height: var(--palettle-container-height);
-    margin: -2rem;
-    overflow: hidden;
-    display: flex;
     flex-direction: column;
-
-    @screen lg {
-      width: var(--ls-main-content-max-width);
-    }
+    width: fit-content;
 
     .menu-link {
       transition: none;
       border: none;
-      border-radius: unset !important;
       background: none;
 
       .type-icon {
@@ -40,8 +33,13 @@
 
       &.chosen,
       &.chosen p {
-        background-color: var(--ls-a-chosen-bg);
+        background-color: var(--lx-gray-03, var(--ls-a-chosen-bg, var(--rx-gray-03)));
         color: var(--ls-secondary-text-color);
+      }
+
+      .dark &.chosen,
+      .dark &.chosen p {
+        background-color: var(--lx-gray-02, var(--ls-a-chosen-bg, var(--rx-gray-02)));
       }
 
       &:hover p {
@@ -55,10 +53,6 @@
       overflow-x: hidden;
       overflow-y: auto;
       max-height: calc(var(--palettle-container-height) - var(--palettle-input-height));
-    }
-
-    .input-wrap {
-      height: var(--palettle-input-height);
     }
 
     .cp__palette-input {
@@ -81,8 +75,9 @@
 
   &-input {
     padding: 16px;
-    font-size: 20px;
+    font-size: 16px;
     outline: none;
+    background-color: transparent;
   }
 
   &-results {

@@ -1,88 +1,46 @@
 (ns frontend.date
-  "Date related utility fns"
+  "Journal date related utility fns"
   (:require ["chrono-node" :as chrono]
-            [cljs-bean.core :as bean]
             [cljs-time.coerce :as tc]
             [cljs-time.core :as t]
             [cljs-time.format :as tf]
             [cljs-time.local :as tl]
+            [clojure.string :as string]
+            [frontend.context.i18n :as i18n]
             [frontend.state :as state]
-            [logseq.graph-parser.util :as gp-util]
-            [logseq.graph-parser.date-time-util :as date-time-util]
             [goog.object :as gobj]
-            [lambdaisland.glogi :as log]))
+            [lambdaisland.glogi :as log]
+            [logseq.common.date :as common-date]
+            [logseq.common.util.date-time :as date-time-util]))
+
+(def ^:private custom-formatter (tf/formatter "yyyy-MM-dd'T'HH:mm:ssZZ"))
+(def ^:private custom-formatter-2 (tf/formatter "yyyy-MM-dd-HH-mm-ss"))
+(def ^:private mmm-do-yyyy-formatter (tf/formatter "MMM do, yyyy"))
+(def ^:private yyyy-MM-dd-HH-mm-formatter (tf/formatter "yyyy-MM-dd HH:mm"))
+(def ^:private iso-parser (tf/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSS'Z'"))
 
 (defn nld-parse
   [s]
   (when (string? s)
     ((gobj/get chrono "parseDate") s)))
 
-(def custom-formatter (tf/formatter "yyyy-MM-dd'T'HH:mm:ssZZ"))
-
 (defn journal-title-formatters
   []
-  (->
-   (cons
-    (state/get-date-formatter)
-    (list
-     "do MMM yyyy"
-     "do MMMM yyyy"
-     "MMM do, yyyy"
-     "MMMM do, yyyy"
-     "E, dd-MM-yyyy"
-     "E, dd.MM.yyyy"
-     "E, MM/dd/yyyy"
-     "E, yyyy/MM/dd"
-     "EEE, dd-MM-yyyy"
-     "EEE, dd.MM.yyyy"
-     "EEE, MM/dd/yyyy"
-     "EEE, yyyy/MM/dd"
-     "EEEE, dd-MM-yyyy"
-     "EEEE, dd.MM.yyyy"
-     "EEEE, MM/dd/yyyy"
-     "EEEE, yyyy/MM/dd"
-     "dd-MM-yyyy"
-     ;; This tyle will mess up other date formats like "2022-08" "2022Q4" "2022/10"
-     ;;  "dd.MM.yyyy"
-     "MM/dd/yyyy"
-     "MM-dd-yyyy"
-     "MM_dd_yyyy"
-     "yyyy/MM/dd"
-     "yyyy-MM-dd"
-     "yyyy-MM-dd EEEE"
-     "yyyy_MM_dd"
-     "yyyyMMdd"
-     "yyyy年MM月dd日"))
-   (distinct)))
+  (common-date/journal-title-formatters (state/get-date-formatter)))
 
 (defn get-date-time-string
   ([]
    (get-date-time-string (t/now)))
+  ([date-time & {:keys [formatter-str]}]
+   (tf/unparse (if formatter-str
+                 (tf/formatter formatter-str)
+                 custom-formatter) date-time)))
+
+(defn get-date-time-string-2
+  ([]
+   (get-date-time-string-2 (tl/local-now)))
   ([date-time]
-   (tf/unparse custom-formatter date-time)))
-
-(defn get-locale-string
-  "Accepts a :date-time-no-ms string representation, or a cljs-time date object"
-  [input]
-  (try
-    (->> (cond->> input
-          (string? input) (tf/parse (tf/formatters :date-time-no-ms)))
-         (t/to-default-time-zone)
-         (tf/unparse (tf/formatter "MMM do, yyyy")))
-    (catch :default _e
-      nil)))
-
-(def custom-formatter-2 (tf/formatter "yyyy-MM-dd-HH-mm-ss"))
-(defn get-date-time-string-2 []
-  (tf/unparse custom-formatter-2 (tl/local-now)))
-
-(def custom-formatter-3 (tf/formatter "yyyy-MM-dd E HH:mm"))
-(defn get-date-time-string-3 []
-  (tf/unparse custom-formatter-3 (tl/local-now)))
-
-(def custom-formatter-4 (tf/formatter "yyyy-MM-dd E HH:mm:ss"))
-(defn get-date-time-string-4 []
-  (tf/unparse custom-formatter-4 (tl/local-now)))
+   (tf/unparse custom-formatter-2 date-time)))
 
 (defn journal-name
   ([]
@@ -90,78 +48,43 @@
   ([date]
    (let [formatter (state/get-date-formatter)]
      (try
-      (date-time-util/format date formatter)
-      (catch :default e
-        (log/error :parse-journal-date {:message  "Failed to parse date to journal name."
-                                        :date date
-                                        :format formatter})
-        (throw e))))))
+       (date-time-util/format date formatter)
+       (catch :default e
+         (log/error :parse-journal-date {:message  "Failed to parse date to journal name."
+                                         :date date
+                                         :format formatter})
+         (throw e))))))
 
-(defn journal-name-s [s]
-  (try
-    (journal-name (tf/parse (tf/formatter "yyyy-MM-dd") s))
-    (catch :default _e
-      (log/error :parse-journal-date {:message  "Unable to parse date to journal name, skipping."
-                                      :date-str s})
-      nil)))
+(defn start-of-day [date]
+  (t/date-time (t/year date) (t/month date) (t/day date)))
 
 (defn today
   []
   (journal-name))
 
+(defn today-journal-day
+  []
+  (date-time-util/date->int (js/Date.)))
+
+(defn today-name
+  []
+  (tf/unparse mmm-do-yyyy-formatter (t/today)))
+
 (defn tomorrow
   []
-  (journal-name (t/plus (t/today) (t/days 1))))
+  (journal-name (t/plus (start-of-day (tl/local-now)) (t/days 1))))
 
 (defn yesterday
   []
-  (journal-name (t/minus (t/today) (t/days 1))))
-
-(defn get-local-date
-  []
-  (let [date (js/Date.)
-        year (.getFullYear date)
-        month (inc (.getMonth date))
-        day (.getDate date)
-        hour (.getHours date)
-        minute (.getMinutes date)]
-    {:year year
-     :month month
-     :day day
-     :hour hour
-     :minute minute}))
+  (journal-name (t/minus (start-of-day (tl/local-now)) (t/days 1))))
 
 (defn get-current-time
   []
-  (let [d (js/Date.)]
-    (.toLocaleTimeString
-     d
-     (gobj/get js/window.navigator "language")
-     (bean/->js {:hour "2-digit"
-                 :minute "2-digit"
-                 :hourCycle "h23"}))))
-
-(defn normalize-date
-  "Given raw date string, return a normalized date string at best effort.
-   Warning: this is a function with heavy cost (likely 50ms). Use with caution"
-  [s]
-  (some
-   (fn [formatter]
-     (try
-       (tf/parse (tf/formatter formatter) s)
-       (catch :default _e
-         false)))
-   (journal-title-formatters)))
-
-(defn normalize-journal-title
-  "Normalize journal title at best effort. Return nil if title is not a valid date"
-  [title]
-  (and title
-       (normalize-date (gp-util/capitalize-all title))))
+  (i18n/locale-format-time (js/Date.)))
 
 (defn valid-journal-title?
   [title]
-  (boolean (normalize-journal-title title)))
+  (common-date/valid-journal-title? title (state/get-date-formatter)))
 
 (defn journal-title->
   ([journal-title then-fn]
@@ -175,45 +98,92 @@
    journal-title
    (date-time-util/safe-journal-title-formatters (state/get-date-formatter))))
 
-(defn journal-day->ts
-  [day]
-  (when day
-    (-> (tf/parse (tf/formatter "yyyyMMdd") (str day))
-        (tc/to-long))))
+(def journal-day->utc-ms date-time-util/journal-day->ms)
 
 (defn journal-title->long
   [journal-title]
   (journal-title-> journal-title #(tc/to-long %)))
 
-(def default-journal-title-formatter (tf/formatter "yyyy_MM_dd"))
-
-(defn journal-title->default
-  [journal-title]
-  (let [formatter (if-let [format (state/get-journal-file-name-format)]
-                    (tf/formatter format)
-                    default-journal-title-formatter)]
-    (journal-title-> journal-title #(tf/unparse formatter %))))
-
-(defn date->file-name
-  [date]
-  (let [formatter (if-let [format (state/get-journal-file-name-format)]
-                    (tf/formatter format)
-                    default-journal-title-formatter)]
-    (tf/unparse formatter date)))
-
-(defn journal-title->custom-format
-  [journal-title]
-  (journal-title-> journal-title #(date-time-util/format % (state/get-date-formatter))))
-
 (defn int->local-time-2
   [n]
   (tf/unparse
-   (tf/formatter "yyyy-MM-dd HH:mm")
+   yyyy-MM-dd-HH-mm-formatter
    (t/to-default-time-zone (tc/from-long n))))
 
-(def iso-parser (tf/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSS'Z'"))
 (defn parse-iso [string]
   (tf/parse iso-parser string))
+
+(defn js-date->journal-title
+  [date]
+  (journal-name (t/to-default-time-zone date)))
+
+(defn js-date->goog-date
+  [d]
+  (cond
+    (some->> d (instance? js/Date))
+    (goog.date.Date. (.getFullYear d) (.getMonth d) (.getDate d))
+    :else d))
+
+(def nlp-pages
+  ["Today"
+   "Tomorrow"
+   "Yesterday"
+   "Next week"
+   "This week"
+   "Last week"
+   "Next month"
+   "This month"
+   "Last month"
+   "Next year"
+   "This year"
+   "Last year"
+   "Last Monday"
+   "Last Tuesday"
+   "Last Wednesday"
+   "Last Thursday"
+   "Last Friday"
+   "Last Saturday"
+   "Last Sunday"
+   "This Monday"
+   "This Tuesday"
+   "This Wednesday"
+   "This Thursday"
+   "This Friday"
+   "This Saturday"
+   "This Sunday"
+   "Next Monday"
+   "Next Tuesday"
+   "Next Wednesday"
+   "Next Thursday"
+   "Next Friday"
+   "Next Saturday"
+   "Next Sunday"])
+
+(defn- nlp-page->i18n-key
+  "Derives a :date.nlp/* i18n key from an English NLP page string.
+  Example: \"Last Monday\" -> :date.nlp/last-monday"
+  [s]
+  (keyword "date.nlp" (-> s string/lower-case (string/replace " " "-"))))
+
+(defn- with-i18n-titles
+  "Wraps a collection of English display strings, returning a seq of maps with
+  {:block/title <translated-label> :nlp-original-title <english-string>
+   ...extra}.
+  key-fn derives an i18n keyword from each English string.
+  t-fn is the translation function (frontend.context.i18n/t)."
+  [items key-fn t-fn extra]
+  (map (fn [en]
+         (merge extra
+                {:block/title (t-fn (key-fn en))
+                 :nlp-original-title en}))
+       items))
+
+(defn nlp-pages-i18n
+  "Returns nlp-pages as a seq of maps with translated :block/title labels.
+  :nlp-original-title preserves the English string for chrono-node NLP parsing.
+  Accepts optional keyword args merged into every output map."
+  [& {:as extra}]
+  (with-i18n-titles nlp-pages nlp-page->i18n-key i18n/t extra))
 
 (comment
   (def default-formatter (tf/formatter "MMM do, yyyy"))
@@ -229,4 +199,4 @@
               :LemonRenewsAt "2024-04-11T07:28:00.000000Z",
               :LemonEndsAt nil,
               :LemonStatus "active"}]
-    (->> info :LemonRenewsAt (tf/parse iso-parser) (< (js/Date.))))) 
+    (->> info :LemonRenewsAt (tf/parse iso-parser) (< (js/Date.)))))

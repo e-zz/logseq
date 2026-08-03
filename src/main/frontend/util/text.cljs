@@ -4,10 +4,7 @@
   (:require [clojure.string :as string]
             [frontend.config :as config]
             [frontend.util :as util]
-            [goog.string :as gstring]
-            [logseq.common.path :as path]))
-
-(defonce between-re #"\(between ([^\)]+)\)")
+            [goog.string :as gstring]))
 
 (def bilibili-regex #"^((?:https?:)?//)?((?:www).)?((?:bilibili.com))(/(?:video/)?)([\w-]+)(\?p=(\d+))?(\S+)?$")
 (def loom-regex #"^((?:https?:)?//)?((?:www).)?((?:loom.com))(/(?:share/|embed/))([\w-]+)(\S+)?$")
@@ -31,32 +28,6 @@
 (defn media-link?
   [media-formats s]
   (some (fn [fmt] (util/safe-re-find (re-pattern (str "(?i)\\." fmt "(?:\\?([^#]*))?(?:#(.*))?$")) s)) media-formats))
-
-(defn add-timestamp
-  [content key value]
-  (let [new-line (str (string/upper-case key) ": " value)
-        lines (string/split-lines content)
-        new-lines (map (fn [line]
-                         (string/trim
-                          (if (string/starts-with? (string/lower-case line) key)
-                            new-line
-                            line)))
-                       lines)
-        new-lines (if (not= (map string/trim lines) new-lines)
-                    new-lines
-                    (cons (first new-lines) ;; title
-                          (cons
-                           new-line
-                           (rest new-lines))))]
-    (string/join "\n" new-lines)))
-
-(defn remove-timestamp
-  [content key]
-  (let [lines (string/split-lines content)
-        new-lines (filter (fn [line]
-                            (not (string/starts-with? (string/lower-case line) key)))
-                          lines)]
-    (string/join "\n" new-lines)))
 
 (defn get-current-line-by-pos
   [s pos]
@@ -122,10 +93,7 @@
              ks))))
 
 (defn cut-by
-  "Cut string by specified wrapping symbols, only match the first occurrence.
-     value - string to cut
-     before - cutting symbol (before)
-     end - cutting symbol (end)"
+  "Cuts `value` around the first `before` and `end` marker pair."
   [value before end]
   (let [b-pos (string/index-of value before)
         b-len (count before)]
@@ -147,12 +115,4 @@
    On iOS, repo-url might be nil"
   [repo-url]
   (when (not-empty repo-url)
-    (let [path (config/get-local-dir repo-url)
-          path (if (path/is-file-url? path)
-                 (path/url-to-path path)
-                 path)
-          parts (->> (string/split path #"/")
-                     (take-last 2))]
-      (if (not= (first parts) "0")
-        (util/string-join-path parts)
-        (last parts)))))
+    (config/db-graph-name repo-url)))

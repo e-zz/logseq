@@ -1,119 +1,118 @@
 (ns frontend.components.server
   (:require
-    [clojure.string :as string]
-    [rum.core :as rum]
-    [electron.ipc :as ipc]
-    [medley.core :as medley]
-    [promesa.core :as p]
-    [frontend.state :as state]
-    [frontend.util :as util]
-    [frontend.handler.notification :as notification]
-    [frontend.ui :as ui]))
+   [clojure.string :as string]
+   [electron.ipc :as ipc]
+  [frontend.context.i18n :refer [t]]
+   [frontend.handler.notification :as notification]
+   [frontend.state :as state]
+   [frontend.ui :as ui]
+   [frontend.util :as util]
+   [logseq.shui.hooks :as hooks]
+   [logseq.shui.ui :as shui]
+   [medley.core :as medley]
+   [promesa.core :as p]
+   [io.factorhouse.hsx.core :as hsx]))
 
-(rum/defcs panel-of-tokens
-  < rum/reactive
-    (rum/local nil ::tokens)
-    {:will-mount
-     (fn [s]
-       (let [*tokens (s ::tokens)]
-         (reset! *tokens (get-in @state/state [:electron/server :tokens])) s))}
-  [_state close-panel]
-
-  (let [server-state (state/sub :electron/server)
-        *tokens      (::tokens _state)
-        changed?     (not= @*tokens (:tokens server-state))]
-    [:div.cp__server-tokens-panel.-mx-2
-     [:h2.text-3xl.-translate-y-4 "Authorization tokens"]
+(hsx/defc panel-of-tokens
+  [close-panel]
+  (let [server-state (state/use-sub :electron/server)
+        [tokens set-tokens!] (hooks/use-state (get-in @state/state [:electron/server :tokens]))
+        changed? (not= tokens (:tokens server-state))]
+    [:div.cp__server-tokens-panel.pt-6
+     [:h2.text-3xl.-translate-y-4 (t :server.token/title)]
      ;; items
-     (let [update-value! (fn [idx k v] (swap! *tokens assoc-in [idx k] v))]
-       (for [[idx {:keys [value name]}] (medley/indexed @*tokens)]
+     (let [update-value! (fn [idx k v] (set-tokens! #(assoc-in % [idx k] v)))]
+       (for [[idx {:keys [value name]}] (medley/indexed tokens)]
          [:div.item.py-2.flex.space-x-2.items-center
           {:key idx}
           [:input.form-input.basis-36
-           {:auto-focus  true
-            :placeholder "name"
-            :value       name
-            :on-change   #(let [value (.-value (.-target %))]
-                            (update-value! idx :name value))}]
+           {:auto-focus true
+            :placeholder (t :server.token/name-placeholder)
+            :value name
+            :on-change #(let [value (.-value (.-target %))]
+                          (update-value! idx :name value))}]
           [:input.form-input
-           {:placeholder "value"
-            :value       value
-            :on-change   #(let [value (.-value (.-target %))]
-                            (update-value! idx :value value))}]
+           {:placeholder (t :server.token/value-placeholder)
+            :value value
+            :on-change #(let [value (.-value (.-target %))]
+                          (update-value! idx :value value))}]
 
           [:button.px-2.opacity-50.hover:opacity-90.active:opacity-100
-           {:on-click #(reset! *tokens (into [] (medley/remove-nth idx @*tokens)))}
+           {:on-click #(let [new-token (util/unique-id)
+                             ^js input-el (some-> (.-target %) (.closest ".item") (.querySelector "input.form-input:nth-child(2)"))]
+                         (update-value! idx :value new-token)
+                         (when input-el
+                           (js/setTimeout (fn [] (.select input-el)) 64)))
+            :title (t :server.token/regenerate-value)}
+           [:span.flex.items-center (ui/icon "refresh")]]
+          [:button.px-2.opacity-50.hover:opacity-90.active:opacity-100
+           {:on-click #(set-tokens! (into [] (medley/remove-nth idx tokens)))}
            [:span.flex.items-center (ui/icon "trash-x")]]]))
 
      [:p.flex.justify-end.pt-6.space-x-3
-      (ui/button "+ Add new token"
-                 :on-click #(swap! *tokens conj {})
-                 :intent "logseq")
-      (ui/button "Save"
-                 :on-click (fn [] (-> (ipc/ipc :server/set-config {:tokens @*tokens})
-                                      (p/then #(notification/show! "Update tokens successfully!" :success))
+      (ui/button (t :server.token/add-new)
+                 :on-click #(set-tokens! (conj tokens {}))
+                 :variant :outline)
+      (ui/button (t :ui/save)
+                 :on-click (fn [] (-> (ipc/ipc :server/set-config {:tokens tokens})
+                                      (p/then #(notification/show! (t :server.token/update-success) :success))
                                       (p/catch #(js/console.error %))
                                       (p/finally #(close-panel))))
                  :disabled (not changed?))]]))
 
-(rum/defcs panel-of-configs
-  < rum/reactive
-    (rum/local nil ::configs)
-    {:will-mount
-     (fn [s]
-       (let [*configs (s ::configs)]
-         (reset! *configs (:electron/server @state/state)) s))}
-  [_state close-panel]
-
-  (let [server-state (state/sub :electron/server)
-        *configs     (::configs _state)
-        {:keys [host port autostart]} @*configs
+(hsx/defc panel-of-configs
+  [close-panel]
+  (let [server-state (state/use-sub :electron/server)
+        [configs set-configs!] (hooks/use-state (:electron/server @state/state))
+        {:keys [host port autostart]} configs
         hp-changed?  (or (not= host (:host server-state))
                          (not= (util/safe-parse-int (or port 0))
                                (util/safe-parse-int (or (:port server-state) 0))))
         changed?     (or hp-changed? (->> [autostart (:autostart server-state)]
-                                          (mapv #(cond-> % (nil? %) not))
+                                          (mapv #(cond-> % (nil? %) boolean))
                                           (apply not=)))]
 
-    [:div.cp__server-configs-panel.-mx-2
-     [:h2.text-3xl.-translate-y-4 "Server configurations"]
+    [:div.cp__server-configs-panel.pt-5
+     [:h2.text-3xl.-translate-y-4 (t :server.config/title)]
 
-     [:div.item.flex.items-center.space-x-3
-      [:label.basis-96
-       [:strong "Host"]
+     [:div.flex.items-end.gap-3
+      [:div.flex.flex-col.gap-1.flex-1
+       [:strong (t :ui/host)]
        [:input.form-input
-        {:value     host
+        {:value     (or host "")
          :on-change #(let [value (.-value (.-target %))]
-                       (swap! *configs assoc :host value))}]]
-
-      [:label
-       [:strong "Port (1 ~ 65535)"]
+                       (set-configs! (assoc configs :host value)))}]]
+      [:div.flex.flex-col.gap-1
+       {:class "w-40"}
+       [:strong (t :server.config/port-label)]
        [:input.form-input
         {:auto-focus true
-         :value      port
-         :min        "1"
-         :max        "65535"
-         :type       "number"
-         :on-change  #(let [value (.-value (.-target %))]
-                        (swap! *configs assoc :port value))}]]]
+         :value      (or port "")
+         :type       "text"
+         :inputMode  "numeric"
+         :pattern    "[0-9]*"
+         :on-change  #(let [value (util/evalue %)
+                            port (if (string/blank? value) 1 (util/sanitize-port-input value))]
+                        (set-configs! (assoc configs :port port)))
+         :on-blur    #(let [value (.-value (.-target %))]
+                        (set-configs! (assoc configs :port (util/normalize-port-input value))))}]]]
 
      [:p.py-3.px-1
       [:label.flex.space-x-2.items-center
-       [:input.form-checkbox
-        {:type      "checkbox"
-         :on-change #(let [checked (.-checked (.-target %))]
-                       (swap! *configs assoc :autostart checked))
-         :checked   (not (false? autostart))}]
+       (ui/checkbox
+        {:on-change #(let [checked (.-checked (.-target %))]
+                       (set-configs! (assoc configs :autostart checked)))
+         :checked   (not (false? autostart))})
 
-       [:strong.select-none "Auto start server with the app launched"]]]
+       [:strong.select-none (t :server.config/auto-start-label)]]]
 
      [:p.flex.justify-end.pt-6.space-x-3
-      (ui/button "Reset" :intent "logseq"
-                 :on-click #(reset! *configs (select-keys server-state [:host :port :autostart])))
-      (ui/button "Save & Apply"
+      (ui/button (t :server.config/reset) :variant :outline
+                 :on-click #(set-configs! (select-keys server-state [:host :port :autostart])))
+      (ui/button (t :server.config/save-and-apply)
                  :disabled (not changed?)
                  :on-click (fn []
-                             (let [configs (select-keys @*configs [:host :port :autostart])]
+                             (let [configs (select-keys configs [:host :port :autostart])]
                                (-> (ipc/ipc :server/set-config configs)
                                    (p/then #(p/let [_ (close-panel)
                                                     _ (p/delay 1000)]
@@ -121,66 +120,92 @@
                                                 (ipc/ipc :server/do :restart))))
                                    (p/catch #(notification/show! (str %) :error))))))]]))
 
-(rum/defc server-indicator
+(defn- server-status-label
+  [status]
+  (-> (case status
+        :starting (t :server.status/starting)
+        :running (t :server.status/running)
+        :closing (t :server.status/closing)
+        :closed (t :server.status/closed)
+        :error (t :server.status/error)
+        (t :server.status/stopped))
+      string/upper-case))
+
+(hsx/defc server-indicator
   [server-state]
 
-  (rum/use-effect!
-    (fn []
-      (p/let [_ (p/delay 1000)
-              _ (ipc/ipc :server/load-state)]
-        (let [t (js/setTimeout #(when (state/sub [:electron/server :autostart])
-                                  (ipc/ipc :server/do :restart)) 1000)]
-          #(js/clearTimeout t))))
-    [])
+  (hooks/use-effect!
+   (fn []
+     (p/let [_ (p/delay 1000)
+             _ (ipc/ipc :server/load-state)]
+       (let [t (js/setTimeout #(when (state/get-state [:electron/server :autostart])
+                                 (ipc/ipc :server/do :restart)) 1000)]
+         #(js/clearTimeout t))))
+   [])
 
-  (let [{:keys [status error]} server-state
-        status   (keyword (util/safe-lower-case status))
+  (let [{:keys [status error mcp-enabled?]} server-state
+        status (keyword (util/safe-lower-case status))
         running? (= :running status)
-        href     (and running? (str "http://" (:host server-state) ":" (:port server-state)))]
+        href (and running? (str "http://" (:host server-state) ":" (:port server-state)))]
 
-    (rum/use-effect!
-      #(when error
-         (notification/show! (str "[Server] " error) :error))
-      [error])
+    (hooks/use-effect!
+     #(when error
+        (notification/show! (t :server/error-notification error) :error))
+     [error])
 
     [:div.cp__server-indicator
-     ;; settings menus
-     (ui/dropdown-with-links
-       (fn [{:keys [toggle-fn]}]
-         [:button.button.icon
-          {:on-click #(toggle-fn)}
-          (ui/icon (if running? "api" "api-off") {:size 22})])
+     (shui/button-ghost-icon (if running? "api" "api-off")
+                             {:on-click (fn [^js e]
+                                          (shui/popup-show!
+                                           (.-target e)
+                                           (fn [{:keys [_close]}]
+                                             (let [items [{:hr? true}
 
-       ;; items
-       (->> [{:hr true}
+                                                          (cond
+                                                            running?
+                                                            {:title (t :server/stop)
+                                                             :options {:on-click #(ipc/ipc :server/do :stop)}
+                                                             :icon [:span.text-red-500.flex.items-center (ui/icon "player-stop")]}
 
-             (cond
-               running?
-               {:title   "Stop server"
-                :options {:on-click #(ipc/ipc :server/do :stop)}
-                :icon    [:span.text-red-500.flex.items-center (ui/icon "player-stop")]}
+                                                            :else
+                                                            {:title (t :server/start)
+                                                             :options {:on-click #(ipc/ipc :server/do :restart)}
+                                                             :icon [:span.text-green-500.flex.items-center (ui/icon "player-play")]})
 
-               :else
-               {:title   "Start server"
-                :options {:on-click #(ipc/ipc :server/do :restart)}
-                :icon    [:span.text-green-500.flex.items-center (ui/icon "player-play")]})
+                                                          {:title (t :server.token/title)
+                                                           :options {:on-click #(shui/dialog-open!
+                                                                                 (fn []
+                                                                                   (panel-of-tokens shui/dialog-close!)))}
+                                                           :icon (ui/icon "key")}
 
-             {:title   "Authorization tokens"
-              :options {:on-click #(state/set-modal!
-                                     (fn [close]
-                                       (panel-of-tokens close))
-                                     {:center? true})}
-              :icon    (ui/icon "key")}
+                                                          {:title (t :server.config/title)
+                                                           :options {:on-click #(shui/dialog-open!
+                                                                                 (fn []
+                                                                                   (panel-of-configs shui/dialog-close!)))}
+                                                           :icon (ui/icon "server-cog")}]]
 
-             {:title   "Server configurations"
-              :options {:on-click #(state/set-modal!
-                                     (fn [close]
-                                       (panel-of-configs close))
-                                     {:center? true})}
-              :icon    (ui/icon "server-cog")}])
-       {:links-header
-        [:div.links-header.flex.justify-center.py-2
-         [:span.ml-1.text-sm
-          (if-not running?
-            (string/upper-case (or (:status server-state) "stopped"))
-            [:a.hover:underline {:href href} href])]]})]))
+                                               (cons
+                                                [:div.links-header.flex.justify-center.py-2
+                                                 [:span.ml-1.text-sm.opacity-70
+                                                  (if-not running?
+                                                    (server-status-label status)
+                                                    [:span.flex.flex-col.gap-1.text-xs.font-mono
+                                                     [:a.hover:underline.flex.items-center {:href href}
+                                                      href (shui/tabler-icon "external-link" {:size 12 :class "inline-block ml-1 pt-[1px]"})]
+                                                     (when mcp-enabled?
+                                                       [:a.hover:underline.flex.items-center
+                                                        {:on-click (fn []
+                                                                     (util/copy-to-clipboard! (str href "/mcp"))
+                                                                     (notification/show! (t :server/mcp-url-copied) :success))}
+                                                        (str href "/mcp")
+                                                        (shui/tabler-icon "copy" {:size 12 :class "inline-block ml-1 mt-[1px]"})])])]]
+                                                (for [{:keys [hr? title options icon]} items]
+                                                  (cond
+                                                    hr?
+                                                    (shui/dropdown-menu-separator)
+
+                                                    :else
+                                                    (shui/dropdown-menu-item options
+                                                                             [:span.flex.items-center icon [:span.pl-1 title]]))))))
+                                           {:as-dropdown? true
+                                            :content-props {:onClick #(shui/popup-hide!)}}))})]))

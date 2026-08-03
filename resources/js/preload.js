@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
-const { ipcRenderer, contextBridge, shell, clipboard, webFrame } = require('electron')
+const os = require('os')
+const { ipcRenderer, contextBridge, shell, clipboard, webFrame, webUtils } = require('electron')
 
 const IS_MAC = process.platform === 'darwin'
 const IS_WIN32 = process.platform === 'win32'
@@ -33,6 +34,8 @@ function getClipboardData (format) {
 }
 
 contextBridge.exposeInMainWorld('apis', {
+  getFilePath: (file) => webUtils.getPathForFile(file),
+
   doAction: async (arg) => {
     return await ipcRenderer.invoke('main', arg)
   },
@@ -86,16 +89,11 @@ contextBridge.exposeInMainWorld('apis', {
     await shell.openExternal(url, options)
   },
 
-  async openPath (path) {
-    await shell.openPath(path)
-  },
-
-  showItemInFolder (fullpath) {
-    if (IS_WIN32) {
-      shell.openPath(path.dirname(fullpath).replaceAll("/", "\\"))
-    } else {
-      shell.showItemInFolder(fullpath)
-    }
+  async openPath (relativePath) {
+    const absolutePath = path.resolve(
+      relativePath.startsWith('~') ? path.join(os.homedir(), relativePath.slice(1)) : relativePath
+    );
+    await shell.openPath(absolutePath)
   },
 
   /**
@@ -113,51 +111,6 @@ contextBridge.exposeInMainWorld('apis', {
       assetFilenames,
       outputDir
     )
-  },
-
-  /**
-   * When from is empty. The resource maybe from
-   * client paste or screenshoot.
-   * @param repoPathRoot
-   * @param to
-   * @param from?
-   * @returns {Promise<void>}
-   */
-  async copyFileToAssets (repoPathRoot, to, from) {
-    if (from && fs.statSync(from).isDirectory()) {
-      throw new Error('not support copy directory')
-    }
-
-    const dest = path.join(repoPathRoot, to)
-    const assetsRoot = path.dirname(dest)
-
-    await fs.promises.mkdir(assetsRoot, { recursive: true })
-
-    from = from || getFilePathFromClipboard()
-
-    if (from) {
-      try {
-        // console.debug('copy file: ', from, dest)
-        await fs.promises.copyFile(from, dest)
-        return path.basename(from)
-      } catch (e) {
-        from = decodeURIComponent(from)
-        await fs.promises.copyFile(from, dest)
-        return path.basename(from)
-      }
-    }
-
-    // support image
-    // console.debug('read image: ', from, dest)
-    const nImg = clipboard.readImage()
-
-    if (nImg && !nImg.isEmpty()) {
-      const rawExt = path.extname(dest)
-      return await fs.promises.writeFile(
-        dest.replace(rawExt, '.png'),
-        nImg.toPNG()
-      )
-    }
   },
 
   toggleMaxOrMinActiveWindow (isToggleMin = false) {
@@ -182,6 +135,16 @@ contextBridge.exposeInMainWorld('apis', {
    */
   async _callMainWin (type, ...args) {
     return await ipcRenderer.invoke('call-main-win', type, ...args)
+  },
+
+  /**
+   * Write binary data to a file, creating parent dirs as needed.
+   * Used for asset files that can't be transit-serialized through doAction.
+   */
+  writeFileBytes (filePath, data) {
+    const dir = path.dirname(filePath)
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(filePath, Buffer.from(data))
   },
 
   getFilePathFromClipboard,

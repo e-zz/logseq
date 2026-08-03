@@ -10,6 +10,8 @@ on:
         type: choice
         required: true
         options:
+          # NOTE: For now, we only have beta channel to be released on GitHub
+          # - stable
           - beta
           - nightly
           - non-release
@@ -43,55 +45,66 @@ on:
         type: boolean
         required: true
         default: true
-  schedule: # Every workday at the 2 P.M. (UTC) we run a scheduled nightly build
-    - cron: '0 14 * * MON-FRI'
+      publish-linux-stores:
+        description: 'Publish Flathub and Snap'
+        type: boolean
+        required: true
+        default: false
+  # schedule: # Every workday at the 2 P.M. (UTC) we run a scheduled nightly build
+  #   - cron: '0 14 * * MON-FRI'
 
 env:
-  CLOJURE_VERSION: '1.10.1.763'
-  NODE_VERSION: '18'
-  JAVA_VERSION: '11'
+  CLOJURE_VERSION: '1.12.4.1618'
+  NODE_VERSION: '24'
+  JAVA_VERSION: '21'
+  OCAML_VERSION: '5.4.0'
 
 jobs:
   compile-cljs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check build options
-        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta') && github.event.inputs.git-ref != 'master' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'nightly' || github.event.inputs.build-target == 'beta' || github.event.inputs.build-target == 'stable') && github.event.inputs.git-ref != 'master' }}
         run: |
-          echo "::error title=CheckFail::Nightly and Beta Release MUST be built from master"
+          echo "::error title=CheckFail::Nightly, Beta and Stable Release MUST be built from master"
           exit 1
 
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.git-ref }}
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache yarn cache directory
-        uses: actions/cache@v3
-        id: yarn-cache
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          version: 10.33.0
+
+      - name: Get pnpm store directory path
+        id: pnpm-store-dir-path
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store directory
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ${{ steps.pnpm-store-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-pnpm-
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Cache clojure deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository
@@ -99,9 +112,25 @@ jobs:
           key: ${{ runner.os }}-clojure-lib-${{ hashFiles('**/deps.edn') }}
 
       - name: Setup clojure
-        uses: DeLaGuardo/setup-clojure@10.1
+        uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_VERSION }}
+
+      - name: Set up OCaml
+        # Only upstream can build the OCaml CLI (cached opam state, secrets).
+        # Fork builds skip it - logseq-cli.js is not part of the desktop app itself.
+        if: ${{ github.repository == 'logseq/logseq' }}
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_VERSION }}
+
+      - name: Fetch OCaml deps
+        if: ${{ github.repository == 'logseq/logseq' }}
+        run: cd cli && opam install . --deps-only --with-test --yes
+
+      - name: Fetch CLI pnpm deps
+        if: ${{ github.repository == 'logseq/logseq' }}
+        run: pnpm --dir cli install --frozen-lockfile --ignore-workspace
 
       - name: Retrieve tag version
         id: ref
@@ -110,7 +139,7 @@ jobs:
           echo "version=$pkgver" >> $GITHUB_OUTPUT
 
       - name: Do Not Overwrite Existing Release
-        if: ${{ github.event.inputs.build-target == 'beta' }}
+        if: ${{ github.event.inputs.build-target == 'beta' || github.event.inputs.build-target == 'stable' }}
         run: |
           if curl -f "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ steps.ref.outputs.version }}" &>/dev/null; then
             echo "::error title=CheckFail::Release already exists"
@@ -130,10 +159,39 @@ jobs:
           echo "ENABLE_FILE_SYNC_PRODUCTION=${{ github.event_name == 'schedule' || github.event.inputs.enable-file-sync-production == 'true' }}" >> $GITHUB_ENV
 
       - name: Compile CLJS
-        run: yarn install && gulp build && yarn cljs:release-electron
+        run: |
+          pnpm install --frozen-lockfile
+          gulp build
+          pnpm cljs:release-electron
+          pnpm db-worker-node:bundle
+          if [ "${{ github.repository }}" = "logseq/logseq" ]; then opam exec -- pnpm cli:release; fi
+          pnpm webpack-app-build
+          # Forks don't build the OCaml CLI; stub it so prepare-desktop-runtime-js can stage it
+          if [ "${{ github.repository }}" != "logseq/logseq" ]; then
+            printf '#!/usr/bin/env node\nconsole.error("logseq-cli: not built (fork build)");\nprocess.exit(1);\n' > static/logseq-cli.js
+          fi
+          pnpm desktop:prepare-runtime-js
         env:
           LOGSEQ_SENTRY_DSN: ${{ secrets.LOGSEQ_SENTRY_DSN }}
           LOGSEQ_POSTHOG_TOKEN: ${{ secrets.LOGSEQ_POSTHOG_TOKEN }}
+
+      - name: Verify bundled db-worker-node runtime
+        run: |
+          test -f ./dist/db-worker-node.js
+          test -f ./dist/db-worker-node-assets.json
+
+      - name: Verify bundled CLI
+        # logseq-cli.js only exists when the OCaml CLI was built (upstream only)
+        if: ${{ github.repository == 'logseq/logseq' }}
+        run: |
+          test -f ./static/js/logseq-cli.js
+          node ./static/js/logseq-cli.js --help >/tmp/logseq-cli-help.txt
+          grep -E "USAGE|Usage|COMMANDS|Commands" /tmp/logseq-cli-help.txt >/dev/null
+
+      - name: Verify desktop runtime script locations
+        run: |
+          test -f ./static/js/db-worker-node.js
+          test -f ./static/.agents/skills/logseq-cli/SKILL.md
 
       - name: Update APP Version
         run: |
@@ -155,7 +213,7 @@ jobs:
       - name: Upload Sentry Sourcemaps (beta only)
         if: ${{ github.repository == 'logseq/logseq' && github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'beta' }}
         run: |
-          curl -sL https://sentry.io/get-cli/ | bash
+          curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.58.4 bash
           release_name="logseq@${{ steps.ref.outputs.version }}"
           sentry-cli releases new "${release_name}"
           sentry-cli releases files "${release_name}" upload-sourcemaps --ext map --ext js ./static/js --url-prefix '~/static/js'
@@ -166,68 +224,18 @@ jobs:
           SENTRY_PROJECT: logseq
 
       - name: Cache Static File
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: static
           path: static
+          include-hidden-files: true
 
-  e2e-test:
-    name: E2E Test Shard ${{ matrix.shard }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shard: [1, 2, 3]
-    needs: [ compile-cljs ]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Download The Static Asset
-        uses: actions/download-artifact@v3
-        with:
-          name: static
-          path: static
-
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-          cache-dependency-path: |
-            yarn.lock
-            static/yarn.lock
-
-      - name: Fetch yarn deps for E2E test
-        run: |
-          yarn install
-          (cd static && yarn install && yarn rebuild:all)
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-
-      - name: Install Fluxbox
-        run: sudo apt-get update && sudo apt-get install -y fluxbox
-
-      # Emulate a virtual framebuffer on machines with no display hardware
-      - name: Run XVFB
-        run: Xvfb :1 -screen 0 1024x768x24 >/dev/null 2>&1 &
-
-      # Start a lightweight window manager to simulate window actions (maximize,restore etc)
-      - name: Start Fluxbox
-        run:  DISPLAY=:1.0 fluxbox >/dev/null 2>&1 &
-
-      - name: Run Playwright test
-        run: DISPLAY=:1.0 npx playwright test --reporter github --shard=${{ matrix.shard }}/3
-        env:
-          LOGSEQ_CI: true
-          DEBUG: "pw:api"
-          RELEASE: true # skip dev only test
-
-  build-linux:
-    runs-on: ubuntu-20.04
+  build-linux-x64:
+    runs-on: ubuntu-22.04
     needs: [ compile-cljs ]
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -238,42 +246,111 @@ jobs:
           pkgver=$(cat ./static/VERSION)
           echo "version=$pkgver" >> $GITHUB_OUTPUT
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
       # - name: Cache Node Modules
-      #   uses: actions/cache@v3
+      #   uses: actions/cache@v4
       #   with:
       #     path: |
       #       **/node_modules
       #     key: ${{ runner.os }}-node-modules
 
       - name: Build/Release Electron App
-        run: yarn install && yarn electron:make
+        run: pnpm install --frozen-lockfile && pnpm electron:make
         working-directory: ./static
 
       - name: Save artifacts
         run: |
           mkdir -p builds
           # NOTE: save VERSION file to builds directory
-          cp static/VERSION ./builds/VERSION
-          mv static/out/make/*-*.AppImage ./builds/Logseq-linux-x64-${{ steps.ref.outputs.version }}.AppImage
-          mv static/out/make/zip/linux/x64/*-linux-x64-*.zip ./builds/Logseq-linux-x64-${{ steps.ref.outputs.version }}.zip
+          cp static/VERSION               ./builds/VERSION
+          mv static/dist/*.AppImage       ./builds/
+          shopt -s nullglob
+          blockmaps=(static/dist/*.blockmap)
+          if [ ${#blockmaps[@]} -gt 0 ]; then
+            mv static/dist/*.blockmap     ./builds/
+          fi
+          mv static/dist/latest-linux.yml ./builds/latest-linux.yml
+          mv static/dist/*.zip            ./builds/Logseq-linux-x86_64-${{ steps.ref.outputs.version }}.zip
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: logseq-linux-builds
+          name: logseq-linux-x64-builds
           path: builds
 
-  build-windows:
+  build-linux-arm64:
+    runs-on: ubuntu-22.04
+    needs: [ compile-cljs ]
+    steps:
+      - name: Download The Static Asset
+        uses: actions/download-artifact@v4
+        with:
+          name: static
+          path: static
+
+      - name: Retrieve tag version
+        id: ref
+        run: |
+          pkgver=$(cat ./static/VERSION)
+          echo "version=$pkgver" >> $GITHUB_OUTPUT
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Fetch deps
+        env:
+          npm_config_arch: arm64
+          npm_config_target_platform: linux
+        run: |
+          pnpm install --frozen-lockfile
+        working-directory: ./static
+
+      - name: Build/Release Electron App
+        run: pnpm electron:make-linux-arm64
+        working-directory: ./static
+
+      - name: Save artifacts
+        run: |
+          mkdir -p builds
+          # NOTE: save VERSION file to builds directory
+          cp static/VERSION                     ./builds/VERSION
+          mv static/dist/*.AppImage             ./builds/Logseq-linux-arm64-${{ steps.ref.outputs.version }}.AppImage
+          shopt -s nullglob
+          blockmaps=(static/dist/*.blockmap)
+          if [ ${#blockmaps[@]} -gt 0 ]; then
+            mv static/dist/*.blockmap           ./builds/
+          fi
+          mv static/dist/latest-linux-arm64.yml ./builds/latest-linux-arm64.yml
+          mv static/dist/*.zip                  ./builds/Logseq-linux-arm64-${{ steps.ref.outputs.version }}.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-linux-arm64-builds
+          path: builds
+
+  build-windows-x64:
     runs-on: windows-latest
     needs: [ compile-cljs ]
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -282,60 +359,168 @@ jobs:
         id: ref
         run: echo "version=$(cat ./static/VERSION)" >> $env:GITHUB_OUTPUT
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
       # - name: Cache Node Modules
-      #   uses: actions/cache@v3
+      #   uses: actions/cache@v4
       #   with:
       #    path: |
       #      **/node_modules
       #    key: ${{ runner.os }}-node-modules
 
       - name: Deps Electron app
-        run: yarn install
+        run: pnpm install --frozen-lockfile
         working-directory: ./static
 
-      - name: Fix Deps Electron app
-        run: yarn run postinstall
-        working-directory: ./static/node_modules/dugite/
-
-      - name: Prepare Code Sign
+      - name: Write Windows signing config (upstream only)
         if: ${{ github.repository == 'logseq/logseq' }}
+        shell: pwsh
         run: |
-          [IO.File]::WriteAllBytes($(Get-Location).Path + "\codesign.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
-        env:
-          CERTIFICATE: ${{ secrets.CODE_SIGN_CERTIFICATE }}
+          $signCfg = @'
+          {
+            "extends": "./electron-builder.yml",
+            "win": {
+              "azureSignOptions": {
+                "publisherName": "Logseq, Inc.",
+                "endpoint": "https://eus.codesigning.azure.net/",
+                "certificateProfileName": "Logseq",
+                "codeSigningAccountName": "logseqwin"
+              }
+            }
+          }
+          '@
+          $signCfgPath = Join-Path $PWD "electron-builder.sign-win.json"
+          $signCfg | Out-File -FilePath $signCfgPath -Encoding utf8NoBOM
+        working-directory: ./static
 
       - name: Build/Release Electron app
-        run: yarn electron:make
+        shell: pwsh
+        run: |
+          # Signing config only exists on upstream (Azure secrets); forks build unsigned
+          if (Test-Path "electron-builder.sign-win.json") {
+            pnpm exec electron-builder --config electron-builder.sign-win.json --publish never
+          } else {
+            pnpm exec electron-builder --publish never
+          }
         working-directory: ./static
         env:
-          CODE_SIGN_CERTIFICATE_FILE: ../codesign.pfx
-          CODE_SIGN_CERTIFICATE_PASSWORD: ${{ secrets.CODE_SIGN_CERTIFICATE_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Save Artifact
         run: |
           mkdir builds
-          mv static\out\make\squirrel.windows\x64\*.exe    builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.exe
-          mv static\out\make\squirrel.windows\x64\*.nupkg  builds\Logseq-win-x64-${{ steps.ref.outputs.version }}-full.nupkg
-          mv static\out\make\squirrel.windows\x64\RELEASES builds\RELEASES
+          mv static\dist\*-nsis.exe   builds\Logseq-win-x64-${{ steps.ref.outputs.version }}-nsis.exe
+          mv static\dist\*.blockmap   builds\
+          mv static\dist\latest.yml   builds\latest-x64.yml
+          mv static\dist\*.zip        builds\Logseq-win-x64-${{ steps.ref.outputs.version }}.zip
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: logseq-win64-builds
+          name: logseq-win-x64-builds
+          path: builds
+
+  build-windows-arm64:
+    runs-on: windows-latest
+    needs: [ compile-cljs ]
+    steps:
+      - name: Download The Static Asset
+        uses: actions/download-artifact@v4
+        with:
+          name: static
+          path: static
+
+      - name: Retrieve tag version
+        id: ref
+        run: echo "version=$(cat ./static/VERSION)" >> $env:GITHUB_OUTPUT
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      # - name: Cache Node Modules
+      #   uses: actions/cache@v4
+      #   with:
+      #    path: |
+      #      **/node_modules
+      #    key: ${{ runner.os }}-node-modules
+
+      - name: Deps Electron app
+        run: pnpm install --frozen-lockfile
+        working-directory: ./static
+
+      - name: Write Windows signing config (upstream only)
+        if: ${{ github.repository == 'logseq/logseq' }}
+        shell: pwsh
+        run: |
+          $signCfg = @'
+          {
+            "extends": "./electron-builder.yml",
+            "win": {
+              "azureSignOptions": {
+                "publisherName": "Logseq, Inc.",
+                "endpoint": "https://eus.codesigning.azure.net/",
+                "certificateProfileName": "Logseq",
+                "codeSigningAccountName": "logseqwin"
+              }
+            }
+          }
+          '@
+          $signCfgPath = Join-Path $PWD "electron-builder.sign-win.json"
+          $signCfg | Out-File -FilePath $signCfgPath -Encoding utf8NoBOM
+        working-directory: ./static
+
+      - name: Build/Release Electron app
+        shell: pwsh
+        run: |
+          # Signing config only exists on upstream (Azure secrets); forks build unsigned
+          if (Test-Path "electron-builder.sign-win.json") {
+            pnpm exec electron-builder --config electron-builder.sign-win.json --win nsis zip --arm64 --publish never
+          } else {
+            pnpm exec electron-builder --win nsis zip --arm64 --publish never
+          }
+        working-directory: ./static
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Save Artifact
+        run: |
+          mkdir builds
+          mv static\dist\*-nsis.exe   builds\Logseq-win-arm64-${{ steps.ref.outputs.version }}-nsis.exe
+          mv static\dist\*.blockmap   builds\
+          mv static\dist\latest.yml   builds\latest-arm64.yml
+          mv static\dist\*.zip        builds\Logseq-win-arm64-${{ steps.ref.outputs.version }}.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logseq-win-arm64-builds
           path: builds
 
   build-macos-x64:
     needs: [ compile-cljs ]
-    runs-on: macos-11
-
+    runs-on: macos-15-intel
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -349,22 +534,32 @@ jobs:
       - name: List Static Files
         run: ls -al ./static
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-      - name: Cache yarn cache directory
-        uses: actions/cache@v3
-        id: yarn-cache
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          version: 10.33.0
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Get pnpm store directory path
+        id: pnpm-store-dir-path
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+      - name: Cache pnpm store directory
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ${{ steps.pnpm-store-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-pnpm-
 
       - name: Signing By Apple Developer ID
         if: ${{ github.repository == 'logseq/logseq' }}
@@ -374,39 +569,41 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATES_P12_PASSWORD }}
 
       # - name: Cache Node Modules
-      #   uses: actions/cache@v3
+      #   uses: actions/cache@v4
       #   with:
       #     path: |
       #       **/node_modules
       #     key: ${{ runner.os }}-node-modules
 
       - name: Build/Release Electron App for x64
-        run: yarn install && yarn electron:make
+        run: pnpm install --frozen-lockfile && pnpm rebuild:all && pnpm electron:make
         working-directory: ./static
         env:
           APPLE_ID: ${{ secrets.APPLE_ID_EMAIL }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_ASC_PROVIDER: ${{ secrets.APPLE_ASC_PROVIDER }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Save x64 artifacts
         run: |
           mkdir -p builds
-          mv static/out/make/Logseq.dmg ./builds/Logseq-darwin-x64-${{ steps.ref.outputs.version }}.dmg
-          mv static/out/make/zip/darwin/x64/*.zip ./builds/Logseq-darwin-x64-${{ steps.ref.outputs.version }}.zip
+          cp static/VERSION              ./builds/VERSION
+          mv static/dist/*.dmg           ./builds/Logseq-darwin-x64-${{ steps.ref.outputs.version }}.dmg
+          mv static/dist/*.zip           ./builds/Logseq-darwin-x64-${{ steps.ref.outputs.version }}.zip
+          mv static/dist/*.blockmap      ./builds/
+          mv static/dist/latest-mac.yml  ./builds/latest-x64-mac.yml
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: logseq-darwin-x64-builds
           path: builds
 
   build-macos-arm64:
     needs: [ compile-cljs ]
-    runs-on: macos-11
-
+    runs-on: macos-14
     steps:
       - name: Download The Static Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: static
           path: static
@@ -417,22 +614,32 @@ jobs:
           pkgver=$(cat ./static/VERSION)
           echo "version=$pkgver" >> $GITHUB_OUTPUT
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-      - name: Cache yarn cache directory
-        uses: actions/cache@v3
-        id: yarn-cache
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-arm64-yarn-${{ hashFiles('**/yarn.lock') }}
+          version: 10.33.0
+
+      - name: Get pnpm store directory path
+        id: pnpm-store-dir-path
+        run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+      - name: Cache pnpm store directory
+        uses: actions/cache@v4
+        id: pnpm-cache
+        with:
+          path: ${{ steps.pnpm-store-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-arm64-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-arm64-yarn-
+            ${{ runner.os }}-arm64-pnpm-
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
       - name: Signing By Apple Developer ID
         if: ${{ github.repository == 'logseq/logseq' }}
@@ -442,32 +649,35 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATES_P12_PASSWORD }}
 
       # - name: Cache Node Modules
-      #   uses: actions/cache@v3
+      #   uses: actions/cache@v4
       #   with:
       #     path: |
       #       **/node_modules
       #     key: ${{ runner.os }}-node-modules
 
-      - name: Fetch deps and fix dugit arch for arm64
-        run: yarn install --ignore-platform && cd node_modules/dugite && npm_config_arch=arm64 node script/download-git.js
+      - name: Fetch deps
+        run: pnpm install --frozen-lockfile --config.supportedArchitectures.os=darwin --config.supportedArchitectures.cpu=arm64 && pnpm rebuild:all
         working-directory: ./static
 
       - name: Build/Release Electron App for arm64
-        run: yarn electron:make-macos-arm64
+        run: pnpm electron:make-macos-arm64
         working-directory: ./static
         env:
           APPLE_ID: ${{ secrets.APPLE_ID_EMAIL }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_ASC_PROVIDER: ${{ secrets.APPLE_ASC_PROVIDER }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Save arm64 artifacts
         run: |
           mkdir -p builds
-          mv static/out/make/Logseq.dmg ./builds/Logseq-darwin-arm64-${{ steps.ref.outputs.version }}.dmg
-          mv static/out/make/zip/darwin/arm64/*.zip ./builds/Logseq-darwin-arm64-${{ steps.ref.outputs.version }}.zip
+          cp static/VERSION              ./builds/VERSION
+          mv static/dist/*.dmg           ./builds/Logseq-darwin-arm64-${{ steps.ref.outputs.version }}.dmg
+          mv static/dist/*.zip           ./builds/Logseq-darwin-arm64-${{ steps.ref.outputs.version }}.zip
+          mv static/dist/*.blockmap      ./builds/
+          mv static/dist/latest-mac.yml  ./builds/latest-arm64-mac.yml
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: logseq-darwin-arm64-builds
           path: builds
@@ -487,35 +697,47 @@ jobs:
 
   nightly-release:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.build-target == 'nightly' }}
-    needs: [ build-macos-x64, build-macos-arm64, build-linux, build-windows, build-android, e2e-test ]
-    runs-on: ubuntu-20.04
+    needs: [ build-macos-x64, build-macos-arm64, build-linux-x64, build-linux-arm64, build-windows-x64, build-windows-arm64 ]
+    runs-on: ubuntu-22.04
     steps:
       - name: Download MacOS x64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-darwin-x64-builds
           path: ./
 
       - name: Download MacOS arm64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-darwin-arm64-builds
           path: ./
 
-      - name: Download The Linux Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download The Linux x64 Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: logseq-linux-builds
+          name: logseq-linux-x64-builds
           path: ./
 
-      - name: Download The Windows Artifact
-        uses: actions/download-artifact@v3
+      - name: Download The Linux arm64 Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: logseq-win64-builds
+          name: logseq-linux-arm64-builds
+          path: ./
+
+      - name: Download The Windows Artifact x64
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win-x64-builds
+          path: ./
+
+      - name: Download The Windows Artifact arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win-arm64-builds
           path: ./
 
       - name: Download Android Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-android-builds
           path: ./
@@ -532,12 +754,12 @@ jobs:
         run: ls -rl
 
       - name: Update Nightly Release
-        uses: andelf/nightly-release@main
+        uses: andelf/nightly-release@5834076edc55cc05975561c9722043f072ac5c26 # main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
-          name: 'Desktop/Android APP Nightly Release $$'
+          name: 'Desktop app Nightly Release $$'
           draft: false
           prerelease: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.is-pre-release) || (github.event_name == 'schedule')}}
           body: |
@@ -548,41 +770,56 @@ jobs:
             ./*.zip
             ./*.dmg
             ./*.exe
+            ./*.yml
+            ./*.blockmap
             ./*.AppImage
             ./*.apk
 
   release:
-    # NOTE: For now, we only have beta channel to be released on Github
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build-target == 'beta' }}
-    needs: [ build-macos-x64, build-macos-arm64, build-linux, build-windows, e2e-test ]
-    runs-on: ubuntu-20.04
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.build-target == 'beta' || github.event.inputs.build-target == 'stable') }}
+    needs: [ build-macos-x64, build-macos-arm64, build-linux-x64, build-linux-arm64, build-windows-x64, build-windows-arm64 ]
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.ref.outputs.version }}
     steps:
       - name: Download MacOS x64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-darwin-x64-builds
           path: ./
 
       - name: Download MacOS arm64 Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logseq-darwin-arm64-builds
           path: ./
 
-      - name: Download The Linux Artifacts
-        uses: actions/download-artifact@v3
+      - name: Download The Linux x64 Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: logseq-linux-builds
+          name: logseq-linux-x64-builds
+          path: ./
+
+      - name: Download The Linux arm64 Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-linux-arm64-builds
           path: ./
 
       - name: Download The Windows Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: logseq-win64-builds
+          name: logseq-win-x64-builds
+          path: ./
+
+      - name: Download The Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: logseq-win-arm64-builds
           path: ./
 
       - name: Download Android Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
         with:
           name: logseq-android-builds
@@ -597,17 +834,12 @@ jobs:
           pkgver=$(cat VERSION)
           echo "version=$pkgver" >> $GITHUB_OUTPUT
 
-      - name: Fix .nupkg name in RELEASES file
-        run: |
-          sed -i "s/Logseq-.*.nupkg/Logseq-win-x64-${{ steps.ref.outputs.version }}-full.nupkg/g" RELEASES
-
       - name: Generate SHA256 checksums
         run: |
           sha256sum *-darwin-* > SHA256SUMS.txt
           sha256sum *-win-* >> SHA256SUMS.txt
           sha256sum *-linux-* >> SHA256SUMS.txt
           sha256sum *.apk >> SHA256SUMS.txt
-          sha256sum RELEASES >> SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create Release Draft
@@ -616,7 +848,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.ref.outputs.version }}
-          name: Desktop/Android APP ${{ steps.ref.outputs.version }} (Beta Testing)
+          name: ${{ github.event.inputs.build-target == 'beta' && format('Desktop APP {0} (Beta Testing)', steps.ref.outputs.version) || format('Desktop APP {0}', steps.ref.outputs.version) }}
           body: "TODO: Fill this changelog. Sorry for the inconvenience!"
           draft: ${{ github.event.inputs.is-draft }}
           prerelease: ${{ github.event.inputs.is-pre-release }}
@@ -626,7 +858,105 @@ jobs:
             ./*.zip
             ./*.dmg
             ./*.exe
-            ./*.nupkg
-            ./RELEASES
+            ./*.yml
+            ./*.blockmap
             ./*.AppImage
             ./*.apk
+
+  trigger-flathub-release:
+    runs-on: ubuntu-22.04
+    needs: [ release ]
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish-linux-stores == 'true' && (github.event.inputs.build-target == 'beta' || github.event.inputs.build-target == 'stable') }}
+    steps:
+      - name: Trigger Flathub release
+        run: |
+          if [ -z "${FLATHUB_WORKFLOW_TOKEN:-}" ]; then
+            echo "::error title=CheckFail::FLATHUB_WORKFLOW_TOKEN is required to trigger Flathub release"
+            exit 1
+          fi
+
+          if [ "${BUILD_TARGET}" = "stable" ]; then
+            flathub_ref=master
+          else
+            flathub_ref=beta
+          fi
+
+          payload=$(jq -n \
+            --arg ref "$flathub_ref" \
+            --arg version "$VERSION" \
+            '{ref: $ref, inputs: {force: true, version: $version}}')
+
+          response=$(mktemp)
+          status=$(curl -sS -o "$response" -w "%{http_code}" -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${FLATHUB_WORKFLOW_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/flathub/com.logseq.Logseq/actions/workflows/update.yml/dispatches \
+            -d "$payload") || status=000
+
+          echo "Flathub dispatch returned HTTP ${status}"
+          if [ -s "$response" ]; then
+            cat "$response"
+          fi
+
+          if [ "$status" != "204" ]; then
+            echo "::error title=FlathubDispatchFailed::Failed to trigger Flathub release workflow"
+            exit 1
+          fi
+        env:
+          BUILD_TARGET: ${{ github.event.inputs.build-target }}
+          VERSION: ${{ needs.release.outputs.version }}
+          FLATHUB_WORKFLOW_TOKEN: ${{ secrets.FLATHUB_WORKFLOW_TOKEN }}
+
+  publish-linux-snap:
+    runs-on: ubuntu-22.04
+    needs: [ release ]
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish-linux-stores == 'true' && (github.event.inputs.build-target == 'beta' || github.event.inputs.build-target == 'stable') }}
+    steps:
+      - name: Download The Static Asset
+        uses: actions/download-artifact@v4
+        with:
+          name: static
+          path: static
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Publish Snap
+        run: |
+          if [ -z "${SNAPCRAFT_STORE_CREDENTIALS:-}" ]; then
+            echo "::error title=CheckFail::SNAPCRAFT_STORE_CREDENTIALS is required to publish snap"
+            exit 1
+          fi
+
+          if [ "${BUILD_TARGET}" = "stable" ]; then
+            snap_grade=stable
+            snap_channel=stable
+          else
+            snap_grade=devel
+            snap_channel=beta
+          fi
+
+          printf '%s\n' \
+            'extends: ./electron-builder.yml' \
+            'snap:' \
+            "  grade: ${snap_grade}" \
+            '  publish:' \
+            '    provider: snapStore' \
+            '    channels:' \
+            "      - ${snap_channel}" \
+            > electron-builder.snap.yml
+
+          pnpm install --frozen-lockfile
+          pnpm electron:publish-snap -- --config electron-builder.snap.yml
+        working-directory: ./static
+        env:
+          BUILD_TARGET: ${{ github.event.inputs.build-target }}
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

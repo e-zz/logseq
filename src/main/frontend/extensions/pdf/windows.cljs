@@ -1,6 +1,7 @@
 (ns frontend.extensions.pdf.windows
-  (:require [frontend.state :as state]
-            [rum.core :as rum]
+  (:require ["react-dom/client" :as rdc]
+            [cljs-bean.core :as bean]
+            [frontend.state :as state]
             [frontend.storage :as storage]))
 
 (def *active-win (atom nil))
@@ -8,11 +9,14 @@
 
 (defn resolve-styles!
   [^js doc]
-  (doseq [r ["./css/style.css"]]
-    (let [^js link (js/document.createElement "link")]
-      (set! (.-rel link) "stylesheet")
-      (set! (.-href link) r)
-      (.appendChild (.-head doc) link))))
+  (when-let [styles (keep #(when (some-> % (.-href) (.endsWith "style.css"))
+                             (.-href %))
+                          (seq js/document.styleSheets))]
+    (doseq [r styles]
+      (let [^js link (js/document.createElement "link")]
+        (set! (.-rel link) "stylesheet")
+        (set! (.-href link) r)
+        (.appendChild (.-head doc) link)))))
 
 (defn resolve-own-document
   [^js viewer]
@@ -89,10 +93,11 @@
                   (.appendChild (.-head doc) base)
                   (set! (.-title doc) (or (:filename pdf-current) "Logseq"))
                   (set! (.-dataset doc-el) -theme (str theme-mode))
+                  (set! (.-dataset doc-el) -color (or (some-> (:ui/radix-color @state/state) (name)) "logseq"))
                   (resolve-classes! doc)
                   (resolve-styles! doc)
                   (.appendChild (.-body doc) main)
-                  (rum/mount (pdf-playground pdf-current) main)
+                  (.render (rdc/createRoot main) (pdf-playground pdf-current))
 
                   ;; events
                   (.addEventListener win "beforeunload" #(close-pdf-in-new-window!))
@@ -103,7 +108,10 @@
                                                                  :y      (.-screenY win)})))
 
                 (reset! *active-win win)
-                (state/set-state! :pdf/system-win? true))))]
+                (state/set-state! :pdf/system-win? true)
+                ;; NOTE: must do ipc in new window
+                (some-> (.-apis win)
+                        (.doAction (bean/->js [:window/open-blank-callback :pdf]))))))]
 
       (js/setTimeout
        (fn []

@@ -1,9 +1,9 @@
 (ns electron.url
-  (:require [electron.handler :as handler]
+  (:require [clojure.string :as string]
+            [electron.handler :as handler]
             [electron.state :as state]
-            [electron.window :as win]
             [electron.utils :refer [send-to-renderer send-to-focused-renderer] :as utils]
-            [clojure.string :as string]
+            [electron.window :as win]
             [promesa.core :as p]))
 
 ;; Keep same as main/frontend.util.url
@@ -25,9 +25,12 @@
   [graph-identifier]
   (if (not-empty graph-identifier)
     (send-to-renderer "notification" {:type "error"
-                                      :payload (str "Failed to open link. Cannot match graph identifier `" graph-identifier "` to any linked graph.")})
+                                      :payload (str "Failed to open link. Cannot match graph identifier `" graph-identifier "` to any linked graph.")
+                                      :i18n-key :electron/link-open-failed-no-graph
+                                      :i18n-args [graph-identifier]})
     (send-to-renderer "notification" {:type "error"
-                                      :payload (str "Failed to open link. Missing graph identifier after `logseq://graph/`.")})))
+                                      :payload "Failed to open link. Missing graph identifier after `logseq://graph/`."
+                                      :i18n-key :electron/link-open-failed-missing-graph})))
 
 (defn local-url-handler
   "Given a URL with `graph identifier` as path, `page` (optional) and `block-id`
@@ -39,9 +42,7 @@
         graph-name (when graph-identifier (handler/get-graph-name graph-identifier))]
     (if graph-name
       (p/let [window-on-graph (first (win/get-graph-all-windows (utils/get-graph-dir graph-name)))
-              open-new-window? (or force-new-window? (not window-on-graph))
-              _ (when (and force-new-window? window-on-graph)
-                  (handler/broadcast-persist-graph! graph-name))]
+              open-new-window? (or force-new-window? (not window-on-graph))]
           ;; TODO: call open new window on new graph without renderer (remove the reliance on local storage)
           ;; TODO: allow open new window on specific page, without waiting for `graph ready` ipc then redirect to that page
         (when (or page-name block-id file)
@@ -79,11 +80,18 @@
                                                             (= append "true"))}
                                   win))
 
+      (= action "/invokeCommand")
+      (let [[action payload] (get-URL-decoded-params parsed-url ["action" "payload"])]
+        (send-to-focused-renderer "invokeCommand" {:action action
+                                                   :payload payload} win))
+
       :else
       (send-to-focused-renderer "notification" {:type "error"
                                                 :payload (str "Unimplemented x-callback-url action: `"
                                                               action
-                                                              "`.")} win))))
+                                                              "`.")
+                                                :i18n-key :electron/unimplemented-callback
+                                                :i18n-args [action]} win))))
 
 (defn logseq-url-handler
   "win - the main window"
@@ -100,7 +108,15 @@
       (= "new-window" url-host)
       (local-url-handler win parsed-url true)
 
+      (= "handbook" url-host)
+      (send-to-renderer :handbook
+                        {:key  (some-> (.-pathname parsed-url) (string/replace-first #"^[\/]+" ""))
+                         :args (some-> (.-searchParams parsed-url) (js/Object.fromEntries))})
+
       :else
-      (send-to-renderer "notification" {:type "error"
-                                        :payload (str "Failed to open link. Cannot match `" url-host
-                                                      "` to any target.")}))))
+      (send-to-renderer :notification
+                        {:type    "error"
+                         :payload (str "Failed to open link. Cannot match `" url-host
+                                       "` to any target.")
+                         :i18n-key :electron/link-open-failed-no-target
+                         :i18n-args [url-host]}))))

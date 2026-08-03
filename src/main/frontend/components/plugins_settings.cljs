@@ -1,31 +1,35 @@
 (ns frontend.components.plugins-settings
-  (:require [rum.core :as rum]
-            [frontend.util :as util]
-            [frontend.ui :as ui]
+  (:require [cljs-bean.core :as bean]
+            [frontend.components.lazy-editor :as lazy-editor]
+            [frontend.context.i18n :refer [t]]
+            [frontend.handler.notification :as notification]
             [frontend.handler.plugin :as plugin-handler]
-            [cljs-bean.core :as bean]
-            [goog.functions :refer [debounce]]))
+            [frontend.security :as security]
+            [frontend.ui :as ui]
+            [frontend.util :as util]
+            [goog.functions :refer [debounce]]
+            [logseq.shui.hooks :as hooks]
+            [logseq.shui.ui :as shui]
+            [io.factorhouse.hsx.core :as hsx]))
 
-(defn- dom-purify
-  [html opts]
-  (try
-    (js-invoke js/DOMPurify "sanitize" html (bean/->js opts))
-    (catch js/Error e
-      (js/console.warn e) html)))
-
-(rum/defc html-content
+(hsx/defc html-content
   [html]
   [:div.html-content.pl-1.flex-1.text-sm
-   {:dangerouslySetInnerHTML {:__html (dom-purify html nil)}}])
+   {:dangerouslySetInnerHTML {:__html (security/sanitize-html html)}}])
 
-(rum/defc edit-settings-file
-  [pid {:keys [class]}]
+(hsx/defc edit-settings-file
+  [pid {:keys [class edit-mode set-edit-mode!]}]
   [:a.text-sm.hover:underline
    {:class    class
-    :on-click #(plugin-handler/open-settings-file-in-default-app! pid)}
-   "Edit settings.json"])
+    :on-click (fn []
+                (if (util/electron?)
+                  (plugin-handler/open-settings-file-in-default-app! pid)
+                  (set-edit-mode! #(if % nil :code))))}
+   (if (= edit-mode :code)
+     (t :plugin.settings/exit-code-mode)
+     (t :plugin.settings/edit-settings-json))])
 
-(rum/defc render-item-input
+(hsx/defc render-item-input
   [val {:keys [key type title default description inputAs]} update-setting!]
 
   [:div.desc-item.as-input
@@ -44,7 +48,7 @@
         :on-key-down  #(.stopPropagation %)
         :on-change    (debounce #(update-setting! key (util/evalue %)) 1000)}])]])
 
-(rum/defc render-item-toggle
+(hsx/defc render-item-toggle
   [val {:keys [key title description default]} update-setting!]
 
   (let [val (if (boolean? val) val (boolean default))]
@@ -57,7 +61,7 @@
                     :on-change #(update-setting! key (not val))})
       (html-content description)]]))
 
-(rum/defc render-item-enum
+(hsx/defc render-item-enum
   [val {:keys [key title description default enumChoices enumPicker]} update-setting!]
 
   (let [val (or val default)
@@ -77,10 +81,9 @@
          :radio (ui/radio-list options #(update-setting! key %) nil)
          :checkbox (ui/checkbox-list options #(update-setting! key %) nil)
          ;; select
-         (ui/select options (fn [_ value ] (update-setting! key value)) nil))
-       ]]]))
+         (ui/select options (fn [_ value] (update-setting! key value))))]]]))
 
-(rum/defc render-item-object
+(hsx/defc render-item-object
   [_val {:keys [key title description _default]} pid]
 
   [:div.desc-item.as-object
@@ -89,9 +92,10 @@
 
    [:div.form-control
     (html-content description)
-    [:div.pl-1 (edit-settings-file pid nil)]]])
+    (when (util/electron?)
+      [:div.pl-1 (edit-settings-file pid nil)])]])
 
-(rum/defc render-item-heading
+(hsx/defc render-item-heading
   [{:keys [key title description]}]
 
   [:div.heading-item
@@ -99,43 +103,88 @@
    [:h2 title]
    (html-content description)])
 
-(rum/defc settings-container
+(hsx/defc render-item-not-handled
+  [s]
+  [:p.text-red-500 (t :plugin/setting-not-handled s)])
+
+(hsx/defc settings-container
   [schema ^js pl]
   (let [^js plugin-settings (.-settings pl)
         pid (.-id pl)
-        [settings, set-settings] (rum/use-state (bean/->clj (.toJSON plugin-settings)))
+        [settings, set-settings!] (hooks/use-state (bean/->clj (.toJSON plugin-settings)))
+        [edit-mode, set-edit-mode!] (hooks/use-state nil) ;; code
         update-setting! (fn [k v] (.set plugin-settings (name k) (bean/->js v)))]
 
-    (rum/use-effect!
+    (hooks/use-effect!
      (fn []
        (let [on-change (fn [^js s]
                          (when-let [s (bean/->clj s)]
-                           (set-settings s)))]
+                           (set-settings! s)))]
          (.on plugin-settings "change" on-change)
          #(.off plugin-settings "change" on-change)))
      [pid])
 
     (if (seq schema)
-      [:div.cp__plugins-settings-inner
-       ;; settings.json
-       [:span.edit-file
-        (edit-settings-file pid nil)]
+      [:<>
+       [:h2.text-xl.px-2.pt-1.opacity-90 "ID: " pid]
+       [:div.cp__plugins-settings-inner
+        {:data-mode (some-> edit-mode (name))}
+        ;; settings.json
+        [:span.edit-file
+         (edit-settings-file pid {:set-edit-mode! set-edit-mode!
+                                  :edit-mode edit-mode})]
 
-       ;; render items
-       (for [desc schema
-             :let [key (:key desc)
-                   val (get settings (keyword key))
-                   type (keyword (:type desc))
-                   desc (update desc :description #(plugin-handler/markdown-to-html %))]]
+        (if (= edit-mode :code)
+          ;; render with code editor
+          [:div.code-mode-wrap.pl-3.pr-1.py-1.mb-8.-ml-1
+           (let [content' (js/JSON.stringify (bean/->js settings) nil 2)]
+             (lazy-editor/editor {:file? false}
+                                 "code-edit-lsp-settings"
+                                 {:data-lang "json"}
+                                 content' {}))
+           [:div.flex.justify-end.pt-2.gap-2
+            (shui/button {:size :sm :variant :ghost
+                          :on-click (fn [^js e]
+                                      (let [^js cm (util/get-cm-instance (-> (.-target e) (.closest ".code-mode-wrap")))
+                                            content' (some-> (.toJSON plugin-settings) (js/JSON.stringify nil 2))]
+                                        (.setValue cm content')))}
+                         (t :ui/reset))
+            (shui/button {:size :sm
+                          :on-click (fn [^js e]
+                                      (try
+                                        (let [^js cm (util/get-cm-instance (-> (.-target e) (.closest ".code-mode-wrap")))
+                                              content (.getValue cm)
+                                              content' (js/JSON.parse content)]
+                                          (set! (. plugin-settings -settings) content')
+                                          (set-edit-mode! nil))
+                                        (catch js/Error e
+                                          (notification/show! (.-message e) :error))))}
+                         (t :ui/save))]]
 
-         (condp contains? type
-           #{:string :number} (render-item-input val desc update-setting!)
-           #{:boolean} (render-item-toggle val desc update-setting!)
-           #{:enum} (render-item-enum val desc update-setting!)
-           #{:object} (render-item-object val desc pid)
-           #{:heading} (render-item-heading desc)
+          ;; render with gui items
+          (for [desc schema
+                :let [key (:key desc)
+                      val (get settings (keyword key))
+                      type (keyword (:type desc))
+                      desc (update desc :description #(plugin-handler/markdown-to-html %))]]
 
-           [:p (str "#Not Handled#" key)]))]
+            (condp contains? type
+              #{:string :number}
+              ^{:key key} [render-item-input val desc update-setting!]
+
+              #{:boolean}
+              ^{:key key} [render-item-toggle val desc update-setting!]
+
+              #{:enum}
+              ^{:key key} [render-item-enum val desc update-setting!]
+
+              #{:object}
+              ^{:key key} [render-item-object val desc pid]
+
+              #{:heading}
+              ^{:key key} [render-item-heading desc]
+
+              ^{:key key} [render-item-not-handled key])))]]
 
       ;; no settings
-      [:h2.font-bold.text-lg.py-4.warning "No Settings Schema!"])))
+      [:h2.font-bold.text-lg.py-4.warning (t :plugin/no-settings-schema)])))

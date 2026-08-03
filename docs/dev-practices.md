@@ -7,17 +7,19 @@ This page describes development practices for this codebase.
 Most of our linters require babashka. Before running them, please [install babashka](https://github.com/babashka/babashka#installation). To invoke all the linters in this section, run
 
 ```sh
-bb dev:lint
+bb lint:dev
 ```
 
 ### Clojure code
 
 To lint:
 ```sh
-clojure -M:clj-kondo --parallel --lint src --cache false
+clojure -M:clj-kondo --parallel --lint src
 ```
 
 We lint our Clojure(Script) code with https://github.com/clj-kondo/clj-kondo/. If you need to configure specific linters, see [this documentation](https://github.com/clj-kondo/clj-kondo/blob/master/doc/linters.md). Where possible, a global linting configuration is used and namespace specific configuration is avoided.
+
+For engineers, there is a faster version of this command that only checks files that you have changed: `bb lint:kondo-git-changes`.
 
 There are outstanding linting items that are currently ignored to allow linting the rest of the codebase in CI. These outstanding linting items should be addressed at some point:
 
@@ -74,24 +76,90 @@ error if it detects an invalid query.
 
 ### Translations
 
-We use [tongue](https://github.com/tonsky/tongue), a simple and effective
-library, for translations. We have a couple bb tasks for working with
-translations under `lang:` e.g. `bb lang:list`. See [the translator
-guide](./contributing-to-translations.md) for usage.
+We use [tongue](https://github.com/tonsky/tongue) for translations.
 
-One useful task for reviewers (us) and contributors alike, is `bb
-lang:validate-translations` which catches [common
-mistakes](./contributing-to-translations.md#fix-mistakes)). When reviewing
-translations here are some things to keep in mind:
+Responsibilities are split across a few files:
 
-* Punctuation and delimiting characters (e.g. `:`, `:`, `?`) should be part of
-  the translatable string. Those characters and their position may vary depending on the language.
-* Translations usually return strings but they can return hiccup vectors with a
-  fn translation. Hiccup vectors are needed when word order matters for a
-  translation and formatting is involved. See [this 3 word Turkish
-  example](https://github.com/logseq/logseq/commit/1d932f07c4a0aad44606da6df03a432fe8421480#r118971415).
-* Translations can have arguments for interpolating strings. When they do, be
-  sure translators are using them correctly.
+* [docs/contributing-to-translations.md](./contributing-to-translations.md) is
+  for locale contributors.
+* [docs/i18n-key-naming.md](./i18n-key-naming.md) is for naming and reusing
+  keys in `src/resources/dicts/en.edn`.
+* [.i18n-lint.toml](../.i18n-lint.toml) is the source of truth for hardcoded UI
+  text lint scope, translatable helpers/attributes, exclusions, and allowlists.
+
+#### What must be internationalized
+
+Inside the scope defined by `.i18n-lint.toml`, all user-visible UI text must be
+internationalized.
+
+Exceptions:
+
+* Console output does not need translation.
+* Keep out-of-scope developer-only `(Dev)` labels next to the developer
+  UI/command definition; do not add them to translation dictionaries.
+
+If you introduce a new UI helper, alert API, UI namespace, translatable
+attribute, or other shipped UI surface, update `.i18n-lint.toml` so the lint
+continues to cover it.
+
+#### Translation helpers
+
+All translation helpers live in
+`src/main/frontend/context/i18n.cljs`. Do not add parallel ad hoc i18n helpers
+elsewhere.
+
+| Helper | Use for |
+|---|---|
+| `t` | Standard translation with preferred-locale lookup |
+| `tt` | Try multiple keys and return the first existing translation |
+| `t-en` | Force English output, for example when UI text also needs an English console copy |
+| `interpolate-rich-text` / `interpolate-rich-text-node` | Replace placeholders with rich-text or hiccup fragments |
+| `interpolate-sentence` | Keep a full sentence in one key while inserting placeholders and inline links |
+| `replace-newlines-with-br` | Render translated newline characters as `[:br]` nodes |
+| `locale-join-rich-text` / `locale-join-rich-text-node` | Join rich fragments with locale-aware separators |
+| `locale-format-number` / `locale-format-date` / `locale-format-time` | Format dynamic numbers and dates before passing them into translations |
+
+#### Developer workflow
+
+1. Use `.i18n-lint.toml` to decide whether the text is in i18n scope.
+2. Search `src/resources/dicts/en.edn` for an existing key with the same
+   semantic owner and textual role.
+3. If no exact match exists, follow
+   [the key naming guide](./i18n-key-naming.md) and add the English source text
+   to `en.edn`.
+4. Add non-English locale entries only when you are also providing actual
+   translations. When renaming or removing keys, clean up stale locale keys.
+5. Replace the literal with the appropriate helper from
+   `frontend.context.i18n`.
+
+Recommended checks:
+
+```sh
+bb lang:validate-translations
+bb lang:lint-hardcoded --git-changed
+bb lang:format-dicts
+```
+
+`bb lang:format-dicts` is the repo-owned formatter for dictionary key ordering
+and namespace spacing. Run it after editing dict files.
+
+#### Content rules
+
+* Keep each translation as complete as possible. Do not assemble sentences from
+  fragments in the caller.
+* For plain dynamic text, use placeholders like `{1}` and pre-format arguments
+  in the caller before passing them to `t`.
+* Function-valued translations are allowed only when a locale needs real logic
+  or rich-text hiccup output. When functions are necessary, only `str`, `when`,
+  `if`, and `=` are allowed inside the function body.
+* Keep rich text in a single translation entry. Do not split one sentence
+  across multiple keys.
+* Non-English locale files should contain only actual translations. Do not copy
+  English values just to fill gaps; Tongue falls back to `:en`.
+* Preserve emoji/icon glyphs from `en.edn` exactly, and use punctuation natural
+  to each locale.
+* Pluralization is locale-specific. Do not force English singular/plural rules
+  onto other languages.
 
 ### Spell Checker
 
@@ -109,6 +177,16 @@ $ typos -w
 
 To configure it e.g. for dealing with false positives, see `typos.toml`.
 
+### Separate Worker from Frontend
+
+The worker and frontend code share common code from deps/ and `frontend.common.*`. However, the worker should never depend on other frontend namespaces as it could pull in libraries like React which cause it to fail hard. Likewise the frontend should never depend on worker namespaces. Run this linter to ensure worker and frontend namespaces don't require each other:
+
+```
+$ bb lint:worker-and-frontend-separate
+Valid worker namespaces!
+Valid frontend namespaces!
+```
+
 ## Testing
 
 We have unit, performance and end to end tests.
@@ -116,39 +194,15 @@ We have unit, performance and end to end tests.
 ### End to End Tests
 
 Even though we have a nightly release channel, it's hard for testing users (thanks to the brave users!) to notice all issues in a limited time, as Logseq is covering so many features.
-The only solution is automatic end-to-end tests - adding tests for GUI software is always painful but necessary. See https://github.com/logseq/logseq/pulls?q=E2E for e2e test examples.
 
-To run end to end tests
-
-```sh
-yarn electron-watch
-# in another shell
-yarn e2e-test # or npx playwright test
-```
-
-If e2e failed after first running:
-- `rm -rdf ~/.logseq`
-- `rm -rdf ~/.config/Logseq`
-- `rm -rdf <repo dir>/tmp/`
-- Windows: `rmdir /s %APPDATA%/Electron`  (Reference: https://www.electronjs.org/de/docs/latest/api/app#appgetpathname)
-
-There's a `traceAll()` helper function to enable playwright trace file dump for specific test files https://github.com/logseq/logseq/pull/8332
-
-If e2e tests fail in the file, they can be debugged by examining a trace dump with [the
-playwright trace
-viewer](https://playwright.dev/docs/trace-viewer#recording-a-trace).
-
-Locally this will get dumped into e2e-dump/.
-
-On CI the trace file will be under Artifacts at the bottom of a run page e.g.
-https://github.com/logseq/logseq/actions/runs/3574600322.
+To run end to end tests, see [clj-e2e tests](/clj-e2e/README.md).
 
 ### Unit Testing
 
 Our unit tests use the [shadow-cljs test-runner](https://shadow-cljs.github.io/docs/UsersGuide.html#_testing). To run them:
 
 ```bash
-yarn test
+pnpm test
 ```
 
 By convention, a namespace's tests are found at a corresponding namespace
@@ -179,9 +233,9 @@ For this workflow:
   1. Add `^:focus` metadata flags to tests e.g. `(deftest ^:focus test-name ...)`.
   2. In another shell, run `node static/tests.js -i focus` to only run those
   tests. To run all tests except those tests run `node static/tests.js -e focus`.
-3. Or focus namespaces: Using the regex option `-r`, run tests for `frontend.util.page-property-test` with `node static/tests.js -r page-property`.
+3. Or focus namespaces: Using the regex option `-r`, run tests for `frontend.db.query-dsl-test` with `node static/tests.js -r query-dsl`.
 
-Multiple options can be specified to AND selections. For example, to run all `frontend.util.page-property-test` tests except for the focused one: `node static/tests.js -r page-property -e focus`
+Multiple options can be specified to AND selections. For example, to run all `frontend.db.query-dsl-test` tests except for the focused one: `node static/tests.js -r query-dsl -e focus`
 
 For help on more options, run `node static/tests.js -h`.
 
@@ -190,7 +244,7 @@ For help on more options, run `node static/tests.js -h`.
 To run tests automatically on file save, run `clojure -M:test watch test
 --config-merge '{:autorun true}'`. Specific namespace(s) can be auto run with
 the `:ns-regexp` option e.g. `clojure -M:test watch test --config-merge
-'{:autorun true :ns-regexp "frontend.util.page-property-test"}'`.
+'{:autorun true :ns-regexp "frontend.db.query-dsl-test"}'`.
 
 #### REPL tests
 
@@ -292,14 +346,15 @@ We strive to use explicit names that are self explanatory so that our codebase i
 
 ### Babashka tasks
 
-There are a number of bb tasks under `dev:` for developers. Some useful ones to
+There are a number of bb tasks under `dev:` for development. Some useful ones to
 point out:
 
 * `dev:validate-repo-config-edn` - Validate a repo config.edn
 
   ```sh
-  bb dev:validate-repo-config-edn src/resources/templates/config.edn
+  bb dev:validate-repo-config-edn deps/common/resources/templates/config.edn
   ```
+
 
 * `dev:publishing` - Build a publishing app for a given graph dir. If the
   publishing frontend is out of date, it builds that first which takes time.
@@ -307,22 +362,158 @@ point out:
 
   ```sh
   # One time setup
-  $ cd scripts && yarn install && cd -
-  # Build the export
+  $ cd scripts && pnpm install && cd -
+
+  # Build a release publishing app
   $ bb dev:publishing /path/to/graph-dir tmp/publish
-  # View the app in a browser
-  $ open tmp/publish/index.html
+
+  # OR build a dev publishing app that watches frontend changes
+  $ bb dev:publishing /path/to/graph-dir tmp/publish --dev
+
+  # View the publishing app in a browser
+  $ python3 -m http.server 8080 -d tmp/publish &; open http://localhost:8080
+
+  # Rebuild the publishing backend for dev/release.
+  # Handy when making backend changes in deps/publishing or
+  # to test a different graph
+  $ bb dev:publishing-backend /path/graph-dir tmp/publish
+
   ```
 
 There are also some tasks under `nbb:` which are useful for inspecting database
 changes in realtime. See [these
 docs](https://github.com/logseq/bb-tasks#logseqbb-tasksnbbwatch) for more info.
 
+#### DB Graph Tasks
+
+These tasks are specific to database graphs. For these tasks there is a one time setup:
+
+```sh
+  $ cd deps/db && pnpm install && cd ../outliner && pnpm install && cd ../graph-parser && pnpm install && cd ../..
+```
+* `dev:db-cli` - Run a CLI command from deps/db using latest deps/db code
+* `dev:query` - Query a DB graph
+
+  ```sh
+  $ bb dev:query woot '[:find (pull ?b [*]) :where (block-content ?b "Dogma")]'
+  DB contains 833 datoms
+  [{:block/tx-id 536870923, :block/link #:db{:id 100065}, :block/uuid #uuid "65565c26-f972-4400-bce4-a15df488784d", :block/updated-at 1700158508564, :block/order "a0", :block/refs [#:db{:id 100064}], :block/created-at 1700158502056, :block/tags [#:db{:id 100064}], :block/title "Dogma #[[65565c2a-b1c5-4dc8-a0f0-81b786bc5c6d]]", :db/id 100090, :block/parent #:db{:id 100051}, :block/page #:db{:id 100051}}]
+  ```
+
+* `dev:transact` - Run a `d/transact!` against the queried results of a DB graph
+
+  ```sh
+  # The second arg is a datascript like with db-query. The third arg is a fn that is applied to each query result to generate transact data
+  $ bb dev:transact
+  Usage: $0 GRAPH-DIR QUERY TRANSACT-FN
+
+  # First use the -n flag to see a dry-run of what would happen
+  $ bb dev:transact test-db '[:find ?b :where [?b :block/title "say wut"]]' '(fn [id] (vector :db/add id :block/title "say woot!"))' -n
+  Would update 1 blocks with the following tx:
+  [[:db/add 169 :block/title "say woot!"]]
+  With the following blocks updated:
+  (#:block{:title "say wut"})
+
+  # When the transact looks good, run it without the flag
+  $ bb dev:transact test-db '[:find ?b :where [?b :block/title "say wut"]]' '(fn [id] (vector :db/add id :block/title "say woot!"))'
+  Updated 1 block(s) for graph test-db!
+  ```
+
+  Run the dev command `Replace graph with its db.sqlite file` to use the updated graph in the desktop app.
+
+* `dev:create` - Create a DB graph given a `sqlite.build` EDN file
+
+  First in Electron, create the name of the graph you want create e.g. `inferred`.
+  Then:
+
+  ```sh
+  bb dev:create inferred deps/db/script/create_graph/inferred.edn
+  Generating 11 pages and 0 blocks ...
+  Created graph inferred!
+  ```
+
+  Finally, upload this created graph with the dev command: `Replace graph with
+  its db.sqlite file`. You'll be switched to the graph and you can use it!
+
+* `dev:import` and `dev:import-many` - Imports a file graph to DB graph, for one or many graphs
+
+  ```sh
+  # Import the local test graph with the debug option
+  $ bb dev:import deps/graph-parser/test/resources/exporter-test-graph test-file-graph -d
+  Importing 43 files ...
+  ...
+
+  # Import and validate multiple file graphs and write them to ./out/
+  $ bb dev:import-many /path/to/foo /path/to/bar -d
+  Importing ./out/foo ...
+  Importing 321 files ...
+  Valid!
+  Importing ./out/bar ...
+  Importing 542 files ...
+  Valid!
+  ```
+
+* `dev:datoms` and `dev:diff-datoms` - Save a db's datoms to file and diff two datom files
+
+  ```sh
+  # Save a current datoms snapshot of a graph
+  $ bb dev:datoms woot w2.edn
+  # After some edits, save another datoms snapshot
+  $ bb dev:datoms woot w3.edn
+
+  # Diff the two datom snapshots
+  # This snapshot correctly shows an added block with content "b7" and a property using a closed :default value
+  $  bb dev:diff-datoms w2.edn w3.edn
+  [[]
+  [[162 :block/title "b7" 536871039 true]
+    [162 :block/created-at 1703004379103 536871037 true]
+    [162 :block/page 149 536871037 true]
+    [162 :block/parent 149 536871037 true]
+    [162 :block/refs 108 536871043 true]
+    [162 :block/refs 160 536871043 true]
+    [162
+    :block/uuid
+    #uuid "6581c8db-a2a2-4e09-b30d-cdea6ad69512"
+    536871037
+    true]]]
+
+  # By default this task ignores commonly changing datascript attributes.
+  # To see all changed attributes, tell the task to ignore a nonexistent attribute:
+  $ bb dev:diff-datoms w2.edn w3.edn -i a
+  [[[nil nil 536871029 536871030]
+    [nil nil 1702998192728 536871029]
+    [nil nil 536871035 536871036]
+    [nil nil 1703000139716 536871035]
+    [nil nil 149 536871033]
+    [nil nil 536871035 536871036]]
+  [[nil nil 536871041 536871042]
+    [nil nil 1703004384793 536871041]
+    [nil nil 536871039 536871040]
+    [nil nil 1703004380918 536871039]
+    [nil nil 162 536871037]
+    [nil nil 536871037 536871038]
+    [162 :block/title "b7" 536871039 true]
+    [162 :block/created-at 1703004379103 536871037 true]
+    [162 :block/order "a0" 536871037 true]
+    [162 :block/page 149 536871037 true]
+    [162 :block/parent 149 536871037 true]
+    [162 :block/refs 108 536871043 true]
+    [162 :block/refs 160 536871043 true]
+    [162 :block/tx-id 536871043 536871044 true]
+    [162 :block/updated-at 1703004380918 536871039 true]
+    [162
+    :block/uuid
+    #uuid "6581c8db-a2a2-4e09-b30d-cdea6ad69512"
+    536871037
+    true]]]
+  ```
+
 ### Dev Commands
 
 In the app, you can enable Dev commands under `Settings > Advanced > Developer
-mode`. Then search for commands starting with `(Dev)`. Commands include
-inspectors for block/page data and AST.
+mode`. Then search for commands labeled with `(Dev)`. Those labels are
+intentionally hardcoded English developer-only labels, not translation keys.
+Commands include inspectors for block/page data and AST.
 
 ### Desktop Developer Tools
 
@@ -342,15 +533,15 @@ include a JS console and HTML inspector.
 
 If dev app launch failed after electron upgrade:
 ```sh
-yarn
-yarn watch
+pnpm install
+pnpm watch
 ```
 In another window:
 ```sh
 cd static
-yarn
+pnpm install
 cd ..
-yarn dev-electron-app
+pnpm dev-electron-app
 ```
 and kill all electron process
-Then a normal start happens via `yarn dev-electron-app`
+Then a normal start happens via `pnpm dev-electron-app`

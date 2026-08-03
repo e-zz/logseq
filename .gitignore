@@ -1,4 +1,3 @@
-/e2e-dump
 /target
 /classes
 /checkouts
@@ -15,9 +14,9 @@ pom.xml.asc
 
 node_modules/
 static/**
-!static/yarn.lock
 tmp
 cljs-test-runner-out
+.tmp/
 
 .cpcache/
 /src/gen
@@ -31,34 +30,69 @@ cljs-test-runner-out
 .DS_Store
 report.html
 strings.csv
+ssl/
 
 .calva
 resources/electron.js
 .lsp/.cache
 .clj-kondo/.cache
-.clj-kondo/babashka/sci
+.clj-kondo/babashka
+.clj-kondo/http-kit
+.clj-kondo/metosin/malli
+.clj-kondo/rewrite-clj
+.clj-kondo/taoensso
+.clj-kondo/funcool
+.clj-kondo/com.lambdaisland
 /libs/dist/
 charlie/
 .vscode
+/.claude/settings.local.json
 /.preprocessor-cljs
 docker
 android/app/src/main/assets/capacitor.plugin.json
 ios/App/App/capacitor.config.json
+ios/App/App/public
 
 startup.png
 
-/src/main/frontend/tldraw-logseq.js
 /src/test/docs*
 ~*~
 
 android/app/src/main/assets/capacitor.config.json
 
 *.sublime-*
-/public/static
-.yarn/
-.yarnrc.yml
+/public
+.pnpm-store/
 
 deps/shui/.lsp
 deps/shui/.lsp-cache
 deps/shui/.clj-kondo
-deps/shui/shui-graph/logseq/bak
+deps/publish/worker/.wrangler
+deps/publish/worker/dist
+deps/publish/worker/.env*
+deps/db-sync/worker/.wrangler
+deps/db-sync/worker/dist
+deps/db-sync/worker/.env*
+deps/db-sync/worker/.localflare
+
+
+tx-log*
+clj-e2e/.wally
+clj-e2e/e2e-dump
+.dir-locals.el
+.projectile
+deps/db-sync/data
+*.map
+/dist/db-worker-node.js
+/dist/build/
+/dist/cli-package/
+/dist/db-worker-node-assets.json
+/dist/*.wasm
+/dist/cljs-runtime/
+/.agent-shell/
+
+clj-e2e/.clj-kondo/imports
+/cli/_build/
+/cli/_opam
+/cli/compile_commands.json
+/cli/.eglot-root

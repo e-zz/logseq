@@ -14,20 +14,20 @@ provides two namespaces for node/CLI contexts, `logseq.publishing` and
 
 ## Usage
 
-See `logseq.tasks.dev.publishing` for a CLI example. See the frontend for cljs usage.
+See `script/publishing.cljs` for a CLI example. See the frontend for cljs usage.
 
 ## Dev
 
 This follows the practices that [the Logseq frontend
 follows](/docs/dev-practices.md). Most of the same linters are used, with
 configurations that are specific to this library. See [this library's CI
-file](/.github/workflows/publishing.yml) for linting examples.
+file](/.github/workflows/deps-publishing.yml) for linting examples.
 
 ### Setup
 
-To run linters and tests, you'll want to install yarn dependencies once:
+To run linters and tests, you'll want to install pnpm dependencies once:
 ```
-yarn install
+pnpm install
 ```
 
 This step is not needed if you're just running the frontend application.
@@ -40,11 +40,11 @@ usage:
 
 ```
 # Run all tests
-$ yarn test
+$ pnpm test
 # List available options
-$ yarn test -H
+$ pnpm test -H
 # Run tests with :focus metadata flag
-$ yarn test -i focus
+$ pnpm test -i focus
 ```
 
 ### Managing dependencies

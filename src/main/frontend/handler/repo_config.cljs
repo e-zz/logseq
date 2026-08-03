@@ -4,15 +4,10 @@
   logseq/config.edn. In the future it may manage more files. This component
   depends on a repo."
   (:require [clojure.edn :as edn]
-            [frontend.config :as config]
+            [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
-            [frontend.fs :as fs]
-            [logseq.common.path :as path]
-            [frontend.handler.common.file :as file-common-handler]
             [frontend.handler.notification :as notification]
-            [frontend.spec :as spec]
-            [frontend.state :as state]
-            [promesa.core :as p]))
+            [frontend.state :as state]))
 
 (defn- get-repo-config-content
   [repo-url]
@@ -24,7 +19,7 @@
   (try
     (edn/read-string content)
     (catch :default e
-      (notification/show! "The file 'logseq/config.edn' is invalid. Please reload the app to in order to see the error and fix it." :error)
+      (notification/show! (t :file/config-invalid) :error)
       ;; Rethrow so we know how long this is an issue and to prevent downstream errors
       (throw e))))
 
@@ -34,21 +29,6 @@
   (let [config (read-repo-config content)]
     (state/set-config! repo-url config)
     config))
-
-(defn create-config-file-if-not-exists
-  "Creates a default logseq/config.edn if it doesn't exist"
-  [repo-url]
-  (spec/validate :repos/url repo-url)
-  (let [repo-dir (config/get-repo-dir repo-url)
-        app-dir config/app-name
-        dir (path/path-join repo-dir app-dir)]
-    (p/let [_ (fs/mkdir-if-not-exists dir)]
-      (let [default-content config/config-default-content
-            path (str app-dir "/" config/config-file)]
-        (p/let [file-exists? (fs/create-if-not-exists repo-url repo-dir "logseq/config.edn" default-content)]
-          (when-not file-exists?
-            (file-common-handler/reset-file! repo-url path default-content)
-            (set-repo-config-state! repo-url default-content)))))))
 
 (defn restore-repo-config!
   "Sets repo config state from db"

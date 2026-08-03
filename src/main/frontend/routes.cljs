@@ -1,88 +1,70 @@
 (ns frontend.routes
   "Defines routes for use with reitit router"
-  (:require [frontend.components.file :as file]
+  (:require [frontend.components.all-pages :as all-pages]
+            [frontend.components.bug-report :as bug-report]
+            [frontend.components.file :as file]
+            [frontend.components.graph :as graph]
             [frontend.components.home :as home]
+            [frontend.components.imports :as imports]
             [frontend.components.journal :as journal]
-            [frontend.components.onboarding.setups :as setups]
             [frontend.components.page :as page]
             [frontend.components.plugins :as plugins]
             [frontend.components.repo :as repo]
-            [frontend.components.search :as search]
             [frontend.components.settings :as settings]
-            [frontend.components.whiteboard :as whiteboard] 
-            [frontend.extensions.zotero :as zotero]
-            [frontend.components.bug-report :as bug-report]
-            [frontend.components.user.login :as login]))
+            [frontend.components.user.login :as login]
+            [frontend.config :as config]
+            [io.factorhouse.hsx.core :as hsx]
+            [logseq.shui.demo :as shui]))
 
 ;; http://localhost:3000/#?anchor=fn.1
+(hsx/defc home-route
+  [_route-match]
+  (home/home))
+
+(hsx/defc page-route
+  [route-match]
+  (page/page-cp (assoc route-match :current-page? true)))
+
 (def routes
   [["/"
     {:name :home
-     :view home/home}]
+     :view home-route}]
 
    ["/graphs"
-    {:name :repos
-     :view repo/repos}]
-
-   ["/whiteboard/:name"
-    {:name :whiteboard
-     :view whiteboard/whiteboard-route}]
-
-   ["/whiteboards"
-    {:name :whiteboards
-     :view whiteboard/whiteboard-dashboard}]
-
-   ["/repo/add"
-    {:name :repo-add
-     :view setups/picker}]
-
-   ["/all-files"
-    {:name :all-files
-     :view file/files}]
-
-   ["/file/:path"
-    {:name :file
-     :view file/file}]
-
-   ["/search/:q"
-    {:name :search
-     :view search/more}]
+    {:name :graphs
+     :view repo/repos-cp}]
 
    ["/page/:name"
     {:name :page
-     :view page/page}]
+     :view page-route}]
 
    ["/page/:name/block/:block-route-name"
     {:name :page-block
-     :view page/page}]
+     :view page/page-cp}]
 
    ["/all-pages"
     {:name :all-pages
-     :view page/all-pages}]
+     :view all-pages/all-pages}]
 
    ["/graph"
     {:name :graph
-     :view page/global-graph}]
+     :view graph/global-graph}]
 
    ["/settings"
     {:name :settings
      :view settings/settings}]
 
-   ["/settings/zotero"
-    {:name :zotero-setting
-     :view zotero/settings}]
-
    ["/import"
     {:name :import
-     :view setups/importer}]
-   
+     :view imports/importer}]
+
    ["/bug-report"
     {:name :bug-report
      :view bug-report/bug-report}]
-   
-    ["/bug-report-tool/:tool"
-     {:name :bug-report-tools
-      :view bug-report/bug-report-tool-route}]
+
+   ["/bug-report-tool/:tool"
+    {:name :bug-report-tools
+     :view bug-report/bug-report-tool-route}]
 
    ["/all-journals"
     {:name :all-journals
@@ -94,4 +76,17 @@
 
    ["/login"
     {:name :user-login
-     :view login/page}]])
+     :view login/page}]
+
+   ["/all-files"
+    {:name :all-files
+     :view file/files}]
+
+   ["/file/:path"
+    {:name :file
+     :view file/file}]
+
+   (when config/dev?
+     ["/ui"
+      {:name :ui
+       :view shui/page}])])

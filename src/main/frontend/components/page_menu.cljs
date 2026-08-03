@@ -1,180 +1,172 @@
 (ns frontend.components.page-menu
   (:require [frontend.commands :as commands]
             [frontend.components.export :as export]
+            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
+            [frontend.db.model :as db-model]
+            [frontend.handler.common.developer :as dev-common-handler]
+            [frontend.handler.db-based.page :as db-page-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
-            [frontend.handler.route :as route-handler]
-            [frontend.handler.common.developer :as dev-common-handler]
-            [frontend.state :as state]
-            [frontend.ui :as ui]
-            [frontend.util :as util]
-            [frontend.util.page :as page-util]
-            [frontend.handler.shell :as shell]
+            [frontend.handler.publish :as publish-handler]
             [frontend.mobile.util :as mobile-util]
-            [electron.ipc :as ipc]
-            [frontend.config :as config]
-            [frontend.handler.user :as user-handler]
-            [frontend.handler.file-sync :as file-sync-handler]
-            [logseq.common.path :as path]))
+            [frontend.modules.shortcut.data-helper :as shortcut-dh]
+            [frontend.state :as state]
+            [frontend.util :as util]
+            [logseq.db :as ldb]
+            [logseq.shui.hooks :as hooks]
+            [logseq.shui.ui :as shui]
+            [promesa.core :as p]
+            [io.factorhouse.hsx.core :as hsx]))
+
+(hsx/defc publish-page-dialog
+  [page]
+  (let [[password set-password!] (hooks/use-state "")
+        [publishing? set-publishing!] (hooks/use-state false)
+        submit! (fn []
+                  (when-not publishing?
+                    (set-publishing! true)
+                    (-> (publish-handler/publish-page! page {:password password})
+                        (p/finally (fn []
+                                     (set-publishing! false)
+                                     (shui/dialog-close!))))))]
+    [:form.flex.flex-col.gap-4.p-2
+     {:on-submit (fn [e]
+                   (.preventDefault e)
+                   (submit!))}
+     [:div.text-lg.font-medium (t :publish/dialog-title)]
+     [:div.text-sm.opacity-70
+      (t :publish/dialog-desc)]
+     (shui/toggle-password
+      {:placeholder (t :publish/password-optional-placeholder)
+       :value password
+       :on-change (fn [e]
+                    (set-password! (util/evalue e)))})
+     [:div.flex.justify-end.gap-2
+      (shui/button
+       {:variant "ghost"
+        :type "button"
+        :on-click #(shui/dialog-close!)}
+       (t :ui/cancel))
+      (shui/button
+       {:type "submit"
+        :auto-focus true
+        :disabled publishing?}
+       (if publishing?
+         (t :publish/publishing)
+         (t :publish/action)))]]))
 
 (defn- delete-page!
-  [page-name]
-  (page-handler/delete! page-name
-                        (fn []
-                          (notification/show! (str "Page " page-name " was deleted successfully!")
-                                              :success)))
-  (state/close-modal!)
-  (route-handler/redirect-to-home!))
+  [page]
+  (page-handler/<delete! (:block/uuid page)
+                         (fn []
+                           (notification/show!
+                            (if (db-model/today-journal-page? page)
+                              (t :page.delete/today-journal-truncate-success)
+                              (t :page.delete/success (:block/title page)))
+                            :success))
+                         {:error-handler (fn [{:keys [msg]}]
+                                           (when msg
+                                             (notification/show! msg :warning)))}))
 
-(defn delete-page-dialog
-  [page-name]
-  (fn [close-fn]
-    [:div
-     [:div.sm:flex.items-center
-      [:div.mx-auto.flex-shrink-0.flex.items-center.justify-center.h-12.w-12.rounded-full.bg-error.sm:mx-0.sm:h-10.sm:w-10
-       [:span.text-error.text-xl
-        (ui/icon "alert-triangle")]]
-      [:div.mt-3.text-center.sm:mt-0.sm:ml-4.sm:text-left
-       [:h3#modal-headline.text-lg.leading-6.font-medium
-        (t :page/delete-confirmation)]]]
+(defn delete-page-confirm!
+  [page]
+  (when page
+    (-> (shui/dialog-confirm!
+         {:title [:h3.text-lg.leading-6.font-medium.flex.gap-2.items-center
+                  [:span.top-1.relative
+                   (shui/tabler-icon "alert-triangle")]
+                  (if (or (ldb/class? page) (ldb/property? page) (db-model/today-journal-page? page))
+                    (t :page.delete/permanent-confirm-title)
+                    (t :page.delete/confirm-title))]
+          :content [:p.opacity-60 (str "- " (:block/title page))]
+          :outside-cancel? true
+          :cancel-label (t :ui/cancel)
+          :ok-label (t :ui/confirm)})
+        (p/then #(delete-page! page))
+        (p/catch #()))))
 
-     [:div.mt-5.sm:mt-4.sm:flex.sm:flex-row-reverse
-      [:span.flex.w-full.rounded-md.shadow-sm.sm:ml-3.sm:w-auto
-       [:button.inline-flex.justify-center.w-full.rounded-md.border.border-transparent.px-4.py-2.bg-indigo-600.text-base.leading-6.font-medium.text-white.shadow-sm.hover:bg-indigo-500.focus:outline-none.focus:border-indigo-700.focus:shadow-outline-indigo.transition.ease-in-out.duration-150.sm:text-sm.sm:leading-5
-        {:type "button"
-         :class "ui__modal-enter"
-         :on-click (fn []
-                     (delete-page! page-name))}
-        (t :yes)]]
-      [:span.mt-3.flex.w-full.rounded-md.shadow-sm.sm:mt-0.sm:w-auto
-       [:button.inline-flex.justify-center.w-full.rounded-md.border.border-gray-300.px-4.py-2.bg-white.text-base.leading-6.font-medium.text-gray-700.shadow-sm.hover:text-gray-500.focus:outline-none.focus:border-blue-300.focus:shadow-outline-blue.transition.ease-in-out.duration-150.sm:text-sm.sm:leading-5
-        {:type "button"
-         :on-click close-fn}
-        (t :cancel)]]]]))
+(defn- latest-page
+  [page]
+  (or (when-let [id (:db/id page)]
+        (db/entity id))
+      page))
+
+(defn- toggle-public-attribute!
+  [page]
+  (when-let [page' (latest-page page)]
+    (page-handler/update-public-attribute!
+     page'
+     (not (true? (:logseq.property/publishing-public? page'))))))
 
 (defn ^:large-vars/cleanup-todo page-menu
-  [page-name]
-  (when-let [page-name (or
-                        page-name
-                        (state/get-current-page)
-                        (state/get-current-whiteboard))]
-    (let [page-name (util/page-name-sanity-lc page-name)
-          repo (state/sub :git/current-repo)
-          page (db/entity repo [:block/name page-name])
-          page-original-name (:block/original-name page)
-          whiteboard? (= "whiteboard" (:block/type page))
-          block? (and page (util/uuid-string? page-name) (not whiteboard?))
-          contents? (= page-name "contents")
-          properties (:block/properties page)
-          public? (true? (:public properties))
-          favorites (:favorites (state/sub-config))
-          favorited? (contains? (set (map util/page-name-sanity-lc favorites))
-                                page-name)
-          developer-mode? (state/sub [:ui/developer-mode?])
-          file-rpath (when (util/electron?) (page-util/get-page-file-rpath page-name))
-          _ (state/sub :auth/id-token)
-          file-sync-graph-uuid (and (user-handler/logged-in?)
-                                    (file-sync-handler/enable-sync?)
-                                    (file-sync-handler/get-current-graph-uuid))]
-      (when (and page (not block?))
-        (->>
-         [(when-not config/publishing?
-            {:title   (if favorited?
-                        (t :page/unfavorite)
-                        (t :page/add-to-favorites))
-             :options {:on-click
-                       (fn []
-                         (if favorited?
-                           (page-handler/unfavorite-page! page-original-name)
-                           (page-handler/favorite-page! page-original-name)))}})
+  [page]
+  (when-let [page' (latest-page page)]
+    (when-let [page-name (and (db/page? page') (:block/name page'))]
+      (let [page-title (str (:block/uuid page'))
+            block? (util/uuid-string? page-name)
+            contents? (= page-name "contents")
+            public? (true? (:logseq.property/publishing-public? page'))
+            favorited? (page-handler/favorited? page-title)
+            developer-mode? (state/developer-mode?)]
+        (when (not block?)
+          (->>
+           [(when-not config/publishing?
+              {:title   (if favorited?
+                          (t :page/unfavorite)
+                          (t :page/add-to-favorites))
+               :options {:on-click
+                         (fn []
+                           (if favorited?
+                             (page-handler/<unfavorite-page! page-title)
+                             (page-handler/<favorite-page! page-title)))}})
 
-          (when (or (util/electron?) file-sync-graph-uuid)
-            {:title   (t :page/version-history)
-             :options {:on-click
-                       (fn []
-                         (cond
-                           file-sync-graph-uuid
-                           (state/pub-event! [:graph/pick-page-histories file-sync-graph-uuid page-name])
+            (when (or (util/electron?)
+                      (mobile-util/native-platform?))
+              {:title   (t :page/copy-url)
+               :options {:on-click #(page-handler/copy-page-url (:block/uuid page'))}})
 
-                           (util/electron?)
-                           (shell/get-file-latest-git-log page 100)
+            (when-not (or contents?
+                          config/publishing?
+                          (:logseq.property/built-in? page'))
+              {:title   (t :page/delete)
+               :options {:on-click #(delete-page-confirm! page')}})
 
-                           :else
-                           nil))
-                       :class "cp__btn_history_version"}})
-
-          (when (or (util/electron?)
-                    (mobile-util/native-platform?))
-            {:title   (t :page/copy-page-url)
-             :options {:on-click #(page-handler/copy-page-url page-original-name)}})
-
-          (when-not (or contents?
-                        config/publishing?)
-            {:title   (t :page/delete)
-             :options {:on-click #(state/set-modal! (delete-page-dialog page-name))}})
-
-          (when (and (not (mobile-util/native-platform?))
-                     (state/get-current-page))
-            {:title (t :page/slide-view)
-             :options {:on-click (fn []
-                                   (state/sidebar-add-block!
-                                    repo
-                                    (:db/id page)
-                                    :page-slide-view))}})
-
-          ;; TODO: In the future, we'd like to extract file-related actions
-          ;; (such as open-in-finder & open-with-default-app) into a sub-menu of
-          ;; this one. However this component doesn't yet exist. PRs are welcome!
-          ;; Details: https://github.com/logseq/logseq/pull/3003#issuecomment-952820676
-          (when file-rpath
-            (let [repo-dir (config/get-repo-dir repo)
-                  file-fpath (path/path-join repo-dir file-rpath)]
-              [{:title   (t :page/open-in-finder)
-                :options {:on-click #(js/window.apis.showItemInFolder file-fpath)}}
-               {:title   (t :page/open-with-default-app)
-                :options {:on-click #(js/window.apis.openPath file-fpath)}}]))
-
-          (when (or (state/get-current-page) whiteboard?)
-            {:title   (t :export-page)
-             :options {:on-click #(state/set-modal!
+            {:title   (t :export/page)
+             :options {:on-click #(shui/dialog-open!
                                    (fn []
-                                     (export/export-blocks (:block/name page) {:whiteboard? whiteboard?})))}})
+                                     (export/export-blocks [(:block/uuid page')] {:export-type :page}))
+                                   {:class "w-auto md:max-w-4xl max-h-[80vh] overflow-y-auto"})}}
 
-          (when (util/electron?)
-            {:title   (t (if public? :page/make-private :page/make-public))
-             :options {:on-click
-                       (fn []
-                         (page-handler/update-public-attribute!
-                          page-name
-                          (if public? false true))
-                         (state/close-modal!))}})
+            (when-not config/publishing?
+              {:title   (t :publish/dialog-title)
+               :options {:on-click #(shui/dialog-open! (fn [] (publish-page-dialog page'))
+                                                       {:class "w-auto max-w-md"})}})
 
-          (when (and (util/electron?) file-rpath
-                     (not (file-sync-handler/synced-file-graph? repo)))
-            {:title   (t :page/open-backup-directory)
-             :options {:on-click
-                       (fn []
-                         (ipc/ipc "openFileBackupDir" (config/get-local-dir repo) file-rpath))}})
+            (when (util/electron?)
+              {:title   (t (if public? :page/make-private :page/make-public))
+               :options {:on-click #(toggle-public-attribute! page')}})
 
-          (when config/lsp-enabled?
-            (for [[_ {:keys [label] :as cmd} action pid] (state/get-plugins-commands-with-type :page-menu-item)]
-              {:title label
-               :options {:on-click #(commands/exec-plugin-simple-command!
-                                     pid (assoc cmd :page page-name) action)}}))
+            (when config/lsp-enabled?
+              (for [[_ {:keys [label] :as cmd} action pid] (state/get-plugins-commands-with-type :page-menu-item)]
+                {:title label
+                 :options {:on-click #(commands/exec-plugin-simple-command!
+                                       pid (assoc cmd :page page-name) action)}}))
 
-          (when developer-mode?
-            {:title   (t :dev/show-page-data)
-             :options {:on-click (fn []
-                                   (dev-common-handler/show-entity-data (:db/id page)))}})
+            (when (and (ldb/internal-page? page') (not (:logseq.property/built-in? page')))
+              {:title (t :page/convert-to-tag)
+               :options {:on-click (fn []
+                                     (db-page-handler/convert-page-to-tag! page'))}})
 
-          (when developer-mode?
-            {:title   (t :dev/show-page-ast)
-             :options {:on-click (fn []
-                                   (let [page (db/pull '[:block/format {:block/file [:file/content]}] (:db/id page))]
-                                     (dev-common-handler/show-content-ast
-                                      (get-in page [:block/file :file/content])
-                                      (:block/format page))))}})]
-         (flatten)
-         (remove nil?))))))
+            (when (and (ldb/class? page') (not (:logseq.property/built-in? page')))
+              {:title (t :page.convert/tag-to-page-action)
+               :options {:on-click (fn []
+                                     (db-page-handler/convert-tag-to-page! page'))}})
+
+            (when developer-mode?
+              {:title   (shortcut-dh/shortcut-desc-by-id :dev/show-page-data)
+               :options {:on-click (fn []
+                                     (dev-common-handler/show-entity-data (:db/id page')))}})]
+           (flatten)
+           (remove nil?)))))))

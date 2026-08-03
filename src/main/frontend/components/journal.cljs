@@ -1,93 +1,128 @@
 (ns frontend.components.journal
-  (:require [clojure.string :as string]
-            [frontend.components.page :as page]
-            [frontend.components.reference :as reference]
-            [frontend.components.scheduled-deadlines :as scheduled]
-            [frontend.date :as date]
+  (:require [frontend.components.page :as page]
             [frontend.db :as db]
-            [frontend.db-mixins :as db-mixins]
-            [frontend.db.model :as model]
-            [frontend.handler.page :as page-handler]
+            [frontend.components.views :as views]
+            [frontend.db.hooks :as db-hooks]
+            [frontend.db.react :as react]
             [frontend.state :as state]
-            [logseq.graph-parser.util :as gp-util]
             [frontend.ui :as ui]
             [frontend.util :as util]
-            [frontend.util.text :as text-util]
-            [goog.object :as gobj]
-            [reitit.frontend.easy :as rfe]
-            [rum.core :as rum]))
+            [logseq.db :as ldb]
+            [logseq.shui.hooks :as hooks]
+            [promesa.core :as p]
+            [io.factorhouse.hsx.core :as hsx]))
 
-(rum/defc blocks-cp < rum/reactive db-mixins/query
-  {}
-  [repo page]
-  (when-let [page-e (db/pull [:block/name (util/page-name-sanity-lc page)])]
-    (page/page-blocks-cp repo page-e {})))
+(def ^:private journal-item-reserve-height-ms 5000)
+(defonce ^:private journal-item-height-by-key* (atom {}))
 
-(rum/defc journal-cp < rum/reactive
-  [title]
-  (let [;; Don't edit the journal title
-        page (string/lower-case title)
-        repo (state/sub :git/current-repo)
-        today? (= (string/lower-case title)
-                  (string/lower-case (date/journal-name)))
-        page-entity (db/pull [:block/name (util/page-name-sanity-lc title)])
-        data-page-tags (when (seq (:block/tags page-entity))
-                         (let [page-names (model/get-page-names-by-ids (map :db/id (:block/tags page)))]
-                           (text-util/build-data-value page-names)))]
-    [:div.flex-1.journal.page (cond-> {}
-                                data-page-tags
-                                (assoc :data-page-tags data-page-tags))
+(defn- journal-item-cache-key
+  [id]
+  [(state/get-current-repo) id])
 
-     (ui/foldable
-      [:a.initial-color.title.journal-title
-       {:href     (rfe/href :page {:name page})
-        :on-mouse-down (fn [e]
-                         (when (util/right-click? e)
-                           (state/set-state! :page-title/context {:page page})))
-        :on-click (fn [e]
-                    (when (gobj/get e "shiftKey")
-                      (when-let [page page-entity]
-                        (state/sidebar-add-block!
-                         (state/get-current-repo)
-                         (:db/id page)
-                         :page))
-                      (.preventDefault e)))}
-       [:h1.title
-        (gp-util/capitalize-all title)]]
+(defn- css-px
+  [v]
+  (let [n (js/parseFloat v)]
+    (if (js/Number.isNaN n) 0 n)))
 
-      (if today?
-        (blocks-cp repo page)
-        (ui/lazy-visible
-         (fn [] (blocks-cp repo page))
-         {:debug-id (str "journal-blocks " page)}))
+(defn- journal-item-content-height
+  [^js node]
+  (when-let [content (.-firstElementChild node)]
+    (let [style (js/getComputedStyle node)
+          extra-height (+ (css-px (.-paddingTop style))
+                          (css-px (.-paddingBottom style))
+                          (css-px (.-borderTopWidth style))
+                          (css-px (.-borderBottomWidth style)))]
+      (js/Math.round
+       (+ (.-height (.getBoundingClientRect content))
+          extra-height)))))
 
-      {})
+(defn- remember-journal-item-height!
+  [cache-key ^js node]
+  (let [height (some-> node
+                       (.getBoundingClientRect)
+                       (.-height)
+                       js/Math.round)]
+    (when (pos? height)
+      (swap! journal-item-height-by-key* assoc cache-key height))))
 
-     (page/today-queries repo today? false)
+(hsx/defc journal-cp
+  [id last? selection-block-ids]
+  (let [cache-key (journal-item-cache-key id)
+        [reserve set-reserve!] (hooks/use-state {:cache-key cache-key
+                                                 :height (get @journal-item-height-by-key* cache-key)})
+        reserve-height (when (= cache-key (:cache-key reserve))
+                         (:height reserve))
+        clear-reserve! #(set-reserve! {:cache-key cache-key :height nil})
+        *item-ref (hooks/use-ref nil)]
+    (hooks/use-effect!
+     (fn []
+       (set-reserve! {:cache-key cache-key
+                      :height (get @journal-item-height-by-key* cache-key)})
+       (let [timeout-id (js/setTimeout clear-reserve!
+                                       journal-item-reserve-height-ms)]
+         #(js/clearTimeout timeout-id)))
+     [cache-key])
+    (hooks/use-effect!
+     (fn []
+       (when-let [node (hooks/deref *item-ref)]
+         (when-not reserve-height
+           (remember-journal-item-height! cache-key node))
+         (let [observer (js/ResizeObserver.
+                         (fn []
+                           (if reserve-height
+                             (when (>= (or (journal-item-content-height node) 0)
+                                       (dec reserve-height))
+                               (clear-reserve!))
+                             (remember-journal-item-height! cache-key node))))]
+           (.observe observer node)
+           #(.disconnect observer))))
+     [cache-key reserve-height])
+    [:div.journal-item.content
+     (cond-> {:ref *item-ref}
+       last? (assoc :class "journal-last-item")
+       reserve-height (assoc :style {:min-height reserve-height})
+       reserve-height (assoc :on-focus clear-reserve!)
+       reserve-height (assoc :on-input clear-reserve!))
+     (page/page-cp {:db/id id
+                    :journals? true
+                    :selection/block-ids selection-block-ids})]))
 
-     (when today?
-       (scheduled/scheduled-and-deadlines page))
+(defn- journal-block-ids
+  [journal-ids]
+  (->> journal-ids
+       (mapcat (fn [id]
+                 (some->> (db/entity id)
+                          :block/_parent
+                          ldb/sort-by-order
+                          (map :block/uuid))))
+       vec))
 
-     (rum/with-key
-       (reference/references title)
-       (str title "-refs"))]))
-
-(rum/defc journals < rum/reactive
-  [latest-journals]
-  [:div#journals
-   (ui/infinite-list
-    "main-content-container"
-    (for [{:block/keys [name]} latest-journals]
-      [:div.journal-item.content {:key name}
-       (journal-cp name)])
-    {:has-more (page-handler/has-more-journals?)
-     :more-class "text-4xl"
-     :on-top-reached page-handler/create-today-journal!
-     :on-load (fn []
-                (page-handler/load-more-journals!))})])
-
-(rum/defc all-journals < rum/reactive db-mixins/query
+(defn- sub-journals
   []
-  (let [journals-length (state/sub :journals-length)
-        latest-journals (db/get-latest-journals (state/get-current-repo) journals-length)]
-    (journals latest-journals)))
+  (when-let [repo (state/get-current-repo)]
+    (some-> (react/q repo
+                     [:frontend.worker.react/journals]
+                     {:query-fn (fn [_]
+                                  (p/let [{:keys [data]} (views/<load-view-data nil {:journals? true})]
+                                    (remove nil? data)))}
+                     nil)
+            db-hooks/use-query)))
+
+(hsx/defc all-journals
+  []
+  (let [data (sub-journals)]
+    (when (seq data)
+      (let [selection-block-ids (journal-block-ids data)]
+        [:div#journals
+         (ui/virtualized-list
+          {:custom-scroll-parent (util/app-scroll-container-node)
+           :increase-viewport-by {:top 100 :bottom 100}
+           :skipAnimationFrameInResizeObserver true
+           :compute-item-key (fn [idx]
+                               (let [id (util/nth-safe data idx)]
+                                 (str "journal-" id)))
+           :total-count (count data)
+           :item-content (fn [idx]
+                           (let [id (util/nth-safe data idx)
+                                 last? (= (inc idx) (count data))]
+                             (journal-cp id last? selection-block-ids)))})]))))

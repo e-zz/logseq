@@ -1,21 +1,19 @@
 (ns frontend.handler.export.opml
   "export blocks/pages as opml"
-  (:refer-clojure :exclude [map filter mapcat concat remove newline])
   (:require ["/frontend/utils" :as utils]
             [clojure.string :as string]
             [clojure.zip :as z]
             [frontend.db :as db]
-            [frontend.extensions.zip :as zip]
-            [frontend.handler.export.common :as common :refer
-             [*state* raw-text simple-asts->string space]]
+            [frontend.db.conn :as conn]
+            [frontend.format.mldoc :as mldoc]
+            [frontend.handler.export.common :as common]
             [frontend.handler.export.zip-helper :refer [get-level goto-last
                                                         goto-level]]
-            [frontend.state :as state]
-            [frontend.util :as util :refer [concatv mapcatv removev]]
-            [goog.dom :as gdom]
+            [frontend.util :as util]
             [hiccups.runtime :as h]
-            [logseq.graph-parser.mldoc :as gp-mldoc]
-            [promesa.core :as p]))
+            [frontend.handler.export.common-impl :as common-impl :refer
+             [*state* raw-text simple-asts->string space]]
+            [frontend.handler.export.util :refer-macros [concatv mapcatv removev]]))
 
 ;;; *opml-state*
 (def ^:private ^:dynamic
@@ -150,7 +148,6 @@
            (mapcatv (fn [inline] (cons space (inline-ast->simple-ast inline))) inline-coll)
            [(raw-text "}")]))
 
-
 (defn- inline-superscript
   [inline-coll]
   (concatv [(raw-text "^{")]
@@ -213,7 +210,6 @@
 (defn- inline-email
   [{:keys [local_part domain]}]
   [(raw-text (str "<" local_part "@" domain ">"))])
-
 
 (defn- inline-ast->simple-ast
   [inline]
@@ -401,7 +397,7 @@
                                :remove-tags? (contains? remove-options :tag)
                                :keep-only-level<=N (:keep-only-level<=N other-options)}})
               *opml-state* *opml-state*]
-      (let [ast (gp-mldoc/->edn content (gp-mldoc/default-config format))
+      (let [ast (mldoc/->edn content format)
             ast (mapv common/remove-block-ast-pos ast)
             ast (removev common/Properties-block-ast? ast)
             keep-level<=n (get-in *state* [:export-options :keep-only-level<=N])
@@ -420,7 +416,10 @@
                                         (update :map-fns-on-inline-ast conj common/remove-page-ref-brackets)
 
                                         (get-in *state* [:export-options :remove-tags?])
-                                        (update :mapcat-fns-on-inline-ast conj common/remove-tags))
+                                        (update :mapcat-fns-on-inline-ast conj common/remove-tags)
+
+                                        (= "no-indent" (get-in *state* [:export-options :indent-style]))
+                                        (update :mapcat-fns-on-inline-ast conj common/remove-prefix-spaces-in-Plain))
             ast*** (if-not (empty? config-for-walk-block-ast)
                      (mapv (partial common/walk-block-ast config-for-walk-block-ast) ast**)
                      ast**)
@@ -429,42 +428,27 @@
 
 (defn export-blocks-as-opml
   "options: see also `export-blocks-as-markdown`"
-  [repo root-block-uuids-or-page-name options]
-  {:pre [(or (coll? root-block-uuids-or-page-name)
-             (string? root-block-uuids-or-page-name))]}
+  [repo root-block-uuids-or-page-uuid options]
+  {:pre [(or (coll? root-block-uuids-or-page-uuid)
+             (uuid? root-block-uuids-or-page-uuid))]}
   (util/profile
-   :export-blocks-as-opml
-   (let [content
-         (if (string? root-block-uuids-or-page-name)
+    :export-blocks-as-opml
+    (let [open-blocks-only? (boolean (get-in options [:other-options :open-blocks-only]))
+          content
+          (if (uuid? root-block-uuids-or-page-uuid)
            ;; page
-           (common/get-page-content root-block-uuids-or-page-name)
-           (common/root-block-uuids->content repo root-block-uuids-or-page-name))
-         title (if (string? root-block-uuids-or-page-name)
-                 root-block-uuids-or-page-name
-                 "untitled")
-         first-block (db/entity [:block/uuid (first root-block-uuids-or-page-name)])
-         format (or (:block/format first-block) (state/get-preferred-format))]
-     (export-helper content format options :title title))))
-
-(defn export-files-as-opml
-  "options see also `export-blocks-as-opml`"
-  [files options]
-  (mapv
-   (fn [{:keys [path content names format]}]
-     (when (first names)
-       (util/profile (print-str :export-files-as-opml path)
-                     [path (export-helper content format options :title (first names))])))
-   files))
-
-(defn export-repo-as-opml!
-  [repo]
-  (when-let [files (common/get-file-contents-with-suffix repo)]
-    (let [files (export-files-as-opml files nil)
-          zip-file-name (str repo "_opml_" (quot (util/time-ms) 1000))]
-      (p/let [zipfile (zip/make-zip zip-file-name files repo)]
-        (when-let [anchor (gdom/getElement "export-as-opml")]
-          (.setAttribute anchor "href" (js/window.URL.createObjectURL zipfile))
-          (.setAttribute anchor "download" (.-name zipfile))
-          (.click anchor))))))
+            (common/get-page-content root-block-uuids-or-page-uuid
+                                     {:open-blocks-only? open-blocks-only?})
+            (common/root-block-uuids->content repo root-block-uuids-or-page-uuid
+                                              {:open-blocks-only? open-blocks-only?}))
+          title (if (uuid? root-block-uuids-or-page-uuid)
+                  (:block/title (db/entity [:block/uuid root-block-uuids-or-page-uuid]))
+                  "untitled")
+          first-block (and (coll? root-block-uuids-or-page-uuid)
+                           (db/entity [:block/uuid (first root-block-uuids-or-page-uuid)]))
+          format (get first-block :block/format :markdown)]
+      (binding [common-impl/*current-db* (conn/get-db repo)
+                common-impl/*content-config* (common/get-content-config)]
+        (export-helper content format options :title title)))))
 
 ;;; export fns (ends)

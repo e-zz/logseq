@@ -5,13 +5,15 @@
             [clojure.string :as string]
             [clojure.zip :as z]
             [frontend.db :as db]
-            [frontend.handler.export.common :as common :refer [*state*]]
+            [frontend.db.conn :as conn]
+            [frontend.format.mldoc :as mldoc]
+            [frontend.handler.export.common :as common]
             [frontend.handler.export.zip-helper :refer [get-level goto-last
                                                         goto-level]]
-            [frontend.state :as state]
-            [frontend.util :as util :refer [concatv mapcatv removev]]
+            [frontend.util :as util]
             [hiccups.runtime :as h]
-            [logseq.graph-parser.mldoc :as gp-mldoc]
+            [frontend.handler.export.common-impl :as common-impl :refer [*state*]]
+            [frontend.handler.export.util :refer-macros [concatv mapcatv removev]]
             [malli.core :as m]))
 
 (def ^:private hiccup-malli-schema
@@ -383,7 +385,7 @@
                                :remove-page-ref-brackets? (contains? remove-options :page-ref)
                                :remove-tags? (contains? remove-options :tag)
                                :keep-only-level<=N (:keep-only-level<=N other-options)}})]
-      (let [ast (util/profile :gp-mldoc/->edn (gp-mldoc/->edn content (gp-mldoc/default-config format)))
+      (let [ast (util/profile :mldoc/->edn (mldoc/->edn content format))
             ast (util/profile :remove-pos (mapv common/remove-block-ast-pos ast))
             ast (removev common/Properties-block-ast? ast)
             keep-level<=n (get-in *state* [:export-options :keep-only-level<=N])
@@ -402,7 +404,10 @@
                                         (update :map-fns-on-inline-ast conj common/remove-page-ref-brackets)
 
                                         (get-in *state* [:export-options :remove-tags?])
-                                        (update :mapcat-fns-on-inline-ast conj common/remove-tags))
+                                        (update :mapcat-fns-on-inline-ast conj common/remove-tags)
+
+                                        (= "no-indent" (get-in *state* [:export-options :indent-style]))
+                                        (update :mapcat-fns-on-inline-ast conj common/remove-prefix-spaces-in-Plain))
             ast*** (if-not (empty? config-for-walk-block-ast)
                      (util/profile :walk-block-ast (mapv (partial common/walk-block-ast config-for-walk-block-ast) ast**))
                      ast**)
@@ -413,16 +418,22 @@
 
 (defn export-blocks-as-html
   "options: see also `export-blocks-as-markdown`"
-  [repo root-block-uuids-or-page-name options]
-  {:pre [(or (coll? root-block-uuids-or-page-name)
-             (string? root-block-uuids-or-page-name))]}
-  (let [content
-        (if (string? root-block-uuids-or-page-name)
+  [repo root-block-uuids-or-page-uuid options]
+  {:pre [(or (coll? root-block-uuids-or-page-uuid)
+             (uuid? root-block-uuids-or-page-uuid))]}
+  (let [open-blocks-only? (boolean (get-in options [:other-options :open-blocks-only]))
+        content
+        (if (uuid? root-block-uuids-or-page-uuid)
           ;; page
-          (common/get-page-content root-block-uuids-or-page-name)
-          (common/root-block-uuids->content repo root-block-uuids-or-page-name))
-        first-block (db/entity [:block/uuid (first root-block-uuids-or-page-name)])
-        format (or (:block/format first-block) (state/get-preferred-format))]
-    (export-helper content format options)))
+          (common/get-page-content root-block-uuids-or-page-uuid
+                                   {:open-blocks-only? open-blocks-only?})
+          (common/root-block-uuids->content repo root-block-uuids-or-page-uuid
+                                            {:open-blocks-only? open-blocks-only?}))
+        first-block (and (coll? root-block-uuids-or-page-uuid)
+                         (db/entity [:block/uuid (first root-block-uuids-or-page-uuid)]))
+        format (get first-block :block/format :markdown)]
+    (binding [common-impl/*current-db* (conn/get-db repo)
+              common-impl/*content-config* (common/get-content-config)]
+      (export-helper content format options))))
 
 ;;; export fns (ends)

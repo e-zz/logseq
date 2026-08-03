@@ -1,46 +1,7 @@
 (ns logseq.graph-parser.mldoc-test
-  (:require [logseq.graph-parser.mldoc :as gp-mldoc]
-            [logseq.graph-parser.text :as text]
-            [clojure.string :as string]
-            [logseq.graph-parser.test.docs-graph-helper :as docs-graph-helper]
-            [logseq.graph-parser.cli :as gp-cli]
-            [cljs.test :refer [testing deftest are is]]))
-
-(deftest test-link
-  (testing "non-link"
-    (are [x y] (= (gp-mldoc/link? :markdown x) y)
-      "google.com" false))
-
-  (testing "plain links"
-    (are [x y] (= (gp-mldoc/link? :markdown x) y)
-      "http://www.google.com" true
-      "http://google.com" true))
-
-  (testing "org links with labels"
-    (are [x y] (= (gp-mldoc/link? :org x) y)
-      "[[http://www.google.com][google]]" true
-      "[[http://google.com][google]]" true
-      "[[https://www.google.com][google]]" true
-      "[[https://google.com][google]]" true))
-
-  (testing "org links without labels"
-    (are [x y] (= (gp-mldoc/link? :org x) y)
-      "[[http://www.google.com]]" true
-      "[[https://www.google.com]]" true
-      "[[draws/2022-03-06-15-00-28.excalidraw]]" true
-      "[[assets/2022-03-06-15-00-28.pdf]]" true))
-
-  (testing "markdown links"
-    (are [x y] (= (gp-mldoc/link? :markdown x) y)
-      "[google](http://www.google.com)" true
-      "[google](https://www.google.com)" true
-      "[[draws/2022-03-06-15-00-28.excalidraw]]" true
-      "![a pdf](assets/2022-03-06-15-00-28.pdf)" true))
-
-  ;; https://github.com/logseq/logseq/issues/4308
-  (testing "parsing links should be finished"
-    (are [x y] (= (gp-mldoc/link? :markdown x) y)
-      "[YouTube](https://www.youtube.com/watch?v=-8ym7pyUs9gL) - [Vimeo](https://vimeo.com/677920303) {{youtube https://www.youtube.com/watch?v=-8ym7pyUs9g}}" true)))
+  (:require [cljs.test :refer [testing deftest are is]]
+            [logseq.graph-parser.mldoc :as gp-mldoc]
+            [logseq.graph-parser.text :as text]))
 
 (def md-config (gp-mldoc/default-config :markdown))
 
@@ -98,6 +59,58 @@
          (first (gp-mldoc/->edn "term
 : definition" md-config)))))
 
+(deftest macro-with-script-markup-test
+  (testing "inline macros can contain superscript and subscript markup"
+    (are [content ast] (= ast (gp-mldoc/inline->edn content md-config))
+      "{{cloze Ca^{ +2} ions}}"
+      [["Macro" {:name "cloze" :arguments ["Ca^{ +2} ions"]}]]
+
+      "{{cloze H_{2}O}}"
+      [["Macro" {:name "cloze" :arguments ["H_{2}O"]}]]
+
+      "{{cloze Ca^{+2}}}"
+      [["Macro" {:name "cloze" :arguments ["Ca^{+2}"]}]]
+
+      "{{foo Ca^{ +2} ions, [[a, b]], \"c, d\"}}"
+      [["Macro" {:name "foo" :arguments ["Ca^{ +2} ions" "[[a, b]]" "\"c, d\""]}]]
+
+      ;; page ref inside a macro that also has script markup — exercises
+      ;; the Nested_link case in inline-ast->source
+      "{{cloze Ca^{ +2} [[water]]}}"
+      [["Macro" {:name "cloze" :arguments ["Ca^{ +2} [[water]]"]}]]))
+
+  (testing "normal macros without script markup are not modified"
+    (are [content ast] (= ast (gp-mldoc/inline->edn content md-config))
+      "{{cloze simple text}}"
+      [["Macro" {:name "cloze" :arguments ["simple text"]}]]
+
+      "{{foo a, b, c}}"
+      [["Macro" {:name "foo" :arguments ["a" "b" "c"]}]]
+
+      "{{cloze [[page name]]}}"
+      [["Macro" {:name "cloze" :arguments ["[[page name]]"]}]]))
+
+  (testing "block parsing keeps the issue reproduction as macro nodes"
+    (is (= [["Plain" "This is usually highlighted by the accumulation of the "]
+            ["Macro" {:name "cloze" :arguments ["Ca^{ +2} ions"]}]
+            ["Plain" " . This will be seen as "]
+            ["Macro" {:name "cloze" :arguments ["<ins>large flocculent amorphous densities in TEM</ins>"]}]]
+           (-> (gp-mldoc/->edn
+                "- This is usually highlighted by the accumulation of the {{cloze Ca^{ +2} ions}} . This will be seen as {{cloze <ins>large flocculent amorphous densities in TEM</ins>}}"
+                md-config)
+               ffirst
+               second
+               :title)))
+
+    (is (= [["Plain" "Water formula is "]
+            ["Macro" {:name "cloze" :arguments ["H_{2}O"]}]]
+           (-> (gp-mldoc/->edn
+                "- Water formula is {{cloze H_{2}O}}"
+                md-config)
+               ffirst
+               second
+               :title)))))
+
 (defn- parse-properties
   [text]
   (->> (gp-mldoc/->edn text (gp-mldoc/default-config :org))
@@ -127,7 +140,7 @@ body"
       line 2
  line 3
 line 4"]
-              (gp-mldoc/remove-indentation-spaces s 2 false)))) 
+              (gp-mldoc/remove-indentation-spaces s 2 false))))
     (is (=  "\t- block 1.1\n  line 1\n    line 2\nline 3\nline 4"
             (let [s "\t- block 1.1
 \t    line 1
@@ -135,34 +148,3 @@ line 4"]
 \t line 3
 \tline 4"]
               (gp-mldoc/remove-indentation-spaces s 3 false))))))
-    
-
-(deftest ^:integration test->edn
-  (let [graph-dir "test/docs-0.9.2"
-        _ (docs-graph-helper/clone-docs-repo-if-not-exists graph-dir "v0.9.2")
-        files (#'gp-cli/build-graph-files graph-dir {})
-        asts-by-file (->> files
-                          (map (fn [{:file/keys [path content]}]
-                                 (let [format (if (string/ends-with? path ".org")
-                                                :org :markdown)]
-                                   [path
-                                    (gp-mldoc/->edn content
-                                                    (gp-mldoc/default-config format))])))
-                          (into {}))]
-    (is (= {"Custom" 50,
-            "Displayed_Math" 1,
-            "Drawer" 1,
-            "Example" 20,
-            "Footnote_Definition" 2,
-            "Heading" 5648,
-            "Hiccup" 9,
-            "List" 22,
-            "Paragraph" 571,
-            "Properties" 87,
-            "Property_Drawer" 423,
-            "Quote" 24,
-            "Raw_Html" 18,
-            "Src" 79,
-            "Table" 8}
-           (->> asts-by-file (mapcat val) (map ffirst) frequencies))
-        "AST node type counts")))

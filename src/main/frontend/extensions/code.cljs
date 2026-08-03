@@ -1,10 +1,9 @@
 (ns frontend.extensions.code
-  (:require [clojure.string :as string]
-            ["codemirror" :as CodeMirror]
+  (:require ["codemirror" :as CodeMirror]
             ["codemirror/addon/edit/closebrackets"]
             ["codemirror/addon/edit/matchbrackets"]
-            ["codemirror/addon/selection/active-line"]
             ["codemirror/addon/hint/show-hint"]
+            ["codemirror/addon/selection/active-line"]
             ["codemirror/mode/apl/apl"]
             ["codemirror/mode/asciiarmor/asciiarmor"]
             ["codemirror/mode/asn.1/asn.1"]
@@ -127,42 +126,42 @@
             ["codemirror/mode/yaml-frontmatter/yaml-frontmatter"]
             ["codemirror/mode/yaml/yaml"]
             ["codemirror/mode/z80/z80"]
+            [cljs-bean.core :as bean]
+            [clojure.string :as string]
             [frontend.commands :as commands]
+            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.extensions.calc :as calc]
-            [frontend.handler.editor :as editor-handler]
             [frontend.handler.code :as code-handler]
+            [frontend.handler.editor :as editor-handler]
+            [frontend.schema.handler.common-config :refer [Config-edn]]
             [frontend.state :as state]
             [frontend.util :as util]
-            [frontend.config :as config]
             [goog.dom :as gdom]
             [goog.object :as gobj]
-            [frontend.schema.handler.common-config :refer [Config-edn]]
-            [malli.util :as mu]
+            [logseq.shui.hooks :as hooks]
             [malli.core :as m]
-            [rum.core :as rum]))
+            [promesa.core :as p]
+            [io.factorhouse.hsx.core :as hsx]))
 
 ;; codemirror
 
 (def from-textarea (gobj/get CodeMirror "fromTextArea"))
 (def Pos (gobj/get CodeMirror "Pos"))
 
-(def textarea-ref-name "textarea")
 (def codemirror-ref-name "codemirror-instance")
 
 ;; export CodeMirror to global scope
 (set! js/window -CodeMirror CodeMirror)
 
-
-(defn- all-tokens-by-cursur
-  "All tokens from the beginning of the document to the cursur(inclusive)."
+(defn- all-tokens-by-cursor
+  "All tokens from the beginning of the document to the cursor(inclusive)."
   [cm]
   (let [cur (.getCursor cm)
         line (.-line cur)
         pos (.-ch cur)]
     (concat (mapcat #(.getLineTokens cm %) (range line))
             (filter #(<= (.-end %) pos) (.getLineTokens cm line)))))
-
 
 (defn- tokens->doc-state
   "Parse tokens into document state of the last token."
@@ -235,7 +234,7 @@
 (defn- doc-state-at-cursor
   "Parse tokens into document state of last token."
   [cm]
-  (let [tokens (all-tokens-by-cursur cm)
+  (let [tokens (all-tokens-by-cursor cm)
         {:keys [current-config-path state-stack]} (tokens->doc-state tokens)
         doc-state (first state-stack)]
     [current-config-path doc-state]))
@@ -249,6 +248,20 @@
     :set "#{}"
     :vector "[]"
     nil))
+
+;; TODO: mu/to-map-syntax has been deprecated, consider removing usage
+(defn -map-syntax-walker [schema _ children _]
+  (let [properties (m/properties schema)
+        options (m/options schema)
+        r (when properties (properties :registry))
+        properties (if r (assoc properties :registry (m/-property-registry r options m/-form)) properties)]
+    (cond-> {:type (m/type schema)}
+      (seq properties) (assoc :properties properties)
+      (seq children) (assoc :children children))))
+
+(defn- malli-to-map-syntax
+  ([?schema] (malli-to-map-syntax ?schema nil))
+  ([?schema options] (m/walk ?schema -map-syntax-walker options)))
 
 (.registerHelper CodeMirror "hint" "clojure"
                  (fn [cm _options]
@@ -323,7 +336,7 @@
                                                 "false" nil)
 
                                          :enum
-                                         (let [{:keys [children]} (mu/to-map-syntax schema)]
+                                         (let [{:keys [children]} (malli-to-map-syntax schema)]
                                            (doseq [child children]
                                              (swap! result assoc (str child) nil)))
 
@@ -373,36 +386,53 @@
          (.-mime cm-mode)
          mode)))))
 
-(defn render!
+(defn- save-editor!
+  [config]
+  (p/do!
+   (code-handler/save-code-editor!)
+   (when-let [block (or (:code-block config) (:block config))]
+     (let [block (db/entity [:block/uuid (:block/uuid block)])]
+       (state/set-state! :editor/raw-mode-block block)
+       (editor-handler/edit-block! block :max {:save-code-editor? false})))))
+
+(defn- theme-name
+  [theme radix-color?]
+  (if radix-color?
+    (str "lsradix " theme)
+    (str "solarized " theme)))
+
+(defn ^:large-vars/cleanup-todo render!
   [state]
-  (let [[config id attr _code theme user-options] (:rum/args state)
-        default-open? (and (:editor/code-mode? @state/state)
-                           (= (:block/uuid (state/get-edit-block))
-                              (get-in config [:block :block/uuid])))
+  (let [{:keys [config id attr theme options]} state
+        radix-color? (:radix-color? state)
+        user-options options
+        edit-block (:block config)
+        code-block (:code-block config)
+        config-file? (= (:file-path config) "logseq/config.edn")
         _ (state/set-state! :editor/code-mode? false)
         original-mode (get attr :data-lang)
+        *editor-ref (get attr :editor-ref)
         mode (if (:file? config)
                (text->cm-mode original-mode :ext) ;; ref: src/main/frontend/components/file.cljs
                (text->cm-mode original-mode :name))
         lisp-like? (contains? #{"scheme" "lisp" "clojure" "edn"} mode)
         config-edit? (and (:file? config) (string/ends-with? (:file-path config) "config.edn"))
         textarea (gdom/getElement id)
-        default-cm-options {:theme (str "solarized " theme)
+        default-cm-options {:theme (theme-name theme radix-color?)
                             :autoCloseBrackets true
                             :lineNumbers true
                             :matchBrackets lisp-like?
                             :styleActiveLine true}
         cm-options (merge default-cm-options
-                          (extra-codemirror-options)
+                          (cond-> (extra-codemirror-options)
+                            config-file?
+                            (dissoc :readOnly))
                           {:mode mode
                            :tabIndex -1 ;; do not accept TAB-in, since TAB is bind globally
                            :extraKeys (merge {"Esc" (fn [cm]
-                                                   ;; Avoid reentrancy
+                                                      ;; Avoid reentrancy
                                                       (gobj/set cm "escPressed" true)
-                                                      (code-handler/save-code-editor!)
-                                                      (when-let [block-id (:block/uuid config)]
-                                                        (let [block (db/pull [:block/uuid block-id])]
-                                                          (editor-handler/edit-block! block :max block-id))))}
+                                                      (save-editor! config))}
                                              (when config-edit?
                                                {"':'" complete-after
                                                 "Ctrl-Space" "autocomplete"}))}
@@ -411,56 +441,124 @@
                              :cursorBlinkRate -1})
                           (when config-edit?
                             {:hintOptions {}})
-                          user-options)
+                          user-options
+                          (when (= mode "calc")
+                            {:viewportMargin js/Infinity}))
         editor (when textarea
-                 (from-textarea textarea (clj->js cm-options)))]
+                 (from-textarea textarea (clj->js cm-options)))
+        _ (when (and editor *editor-ref)
+            (reset! *editor-ref editor))]
     (when editor
-      (let [textarea-ref (rum/ref-node state textarea-ref-name)
-            element (.getWrapperElement editor)]
-        (gobj/set textarea-ref codemirror-ref-name editor)
+      (let [element (.getWrapperElement editor)
+            *cursor-prev (volatile! nil)
+            *cursor-curr (volatile! nil)
+            update-cursor-state! (fn []
+                                   (let [start-pos (.getCursor editor true)
+                                         end-pos (.getCursor editor false)
+                                         start-pos' (bean/->clj (js/JSON.parse (js/JSON.stringify start-pos)))
+                                         end-pos' (bean/->clj (js/JSON.parse (js/JSON.stringify end-pos)))
+                                         range {:start (select-keys start-pos' [:line :ch])
+                                                :end (select-keys end-pos' [:line :ch])}]
+                                     (if (not @*cursor-prev)
+                                       (vreset! *cursor-prev range)
+                                       (vreset! *cursor-prev @*cursor-curr))
+                                     (vreset! *cursor-curr range)))]
+        (gobj/set textarea codemirror-ref-name editor)
         (when (= mode "calc")
           (.on editor "change" (fn [_cm _e]
                                  (let [new-code (.getValue editor)]
-                                   (reset! (:calc-atom state) (calc/eval-lines new-code))))))
+                                   ((:set-calc-lines! state) (calc/eval-lines new-code))))))
         (.on editor "blur" (fn [cm e]
                              (when e (util/stop e))
-                             (when (or
-                                    (= :file (state/get-current-route))
-                                    (not (gobj/get cm "escPressed")))
-                               (code-handler/save-code-editor!))
-                             (state/set-block-component-editing-mode! false)
-                             (state/set-state! :editor/code-block-context nil)))
+                             (let [esc? (gobj/get cm "escPressed")]
+                               (when (or (= :file (state/get-current-route))
+                                         (not esc?))
+                                 (code-handler/save-code-editor!))
+                               (state/set-block-component-editing-mode! false)
+                               (state/set-state! :editor/code-block-context nil)
+                               (when (and (not esc?)
+                                          (= (:db/id (state/get-edit-block))
+                                             (:db/id edit-block)))
+                                 (state/clear-edit!))
+                               (vreset! *cursor-curr nil)
+                               (vreset! *cursor-prev nil))))
         (.on editor "focus" (fn [_e]
+                              (when (and
+                                     (:block/uuid (state/get-edit-block))
+                                     (contains? #{:code} (:logseq.property.node/display-type code-block))
+                                     (not= (:block/uuid edit-block) (:block/uuid (state/get-edit-block))))
+                                (editor-handler/edit-block! (or code-block edit-block) :max {:container-id (:container-id config)}))
                               (state/set-block-component-editing-mode! true)
                               (state/set-state! :editor/code-block-context
                                                 {:editor editor
                                                  :config config
                                                  :state state})))
-
+        (.on editor "cursorActivity" update-cursor-state!)
         (.addEventListener element "keydown" (fn [e]
                                                (let [key-code (.-code e)
-                                                     meta-or-ctrl-pressed? (or (.-ctrlKey e) (.-metaKey e))]
-                                                 (when meta-or-ctrl-pressed?
+                                                     meta-or-ctrl-pressed? (or (.-ctrlKey e) (.-metaKey e))
+                                                     shifted? (.-shiftKey e)]
+                                                 (cond
+                                                   (contains? #{"ArrowLeft" "ArrowRight"} key-code)
+                                                   (let [direction (if (= "ArrowLeft" key-code) :left :right)]
+                                                     (when (and (= @*cursor-prev @*cursor-curr)
+                                                                (or (and direction (nil? @*cursor-curr))
+                                                                    (case direction
+                                                                      :left (and (zero? (:line (:start @*cursor-curr)))
+                                                                                 (zero? (:ch  (:start @*cursor-curr))))
+                                                                      :right (let [line (when-let [line (:line (:end @*cursor-curr))]
+                                                                                          (.getLine (.-doc editor) line))]
+                                                                               (and (= (:line (:end @*cursor-curr)) (.lastLine editor))
+                                                                                    (= (:ch (:end @*cursor-curr)) (count line))))
+                                                                      false)))
+                                                       (editor-handler/move-to-block-when-cross-boundary direction {}))
+                                                     (update-cursor-state!))
+
+                                                   (contains? #{"ArrowUp" "ArrowDown"} key-code)
+                                                   (let [direction (if (= "ArrowUp" key-code) :up :down)]
+                                                     (when (and (= @*cursor-prev @*cursor-curr)
+                                                                (or (and direction (nil? @*cursor-curr))
+                                                                    (case direction
+                                                                      :up (and (zero? (:line (:start @*cursor-curr)))
+                                                                               (zero? (:ch  (:start @*cursor-curr))))
+                                                                      :down (let [line (when-let [line (:line (:end @*cursor-curr))]
+                                                                                         (.getLine (.-doc editor) line))]
+                                                                              (and (= (:line (:end @*cursor-curr)) (.lastLine editor))
+                                                                                   (= (:ch (:end @*cursor-curr)) (count line))))
+                                                                      false)))
+                                                       (editor-handler/move-cross-boundary-up-down
+                                                        direction {:input textarea
+                                                                   :pos [direction 0]}))
+                                                     (update-cursor-state!))
+                                                   meta-or-ctrl-pressed?
                                                    ;; prevent default behavior of browser
                                                    ;; Cmd + [ => Go back in browser, outdent in CodeMirror
                                                    ;; Cmd + ] => Go forward in browser, indent in CodeMirror
                                                    (case key-code
                                                      "BracketLeft" (util/stop e)
                                                      "BracketRight" (util/stop e)
+                                                     nil)
+                                                   shifted?
+                                                   (case key-code
+                                                     ;; create new block
+                                                     "Enter"
+                                                     (do
+                                                       (util/stop e)
+                                                       (when-let [blockid (some-> (.-target e) (.closest "[blockid]") (.getAttribute "blockid"))]
+                                                         (code-handler/save-code-editor!)
+                                                         (util/schedule #(editor-handler/api-insert-new-block! ""
+                                                                                                               {:block-uuid (uuid blockid)
+                                                                                                                :sibling? true}))))
                                                      nil)))))
-        (.addEventListener element "mousedown"
+        (.addEventListener element "pointerdown"
                            (fn [e]
-                             (util/stop e)
-                             (state/clear-selection!)
-                             (when-let [block (and (:block/uuid config) (into {} (db/get-block-by-uuid (:block/uuid config))))]
-                               (state/set-editing! id (.getValue editor) block nil false))))
+                             (.stopPropagation e)
+                             (state/clear-selection!)))
         (.addEventListener element "touchstart"
                            (fn [e]
                              (.stopPropagation e)))
         (.save editor)
-        (.refresh editor)
-        (when default-open?
-          (.focus editor))))
+        (.refresh editor)))
     editor))
 
 (defn- load-and-render!
@@ -470,38 +568,71 @@
       (let [editor (render! state)]
         (reset! editor-atom editor)))))
 
-(rum/defcs editor < rum/reactive
-  {:init (fn [state]
-           (let [[_ _ _ code _ options] (:rum/args state)]
-             (assoc state
-                    :editor-atom (atom nil)
-                    :calc-atom (atom (calc/eval-lines code))
-                    :code-options (atom options))))
-   :did-mount (fn [state]
-                (load-and-render! state)
-                state)
-   :did-update (fn [state]
-                 (reset! (:code-options state) (last (:rum/args state)))
-                 (when-not (:file? (first (:rum/args state)))
-                   (let [code (nth (:rum/args state) 3)
-                         editor @(:editor-atom state)]
-                     (when (and editor (not= (.getValue editor) code))
-                       (.setValue editor code))))
-                 state)}
-  [state _config id attr code _theme _options]
-  [:div.extensions__code
-   (when-let [mode (:data-lang attr)]
-     (when-not (= mode "calc")
-       [:div.extensions__code-lang
-        (string/lower-case mode)]))
-   [:div.code-editor.flex.flex-1.flex-row.w-full
-    [:textarea (merge {:id id
-                       ;; Expose the textarea associated with the CodeMirror instance via
-                       ;; ref so that we can autofocus into the CodeMirror instance later.
-                       :ref textarea-ref-name
-                       :default-value code} attr)]
-    (when (= (:data-lang attr) "calc")
-      (calc/results (:calc-atom state)))]])
+(defn- calc-mode?
+  [attr]
+  (= (:data-lang attr) "calc"))
+
+(defn- sync-editor-code!
+  [editor code]
+  (when (and editor
+             (string? code)
+             (not (.hasFocus editor))
+             (not= (.getValue editor) code))
+    (.setValue editor code)))
+
+(hsx/defc editor
+  [config id attr code options]
+  (let [editor-atom (hooks/use-memo #(atom nil) [id])
+        calc? (calc-mode? attr)
+        [calc-lines set-calc-lines!] (hooks/use-state #(when calc? (calc/eval-lines code)))
+        current-theme (state/use-sub :ui/theme)
+        radix-color? (state/use-sub :ui/radix-color)
+        code-options (hooks/use-memo #(atom options) [id])
+        last-theme (hooks/use-memo #(atom (theme-name current-theme radix-color?)) [id])
+        component-state {:config config
+                         :id id
+                         :attr attr
+                         :code code
+                         :theme current-theme
+                         :options options
+                         :radix-color? radix-color?
+                         :editor-atom editor-atom
+                         :set-calc-lines! set-calc-lines!
+                         :code-options code-options
+                         :last-theme last-theme}]
+    (hooks/use-effect!
+     (fn []
+       (load-and-render! component-state))
+     [id])
+    (hooks/use-effect!
+     (fn []
+       (sync-editor-code! @editor-atom code)
+       (when calc?
+         (set-calc-lines! (calc/eval-lines code))))
+     [id code calc?])
+    (hooks/use-effect!
+     (fn []
+       (let [next-theme (theme-name current-theme radix-color?)
+             previous-theme @last-theme
+             editor' @editor-atom]
+         (when (and editor' (not= next-theme previous-theme))
+           (reset! last-theme next-theme)
+           (.setOption editor' "theme" next-theme)))
+       (reset! code-options options))
+     [options current-theme radix-color?])
+    [:div.extensions__code.flex.flex-1
+     (cond-> {}
+       calc?
+       (assoc :data-lang "calc"))
+     (when-let [mode (:data-lang attr)]
+       (when-not (= mode "calc")
+         [:div.extensions__code-lang
+          (string/lower-case mode)]))
+     [:div.code-editor.flex.flex-1.flex-row.w-full
+      [:textarea (merge {:id id
+                         :default-value code} attr)]
+      (when calc?
+        (calc/results calc-lines))]]))
 
 ;; Focus into the CodeMirror editor rather than the normal "raw" editor
 (defmethod commands/handle-step :codemirror/focus [[_]]
@@ -515,11 +646,13 @@
   ;; command is run. It's not elegant... open to suggestions for how to fix it!
   (let [block (state/get-edit-block)
         block-uuid (:block/uuid block)]
-    (state/clear-edit!)
-    (js/setTimeout
-     (fn []
-       (let [block-node (util/get-first-block-by-id block-uuid)
-             textarea-ref (.querySelector block-node "textarea")]
-         (when-let [codemirror-ref (gobj/get textarea-ref codemirror-ref-name)]
-           (.focus codemirror-ref))))
-     100)))
+    (p/do!
+     (state/pub-event! [:editor/save-current-block])
+     (state/clear-edit!)
+     (js/setTimeout
+      (fn []
+        (let [block-node (util/get-first-block-by-id block-uuid)
+              textarea-ref (.querySelector block-node "textarea")]
+          (when-let [codemirror-ref (gobj/get textarea-ref codemirror-ref-name)]
+            (.focus codemirror-ref))))
+      256))))

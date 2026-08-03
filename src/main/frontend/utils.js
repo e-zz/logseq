@@ -1,13 +1,24 @@
-import path from 'path/path.js'
-
-// TODO split the capacitor abilities to a separate file for capacitor APIs
-import { Capacitor } from '@capacitor/core'
-import { StatusBar, Style } from '@capacitor/status-bar'
-import { Clipboard as CapacitorClipboard } from '@capacitor/clipboard'
+import path from 'path'
 
 if (typeof window === 'undefined') {
   global.window = {}
 }
+
+// js patches
+;(function () {
+  if (!window?.console) return
+  const originalError = console.error
+  console.error = (...args) => {
+    if (typeof args[0] === 'string' && args[0].startsWith(
+      `Warning: Each child in a list should have a unique "key" prop`)) {
+      console.groupCollapsed('[React] ⚠️ key warning!')
+      console.warn(...args)
+      console.groupEnd()
+      return
+    }
+    originalError(...args)
+  }
+})();
 
 // Copy from https://github.com/primetwig/react-nestable/blob/dacea9dc191399a3520f5dc7623f5edebc83e7b7/dist/utils.js
 export const closest = (target, selector) => {
@@ -178,7 +189,7 @@ const inputTypes = [
   window.HTMLTextAreaElement,
 ]
 
-export const triggerInputChange = (node, value = '', name = 'change') => {
+export const triggerInputChange = (node, value = '', caretPosition) => {
 
   // only process the change on elements we know have a value setter in their constructor
   if (inputTypes.indexOf(node.__proto__.constructor) > -1) {
@@ -189,6 +200,9 @@ export const triggerInputChange = (node, value = '', name = 'change') => {
     })
 
     setValue.call(node, value)
+    if (Number.isInteger(caretPosition)) {
+      node.setSelectionRange(caretPosition, caretPosition)
+    }
     node.dispatchEvent(event)
   }
 }
@@ -249,62 +263,71 @@ export const getClipText = (cb, errorHandler) => {
   })
 }
 
+const copiedBlocksMemoryCache = {
+  text: null,
+  blocks: null
+}
+
+export const getCopiedBlocksFromMemory = (text) => {
+  if (!text || copiedBlocksMemoryCache.text !== text) return null
+  return copiedBlocksMemoryCache.blocks
+}
+
 export const writeClipboard = ({text, html, blocks}, ownerWindow) => {
-    if (Capacitor.isNativePlatform()) {
-        CapacitorClipboard.write({ string: text });
-        return
+  const navigator = (ownerWindow || window).navigator
+  const textBlob = new Blob([text], {
+    type: "text/plain"
+  })
+  copiedBlocksMemoryCache.text = text
+  copiedBlocksMemoryCache.blocks = blocks || null
+
+  navigator.permissions.query({
+    name: "clipboard-write"
+  }).then((result) => {
+    if (result.state != "granted" && result.state != "prompt"){
+      console.debug("Copy without `clipboard-write` permission:", text)
+      return
     }
-
-    const navigator = (ownerWindow || window).navigator
-
-    navigator.permissions.query({
-        name: "clipboard-write"
-    }).then((result) => {
-        if (result.state != "granted" && result.state != "prompt"){
-            console.debug("Copy without `clipboard-write` permission:", text)
-            return
-        }
-        let promise_written = null
-        if (typeof ClipboardItem !== 'undefined') {
-            let blob = new Blob([text], {
-              type: ["text/plain"]
-            });
-            let data = [new ClipboardItem({
-                ["text/plain"]: blob
-            })];
-            if (html) {
-                let richBlob = new Blob([html], {
-                    type: ["text/html"]
-                })
-                data = [new ClipboardItem({
-                    ["text/plain"]: blob,
-                    ["text/html"]: richBlob
-                })];
-            }
-          if (blocks) {
-            let blocksBlob = new Blob([blocks], {
-              type: ["web application/logseq"]
-            })
-            let richBlob = new Blob([html], {
-              type: ["text/html"]
-            })
-            data = [new ClipboardItem({
-              ["text/plain"]: blob,
-              ["text/html"]: richBlob,
-              ["web application/logseq"]: blocksBlob
-            })];
-          }
-            promise_written = navigator.clipboard.write(data)
-        } else {
-            console.debug("Degraded copy without `ClipboardItem` support:", text)
-            promise_written = navigator.clipboard.writeText(text)
-        }
-        promise_written.then(() => {
-            /* success */
-        }).catch(e => {
-            console.log(e, "fail")
+    let promise_written = null
+    if (typeof ClipboardItem !== "undefined") {
+      let data = [new ClipboardItem({
+        ["text/plain"]: textBlob
+      })]
+      if (html) {
+        const richBlob = new Blob([html], {
+          type: "text/html"
         })
+        data = [new ClipboardItem({
+          ["text/plain"]: textBlob,
+          ["text/html"]: richBlob
+        })]
+      }
+      if (blocks) {
+        const blocksBlob = new Blob([blocks], {
+          type: "application/logseq"
+        })
+        const clipboardItemData = {
+          ["text/plain"]: textBlob,
+          ["web application/logseq"]: blocksBlob
+        }
+        if (html) {
+          clipboardItemData["text/html"] = new Blob([html], {
+            type: "text/html"
+          })
+        }
+        data = [new ClipboardItem(clipboardItemData)]
+      }
+      promise_written = navigator.clipboard.write(data)
+    } else {
+      console.debug("Degraded copy without `ClipboardItem` support:", text)
+      promise_written = navigator.clipboard.writeText(text)
+    }
+    promise_written.then(() => {
+      /* success */
+    }).catch(e => {
+      console.log(e, "fail")
     })
+  })
 }
 
 export const toPosixPath = (input) => {
@@ -399,14 +422,41 @@ export const prettifyXml = (sourceXml) => {
 }
 
 export const elementIsVisibleInViewport = (el, partiallyVisible = false) => {
-  const { top, left, bottom, right } = el.getBoundingClientRect()
-  const { innerHeight, innerWidth } = window
-  return partiallyVisible
-    ? ((top > 0 && top < innerHeight) ||
-      (bottom > 0 && bottom < innerHeight)) &&
-    ((left > 0 && left < innerWidth) || (right > 0 && right < innerWidth))
-    : top >= 0 && left >= 0 && bottom <= innerHeight && right <= innerWidth
-}
+  if (!el || el.getClientRects().length === 0) return false;
+
+  // Find nearest scrollable ancestor (null => window)
+  const getScrollRoot = (node) => {
+    let p = node && node.parentElement;
+    while (p) {
+      const cs = getComputedStyle(p);
+      const oy = cs.overflowY || cs.overflow, ox = cs.overflowX || cs.overflow;
+      if (/(auto|scroll|overlay)/.test(`${oy}${ox}`)) return p;
+      p = p.parentElement;
+    }
+    return null;
+  };
+
+  const r = el.getBoundingClientRect();
+  const root = getScrollRoot(el);
+
+  // Viewport rect: either the window or the scroll container’s content box
+  const vp = root
+    ? root.getBoundingClientRect()
+    : { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+
+  if (partiallyVisible) {
+    const horizontally = r.left < vp.right && r.right > vp.left;
+    const vertically   = r.top  < vp.bottom && r.bottom > vp.top;
+    return horizontally && vertically;
+  } else {
+    return (
+      r.top    >= vp.top &&
+      r.left   >= vp.left &&
+      r.bottom <= vp.bottom &&
+      r.right  <= vp.right
+    );
+  }
+};
 
 export const convertToLetters = (num) => {
   if (!+num) return false
@@ -430,4 +480,65 @@ export const convertToRoman = (num) => {
   let roman = '', i = 3
   while (i--) roman = (key[+digits.pop() + i * 10] || '') + roman
   return Array(+digits.join('') + 1).join('M') + roman
+}
+
+export function hsl2hex(h, s, l, alpha) {
+  l /= 100
+  const a = s * Math.min(l, 1 - l) / 100
+  const f = n => {
+    const k = (n + h / 30) % 12
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+    // convert to Hex and prefix "0" if needed
+  }
+
+  //alpha conversion
+  if (alpha) {
+    alpha = Math.round(alpha * 255).toString(16).padStart(2, '0')
+  } else {
+    alpha = ''
+  }
+
+  return `#${f(0)}${f(8)}${f(4)}${alpha}`
+}
+
+export function base64ToUint8Array (base64String) {
+  try {
+    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '')
+    const binaryString = atob(base64Data)
+    const len = binaryString.length
+    const uint8Array = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+      uint8Array[i] = binaryString.charCodeAt(i)
+    }
+    return uint8Array
+  } catch (e) {
+    console.error('Invalid Base64 string:', e)
+    return null
+  }
+}
+
+export function uint8ArrayToBase64 (uint8Array) {
+  try {
+    let bytes = null
+    if (uint8Array instanceof Uint8Array) {
+      bytes = uint8Array
+    } else if (ArrayBuffer.isView(uint8Array)) {
+      bytes = new Uint8Array(uint8Array.buffer, uint8Array.byteOffset, uint8Array.byteLength)
+    } else if (uint8Array instanceof ArrayBuffer) {
+      bytes = new Uint8Array(uint8Array)
+    } else {
+      throw new TypeError('Expected Uint8Array, TypedArray, or ArrayBuffer')
+    }
+
+    let binary = ''
+    const len = bytes.byteLength
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return btoa(binary)
+  } catch (e) {
+    console.error('Error converting Uint8Array to base64:', e)
+    return null
+  }
 }

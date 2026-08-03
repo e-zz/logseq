@@ -1,10 +1,10 @@
 ## Description
 
-This library provides common util namespaces to share between the frontend and
-other non-frontend namespaces. This library is not supposed to depend on other logseq
-libraries. This library is compatible with ClojureScript and with
-node/[nbb-logseq](https://github.com/logseq/nbb-logseq) to respectively provide
-frontend and Electron/commandline functionality.
+This library provides common util namespaces and resources to share between the
+frontend and other non-frontend contexts. This library is not supposed to depend
+on other logseq libraries. This library is compatible with ClojureScript and
+with node/[nbb-logseq](https://github.com/logseq/nbb-logseq) to respectively
+provide frontend and Electron/commandline functionality.
 
 
 ## API
@@ -16,13 +16,13 @@ This library is under the parent namespace `logseq.common`.
 This follows the practices that [the Logseq frontend
 follows](/docs/dev-practices.md). Most of the same linters are used, with
 configurations that are specific to this library. See [this library's CI
-file](/.github/workflows/logseq-common.yml) for linting examples.
+file](/.github/workflows/deps-common.yml) for linting examples.
 
 ### Setup
 
-To run linters and tests, you'll want to install yarn dependencies once:
+To run linters and tests, you'll want to install pnpm dependencies once:
 ```
-yarn install
+pnpm install
 ```
 ### Testing
 
@@ -30,11 +30,11 @@ To run nbb-logseq tests:
 
 ```
 # Run all tests
-$ yarn test
+$ pnpm test
 # List available options
-$ yarn test -H
+$ pnpm test -H
 # Run tests with :focus metadata flag
-$ yarn test -i focus
+$ pnpm test -i focus
 ```
 
 To run ClojureScript tests:

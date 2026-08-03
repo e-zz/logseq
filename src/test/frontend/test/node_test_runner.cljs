@@ -6,13 +6,13 @@
   to call from the commandline. Once this test runner is stable enough we should
   contribute it upstream"
   {:dev/always true} ;; necessary for test-data freshness
-  (:require [shadow.test.env :as env]
-            [clojure.tools.cli :as cli]
-            [clojure.string :as str]
+  (:require [cljs.test :as ct]
             [clojure.set :as set]
+            [clojure.string :as string]
+            [clojure.tools.cli :as cli]
+            [goog.string :as gstring]
             [shadow.test :as st]
-            [cljs.test :as ct]
-            [goog.string :as gstring]))
+            [shadow.test.env :as env]))
 
 ;; Cljs.test customization
 ;; Inherit behavior from default reporter
@@ -58,8 +58,8 @@
   (let [{:keys [errors] :as parsed-input}
         (apply cli/parse-opts args cli-opts parse-opts-options)]
     (if (seq errors)
-      (do (println (str/join "\n" (into ["Options failed to parse:"] errors)))
-        (js/process.exit 1))
+      (do (println (string/join "\n" (into ["Options failed to parse:"] errors)))
+          (js/process.exit 1))
       parsed-input)))
 
 (defn- get-selected-tests
@@ -80,11 +80,11 @@ returns selected tests and namespaces to run"
                                      #(seq (set/intersection exclude (set (keys (meta %)))))
                                      test-vars)))
         test-syms (cond (some? focused-tests)
-                    focused-tests
-                    namespace
-                    [namespace]
-                    namespace-regex
-                    (filter #(re-find namespace-regex (str %)) test-namespaces))]
+                        focused-tests
+                        (seq namespace)
+                        namespace
+                        namespace-regex
+                        (filter #(re-find namespace-regex (str %)) test-namespaces))]
     test-syms))
 
 ;; This is a patched version of https://github.com/thheller/shadow-cljs/blob/f271b3c40d3ccd4e587b0ffeaa2713d2f642114a/src/main/shadow/test/node.cljs#L44-L56
@@ -124,6 +124,9 @@ returns selected tests and namespaces to run"
 
 (def cli-options
   [["-h" "--help"]
+   [nil "--list-namespaces"
+    :id :list-namespaces
+    :desc "Print selected test namespaces and exit"]
    ["-i" "--include INCLUDE"
     :default #{}
     :default-desc ""
@@ -147,38 +150,62 @@ returns selected tests and namespaces to run"
     :multi true
     :update-fn conj]
    ["-n" "--namespace NAMESPACE"
-    :parse-fn symbol :desc "Specific namespace to test"]
+    :default #{}
+    :default-desc ""
+    :parse-fn symbol
+    :multi true
+    :update-fn conj
+    :desc "Specific namespace to test"]
    ["-r" "--namespace-regex REGEX"
     :parse-fn re-pattern :desc "Regex for namespaces to test"]])
 
 ;; get-test-data is a macro so this namespace REQUIRES :dev/always hint ns so
 ;; that it is always recompiled
 (defn ^:dev/after-load reset-test-data! []
-  (-> (env/get-test-data)
+    (-> (env/get-test-data)
       (env/reset-test-data!)))
+
+(defn- selected-test-vars
+  [test-namespaces test-vars options]
+  (let [selected-vars (get-selected-vars test-namespaces test-vars options)]
+    (if (some? selected-vars)
+      ;; Don't run tests if none are selected
+      (if (empty? selected-vars) [] selected-vars)
+      test-vars)))
+
+(defn- print-selected-namespaces
+  [test-namespaces test-vars options]
+  (doseq [test-ns (->> (selected-test-vars test-namespaces test-vars options)
+                       (map #(-> % meta :ns))
+                       set
+                       (sort-by str))]
+    (println test-ns)))
 
 (defn- run-tests
   [test-namespaces test-vars options]
   ;; We define a custom runner so we can inherit behavior from the default
   ;; runner and improve on it
   (let [test-env (ct/empty-env ::node)
-        selected-vars (get-selected-vars test-namespaces test-vars options)]
-
-    (if (some? selected-vars)
-      ;; Don't run tests if none are selected
-      (let [test-vars (if (empty? selected-vars) [] selected-vars)]
-        (st/run-test-vars test-env test-vars))
-      (st/run-all-tests test-env nil))))
+        test-vars (selected-test-vars test-namespaces test-vars options)]
+    (st/run-test-vars test-env test-vars)))
 
 (defn parse-and-run-tests
   "Main entry point for custom test runners"
   [args]
   (let [{:keys [options summary]} (parse-options args cli-options)]
-    (if (:help options)
+    (cond
+      (:help options)
       (do
         (print-summary summary
                        "\n\nMultiple options are ANDed. Defaults to running all tests")
         (js/process.exit 0))
+
+      (:list-namespaces options)
+      (do
+        (print-selected-namespaces (keys (env/get-tests)) (env/get-test-vars) options)
+        (js/process.exit 0))
+
+      :else
       (run-tests (keys (env/get-tests)) (env/get-test-vars) options))))
 
 (defn main

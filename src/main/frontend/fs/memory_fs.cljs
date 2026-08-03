@@ -3,7 +3,6 @@
 
    Paths are denoted by `memory://`. No open-dir/get-files support."
   (:require [cljs-bean.core :as bean]
-            [frontend.db :as db]
             [frontend.fs.protocol :as protocol]
             [logseq.common.path :as path]
             [promesa.core :as p]))
@@ -31,7 +30,6 @@
                        (p/recur result (concat (rest dirs) dir-content)))))]
     result))
 
-
 (defn- <ensure-dir!
   "dir is path, without memory:// prefix for simplicity"
   [dir]
@@ -45,6 +43,45 @@
       (p/catch (fn [_error]
                  (js/window.pfs.mkdir dir)))))
 
+(defn- <exists?
+  "dir is path, without memory:// prefix for simplicity"
+  [dir]
+  (-> (js/window.pfs.stat dir)
+      (p/then (fn [stat]
+                (not (nil? stat))))
+      (p/catch (fn [_]
+                 nil))))
+
+(defn- <mkdir-recur!
+  "mkdir, recursively create parent directories if not exist
+
+   lightning-fs does not support's :recursive in mkdir options"
+  [dir]
+  (p/let [fpath (path/url-to-path dir)
+          sub-dirs (p/loop [top-parent fpath
+                            remains []]
+                     (p/let [exists? (<exists? top-parent)]
+                       (if exists?
+                         (reverse remains) ;; top-parent is the first non-exist dir
+                         (p/recur (path/parent top-parent)
+                                  (conj remains top-parent)))))]
+    (p/loop [remains sub-dirs]
+      (if (empty? remains)
+        (p/resolved nil)
+        (p/do! (js/window.pfs.mkdir (first remains))
+               (p/recur (rest remains)))))))
+
+(defn- read-file-aux
+  [dir path {:keys [text?]
+             :as options}]
+  (-> (p/let [fpath (path/url-to-path (path/path-join dir path))
+              result (js/window.pfs.readFile fpath (clj->js options))]
+        (if text?
+          (.toString ^js result)
+          result))
+      (p/catch
+          ;; ensure throw ex-info both on web & electron, not string or js/Error
+       (fn [e] (ex-info (str e) {})))))
 
 (defrecord MemoryFs []
   protocol/Fs
@@ -53,6 +90,12 @@
       (let [fpath (path/url-to-path dir)]
         (-> (js/window.pfs.mkdir fpath)
             (p/catch (fn [error] (println "(memory-fs)Mkdir error: " error)))))))
+  (mkdir-recur! [_this dir]
+    (when js/window.pfs
+      (let [fpath (path/url-to-path dir)]
+        (-> (<mkdir-recur! fpath)
+            (p/catch (fn [error] (println "(memory-fs)Mkdir-recur error: " error)))))))
+
   (readdir [_this dir]
     (when js/window.pfs
       (let [fpath (path/url-to-path dir)]
@@ -61,7 +104,7 @@
                       (mapv #(path/path-join "memory://" %) rpaths)))
             (p/catch (fn [error]
                        (println "(memory-fs)Readdir error: " error)
-                       (p/rejected error)))))))
+                       (p/rejected (ex-info (str error) {} error))))))))
 
   (unlink! [_this _repo path opts]
     (when js/window.pfs
@@ -74,19 +117,26 @@
     (let [fpath (path/url-to-path dir)]
       (js/window.workerThread.rimraf fpath)))
   (read-file [_this dir path options]
-    (let [fpath (path/url-to-path (path/path-join dir path))]
-      (js/window.pfs.readFile fpath (clj->js options))))
-  (write-file! [_this repo dir rpath content _opts]
+    (read-file-aux dir path (assoc options :text? true)))
+  (read-file-raw [_this dir path options]
+    (read-file-aux dir path options))
+  (write-file! [_this _repo dir rpath content _opts]
     (p/let [fpath (path/url-to-path (path/path-join dir rpath))
             containing-dir (path/parent fpath)
             _ (<ensure-dir! containing-dir)
-            _ (js/window.pfs.writeFile fpath content)]
-      (db/set-file-content! repo rpath content)
-      (db/set-file-last-modified-at! repo rpath (js/Date.))))
+            _ (js/window.pfs.writeFile fpath content)]))
+
   (rename! [_this _repo old-path new-path]
     (let [old-path (path/url-to-path old-path)
           new-path (path/url-to-path new-path)]
       (js/window.pfs.rename old-path new-path)))
+  (copy! [_this _repo old-path new-path]
+    (p/let [old-path (path/url-to-path old-path)
+            new-path (path/url-to-path new-path)
+            content (js/window.pfs.readFile old-path)
+            containing-dir (path/parent new-path)
+            _ (<ensure-dir! containing-dir)]
+      (js/window.pfs.writeFile new-path content)))
   (stat [_this fpath]
     (let [fpath (path/url-to-path fpath)]
       (js/window.pfs.stat fpath)))

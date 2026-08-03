@@ -1,20 +1,13 @@
 (ns frontend.modules.shortcut.data-helper
-  (:require [borkdude.rewrite-edn :as rewrite]
+  (:require [cljs-bean.core :as bean]
             [clojure.set :refer [rename-keys] :as set]
-            [clojure.string :as str]
-            [cljs-bean.core :as bean]
+            [clojure.string :as string]
             [frontend.context.i18n :refer [t]]
-            [frontend.config :as config]
-            [frontend.db :as db]
-            [frontend.handler.file :as file]
             [frontend.modules.shortcut.config :as shortcut-config]
             [frontend.modules.shortcut.utils :as shortcut-utils]
             [frontend.state :as state]
             [frontend.util :as util]
-            [lambdaisland.glogi :as log]
-            [frontend.handler.repo-config :as repo-config-handler]
-            [frontend.handler.config :as config-handler])
-  (:import [goog.ui KeyboardShortcutHandler]))
+            [lambdaisland.glogi :as log]))
 
 (declare get-group)
 
@@ -27,27 +20,27 @@
               {id (if binding-only?
                     (get user-shortcuts id binding)
                     (assoc opts :user-binding (get user-shortcuts id)
-                                :handler-id (get-group id)
-                                :id id))}))
+                           :handler-id (get-group id)
+                           :id id))}))
        (into {})))
 
 (defn- flatten-bindings-by-key
   [config user-shortcuts]
   (reduce-kv
-    (fn [r handler-id vs]
-      (reduce-kv
-        (fn [r id {:keys [binding]}]
-          (if-let [ks (get user-shortcuts id binding)]
-            (let [ks (if (sequential? ks) ks [ks])]
-              (reduce (fn [a k]
-                        (let [k (shortcut-utils/undecorate-binding k)
-                              k' (shortcut-utils/safe-parse-string-binding k)
-                              k' (bean/->clj k')]
-                          (-> a
-                              (assoc-in [k' :key] k)
-                              (assoc-in [k' :refs id] handler-id)))) r ks))
-            r)) r vs))
-    {} config))
+   (fn [r handler-id vs]
+     (reduce-kv
+      (fn [r id {:keys [binding]}]
+        (if-let [ks (get user-shortcuts id binding)]
+          (let [ks (if (sequential? ks) ks [ks])]
+            (reduce (fn [a k]
+                      (let [k (shortcut-utils/undecorate-binding k)
+                            k' (shortcut-utils/safe-parse-string-binding k)
+                            k' (bean/->clj k')]
+                        (-> a
+                            (assoc-in [k' :key] k)
+                            (assoc-in [k' :refs id] handler-id)))) r ks))
+          r)) r vs))
+   {} config))
 
 (def m-flatten-bindings-by-id
   (util/memoize-last flatten-bindings-by-id))
@@ -57,28 +50,28 @@
 
 (defn get-bindings
   []
-  (m-flatten-bindings-by-id @shortcut-config/*config (state/shortcuts) true))
+  (m-flatten-bindings-by-id @shortcut-config/*config (state/custom-shortcuts) true))
 
 (defn get-bindings-keys-map
   []
-  (m-flatten-bindings-by-key @shortcut-config/*config (state/shortcuts)))
+  (m-flatten-bindings-by-key @shortcut-config/*config (state/custom-shortcuts)))
 
 (defn get-bindings-ids-map
   []
-  (m-flatten-bindings-by-id @shortcut-config/*config (state/shortcuts) false))
+  (m-flatten-bindings-by-id @shortcut-config/*config (state/custom-shortcuts) false))
 
 (defn get-shortcut-desc
   [binding-map]
   (let [{:keys [id desc cmd]} binding-map
         desc (or desc (:desc cmd) (some-> id (shortcut-utils/decorate-namespace) (t)))]
     (if (or (nil? desc)
-            (and (string? desc) (str/starts-with? desc "{Missing")))
+            (and (string? desc) (string/starts-with? desc "{Missing")))
       (str id) desc)))
 
 (defn mod-key [shortcut]
   (when (string? shortcut)
-    (str/replace shortcut #"(?i)mod"
-                 (if util/mac? "meta" "ctrl"))))
+    (string/replace shortcut #"(?i)mod"
+                    (if util/mac? "meta" "ctrl"))))
 
 (defn shortcut-binding
   "override by user custom binding"
@@ -95,14 +88,10 @@
 
       :else
       (->>
-        (if (string? shortcut)
-          [shortcut]
-          shortcut)
-        (mapv mod-key)))))
-
-(defn shortcut-cmd
-  [id]
-  (get @shortcut-config/*shortcut-cmds id))
+       (if (string? shortcut)
+         [shortcut]
+         shortcut)
+       (mapv mod-key)))))
 
 (defn shortcut-item
   [id]
@@ -113,30 +102,38 @@
   (let [dict (get-bindings-ids-map)
         plugin? (= name :shortcut.category/plugins)]
     (->> (if plugin?
-           (->> (keys dict) (filter #(str/starts-with? (str %) ":plugin.")))
+           (->> (keys dict) (filter #(string/starts-with? (str %) ":plugin.")))
            (shortcut-config/get-category-shortcuts name))
-         (mapv (fn [k] [k (assoc (get dict k) :category name)])))))
+         (keep (fn [k] (when-let [m (get dict k)]
+                         [k (assoc m :category name)])))
+         (vec))))
 
-(defn shortcut-map
+(defn shortcuts-map-full
+  []
+  (->> (vals @shortcut-config/*config)
+       (into {})))
+
+(defn shortcuts-map-by-handler-id
   ([handler-id]
-   (shortcut-map handler-id nil))
+   (shortcuts-map-by-handler-id handler-id nil))
   ([handler-id state]
    (let [raw (get @shortcut-config/*config handler-id)
+         raw' (into {} raw)
          handler-m (->> raw
                         (map (fn [[k {:keys [fn]}]]
                                {k fn}))
                         (into {}))
          before (-> raw meta :before)]
      (cond->> handler-m
-              state (reduce-kv (fn [r k handle-fn]
-                                 (let [handle-fn' (if (volatile? state)
-                                                    (fn [*state & args] (apply handle-fn (cons @*state args)))
-                                                    handle-fn)]
-                                   (assoc r k (partial handle-fn' state))))
-                               {})
-              before (reduce-kv (fn [r k v]
-                                  (assoc r k (before v)))
-                                {})))))
+       state (reduce-kv (fn [r k handle-fn]
+                          (let [handle-fn' (if (volatile? state)
+                                             (fn [*state & args] (apply handle-fn (cons @*state args)))
+                                             handle-fn)]
+                            (assoc r k (partial handle-fn' state))))
+                        {})
+       before (reduce-kv (fn [r k f]
+                           (assoc r k (before f (get raw' k))))
+                         {})))))
 
 ;; if multiple bindings, gen seq for first binding only for now
 (defn gen-shortcut-seq [id]
@@ -144,17 +141,17 @@
     (if (false? bindings)
       []
       (-> bindings
-          first
-          (str/split #" |\+")))))
+          last
+          (string/split #" |\+")))))
 
 (defn binding-for-display [k binding]
   (let [tmp (cond
               (false? binding)
               (cond
-                (and util/mac? (= k :editor/kill-line-after)) "system default: ctrl+k"
-                (and util/mac? (= k :editor/beginning-of-block)) "system default: ctrl+a"
-                (and util/mac? (= k :editor/end-of-block)) "system default: ctrl+e"
-                (and util/mac? (= k :editor/backward-kill-word)) "system default: opt+delete"
+                (and util/mac? (= k :editor/kill-line-after)) "ctrl k"
+                (and util/mac? (= k :editor/beginning-of-block)) "ctrl a"
+                (and util/mac? (= k :editor/end-of-block)) "ctrl e"
+                (and util/mac? (= k :editor/backward-kill-word)) "opt delete"
                 :else (t :keymap/disabled))
 
               (string? binding)
@@ -163,29 +160,11 @@
               :else
               (->> binding
                    (map shortcut-utils/decorate-binding)
-                   (str/join " | ")))]
+                   (string/join " | ")))]
 
     ;; Display "cmd" rather than "meta" to the user to describe the Mac
     ;; mod key, because that's what the Mac keyboards actually say.
-    (str/replace tmp "meta" "cmd")))
-
-;; Given the displayed binding, prepare it to be put back into config.edn
-(defn binding-for-storage [binding]
-  (str/replace binding "cmd" "meta"))
-
-(defn remove-shortcut [k]
-  (let [repo (state/get-current-repo)
-        path (config/get-repo-config-path)]
-    (when-let [result (some-> (db/get-file path)
-                              (config-handler/parse-repo-config))]
-      (when-let [new-content (and (:shortcuts result)
-                                  (-> (rewrite/update
-                                        result
-                                        :shortcuts
-                                        #(dissoc (rewrite/sexpr %) k))
-                                      (str)))]
-        (repo-config-handler/set-repo-config-state! repo new-content)
-        (file/set-file-content! repo path new-content)))))
+    (string/replace tmp "meta" "cmd")))
 
 (defn get-group
   "Given shortcut key, return handler group
@@ -202,51 +181,188 @@
     #{from-handler-id :shortcut.handler/global-prevent-default}
     #{from-handler-id}))
 
+(defn- binding-prefix-overlap?
+  "Returns true when two parsed bindings share the same full prefix up to the
+   shorter binding, but are not exactly equal."
+  [a b]
+  (and (sequential? a)
+       (sequential? b)
+       (not= a b)
+       (let [prefix-len (min (count a) (count b))]
+         (and (pos? prefix-len)
+              (= (take prefix-len a) (take prefix-len b))))))
+
+(defn- handlers-co-active?
+  "Two handler groups conflict (can be active simultaneously) unless one is
+   editing-only and the other is non-editing-only — those are mutually exclusive
+   at runtime."
+  [h1 h2]
+  (let [editing-only     #{:shortcut.handler/editor-global
+                           :shortcut.handler/block-editing-only}
+        non-editing-only #{:shortcut.handler/global-non-editing-only}]
+    (not (or (and (contains? editing-only h1) (contains? non-editing-only h2))
+             (and (contains? non-editing-only h1) (contains? editing-only h2))))))
+
 (defn get-conflicts-by-keys
   ([ks] (get-conflicts-by-keys ks :shortcut.handler/global-prevent-default {:group-global? true}))
   ([ks handler-id] (get-conflicts-by-keys ks handler-id {:group-global? true}))
   ([ks handler-id {:keys [exclude-ids group-global?]}]
    (let [global-handlers #{:shortcut.handler/editor-global
+                           :shortcut.handler/block-editing-only
                            :shortcut.handler/global-non-editing-only
                            :shortcut.handler/global-prevent-default
                            :shortcut.handler/misc}
          ks-bindings (get-bindings-keys-map)
-         handler-ids (should-be-included-to-global-handler handler-id)
+         handler-ids (if group-global?
+                       (should-be-included-to-global-handler handler-id)
+                       #{handler-id})
          global? (when group-global? (seq (set/intersection global-handlers handler-ids)))]
      (->> (if (string? ks) [ks] ks)
           (map (fn [k]
                  (when-let [k' (shortcut-utils/undecorate-binding k)]
-                   (let [k (shortcut-utils/safe-parse-string-binding k')
-                         k (bean/->clj k)
+                   (let [input-binding (bean/->clj (shortcut-utils/safe-parse-string-binding k'))
 
-                         same-leading-key?
+                         same-key?
                          (fn [[k' _]]
-                           (when (sequential? k)
-                             (or (= k k')
-                                 (and (> (count k') (count k))
-                                      (= (first k) (first k'))))))
+                           (when (sequential? input-binding)
+                             (or (= input-binding k')
+                                 (binding-prefix-overlap? input-binding k'))))
 
                          into-conflict-refs
                          (fn [[k o]]
                            (when-let [{:keys [key refs]} o]
                              [k [key (reduce-kv (fn [r id handler-id']
-                                                  (if (and
-                                                        (not (contains? exclude-ids id))
-                                                        (or (= handler-ids #{handler-id'})
-                                                            (and (set? handler-ids) (contains? handler-ids handler-id'))
-                                                            (and global? (contains? global-handlers handler-id'))))
-                                                    (assoc r id handler-id')
-                                                    r)
-                                                  ) {} refs)]]))]
+                                                  (let [same-handler? (= handler-id handler-id')
+                                                        handler-match?
+                                                        (or same-handler?
+                                                            (and group-global?
+                                                                 (or (= handler-ids #{handler-id'})
+                                                                     (and (set? handler-ids) (contains? handler-ids handler-id'))
+                                                                     (and global?
+                                                                          (contains? global-handlers handler-id')
+                                                                          (every? #(handlers-co-active? % handler-id') handler-ids)))))
+                                                        binding-match?
+                                                        (or (= input-binding k)
+                                                            (and same-handler?
+                                                                 (binding-prefix-overlap? input-binding k)))]
+                                                    (if (and (not (contains? exclude-ids id))
+                                                             handler-match?
+                                                             binding-match?)
+                                                      (assoc r id handler-id')
+                                                      r)))
+                                                {} refs)]]))]
 
                      [k' (->> ks-bindings
-                              (filterv same-leading-key?)
+                              (filterv same-key?)
                               (mapv into-conflict-refs)
                               (remove #(empty? (second (second %1))))
-                              (into {}))]
-                     ))))
+                              (into {}))]))))
+
           (remove #(empty? (vals (second %1))))
           (into {})))))
+
+(def handler-display-labels
+  {:shortcut.handler/block-editing-only      "editing mode"
+   :shortcut.handler/editor-global           "editor"
+   :shortcut.handler/global-prevent-default  "global"
+   :shortcut.handler/global-non-editing-only "navigation"
+   :shortcut.handler/misc                    "global"
+   :shortcut.handler/pdf                     "PDF viewer"
+   :shortcut.handler/auto-complete           "autocomplete"
+   :shortcut.handler/cards                   "flashcards"
+   :shortcut.handler/date-picker             "date picker"})
+
+(defn get-cross-context-conflicts
+  "Like get-conflicts-by-keys but returns conflicts from OTHER handler contexts only.
+   Used for non-blocking amber warnings when a key is shared across contexts."
+  [ks handler-id {:keys [exclude-ids]}]
+  (let [global-handlers #{:shortcut.handler/editor-global
+                          :shortcut.handler/block-editing-only
+                          :shortcut.handler/global-non-editing-only
+                          :shortcut.handler/global-prevent-default
+                          :shortcut.handler/misc}
+        ks-bindings (get-bindings-keys-map)
+        caller-handlers (should-be-included-to-global-handler handler-id)
+        caller-is-global? (seq (set/intersection global-handlers caller-handlers))]
+    (->> (if (string? ks) [ks] ks)
+         (map (fn [k]
+                (when-let [k' (shortcut-utils/undecorate-binding k)]
+                  (let [k-parsed (bean/->clj (shortcut-utils/safe-parse-string-binding k'))
+
+                        same-key?
+                        (fn [[k' _]]
+                          (when (sequential? k-parsed)
+                            (= k-parsed k')))
+
+                        cross-context-ref
+                        (fn [[k o]]
+                          ;; Only exact key matches — chord-prefix overlaps from
+                          ;; other contexts coexist fine at runtime and don't
+                          ;; warrant even an amber warning.
+                          (when (= k-parsed k)
+                            (when-let [{:keys [key refs]} o]
+                              [k [key (reduce-kv
+                                       (fn [r id handler-id']
+                                         (if (and (not (contains? exclude-ids id))
+                                                  (not (contains? caller-handlers handler-id'))
+                                                  (not (and caller-is-global?
+                                                            (contains? global-handlers handler-id'))))
+                                           (assoc r id handler-id')
+                                           r))
+                                       {} refs)]])))]
+
+                    [k' (->> ks-bindings
+                             (filterv same-key?)
+                             (mapv cross-context-ref)
+                             (remove #(empty? (second (second %))))
+                             (into {}))]))))
+         (remove #(empty? (vals (second %))))
+         (into {}))))
+
+(defn conflict-context-label
+  "Get the human-readable context label for the first conflict in a conflicts map."
+  [conflicts-map]
+  (->> (for [[_ ks] conflicts-map
+             v (vals ks)
+             :let [refs (second v)]
+             [_ handler-id'] refs]
+         (get handler-display-labels handler-id'))
+       (first)))
+
+(defn partition-conflicts-by-type
+  "Split a conflicts map into {:exact ... :prefix ...} sub-maps.
+   Exact = inner key equals the parsed input. Prefix = inner key is a prefix overlap."
+  [conflicts-map input-key]
+  (let [input-binding (some-> input-key
+                              shortcut-utils/undecorate-binding
+                              shortcut-utils/safe-parse-string-binding
+                              bean/->clj)]
+    (when (sequential? input-binding)
+      (reduce-kv
+       (fn [acc outer-k inner-map]
+         (let [grouped (group-by (fn [[inner-k _]] (= input-binding inner-k)) inner-map)
+               exact-entries (get grouped true)
+               prefix-entries (get grouped false)]
+           (cond-> acc
+             (seq exact-entries)
+             (assoc-in [:exact outer-k] (into {} exact-entries))
+             (seq prefix-entries)
+             (assoc-in [:prefix outer-k] (into {} prefix-entries)))))
+       {:exact {} :prefix {}}
+       conflicts-map))))
+
+(defn conflict-has-exact?
+  "Returns true if any conflict in the map is an exact match (not just prefix overlap)."
+  [conflicts-map input-key]
+  (let [input-binding (some-> input-key
+                              shortcut-utils/undecorate-binding
+                              shortcut-utils/safe-parse-string-binding
+                              bean/->clj)]
+    (boolean
+     (and (sequential? input-binding)
+          (some (fn [[_ inner-map]]
+                  (some (fn [[inner-k _]] (= input-binding inner-k)) inner-map))
+                conflicts-map)))))
 
 (defn parse-conflicts-from-binding
   [from-binding target]
@@ -256,45 +372,23 @@
     (when-let [target (some-> target (mod-key) (shortcut-utils/safe-parse-string-binding) (bean/->clj))]
       (->> from-binding
            (filterv
-             #(when-let [from (some-> % (mod-key) (shortcut-utils/safe-parse-string-binding) (bean/->clj))]
-                (or (= from target)
-                    (and (or (= (count from) 1)
-                             (= (count target) 1))
-                         (= (first target) (first from))))))))))
-
-(defn potential-conflict? [shortcut-id]
-  (if-not (shortcut-binding shortcut-id)
-    false
-    (let [handler-id (get-group shortcut-id)
-          shortcut-m (shortcut-map handler-id)
-          parse-shortcut #(try
-                            (KeyboardShortcutHandler/parseStringShortcut %)
-                            (catch :default e
-                              (js/console.error "[shortcut/parse-error]" (str % " - " (.-message e)))))
-          bindings (->> (shortcut-binding shortcut-id)
-                        (map mod-key)
-                        (map parse-shortcut)
-                        (map js->clj))
-          rest-bindings (->> (map key shortcut-m)
-                             (remove #{shortcut-id})
-                             (map shortcut-binding)
-                             (filter vector?)
-                             (mapcat identity)
-                             (map mod-key)
-                             (map parse-shortcut)
-                             (map js->clj))]
-
-      (some? (some (fn [b] (some #{b} rest-bindings)) bindings)))))
+            #(when-let [from (some-> % (mod-key) (shortcut-utils/safe-parse-string-binding) (bean/->clj))]
+               (or (= from target)
+                   (and (or (= (count from) 1)
+                            (= (count target) 1))
+                        (= (first target) (first from))))))))))
 
 (defn shortcut-data-by-id [id]
   (let [binding (shortcut-binding id)
-        data (->> (vals @shortcut-config/*config)
-                  (into {})
-                  id)]
+        data (-> (shortcuts-map-full) id)]
     (assoc
-      data
-      :binding
-      (binding-for-display id binding))))
+     data
+     :binding
+     (binding-for-display id binding))))
+
+(defn shortcut-desc-by-id
+  [id]
+  (get-shortcut-desc (assoc (shortcut-data-by-id id) :id id)))
 
 (defn shortcuts->commands [handler-id]
   (let [m (get @shortcut-config/*config handler-id)]

@@ -10,14 +10,15 @@
 (defn toggle-answers []
   (click "card-answers"))
 
-(defn next-card []
-  (click "card-next"))
+;; db-based
+(defn card-again []
+  (click "card-again"))
 
-(defn forgotten []
-  (click "card-forgotten"))
+(defn card-hard []
+  (click "card-hard"))
 
-(defn remembered []
-  (click "card-remembered"))
+(defn card-good []
+  (click "card-good"))
 
-(defn recall []
-  (click "card-recall"))
+(defn card-easy []
+  (click "card-easy"))

@@ -14,12 +14,11 @@
 (defn is-file-url?
   [s]
   (and (string? s)
-       (or (string/starts-with? s "file://") ;; mobile platform
-           (string/starts-with? s "content://") ;; android only
-           (string/starts-with? s "assets://") ;; Electron asset, urlencoded
-           (string/starts-with? s "logseq://") ;; reserved for future fs protocol
-           (string/starts-with? s "memory://") ;; special memory fs
-           (string/starts-with? s "s3://"))))
+       (or
+        (string/starts-with? s "memory://") ;; special memory fs
+        (string/starts-with? s "assets://") ;; Electron asset, urlencoded
+        (string/starts-with? s "file://") ;; Electron files
+        )))
 
 (defn filename
   "File name of a path or URL.
@@ -51,18 +50,6 @@
   "File extension, lowercased"
   [path]
   (second (split-ext path)))
-
-(defn safe-filename?
-  "Safe filename on all platforms"
-  [fname]
-  (and (not (string/blank? fname))
-       (< (count fname) 255)
-       (not (or (re-find #"[\/?<>\\:*|\"]" fname)
-                (re-find #"^\.+$" fname)
-                (re-find #"[\. ]$" fname)
-                (re-find #"(?i)^(COM[0-9]|CON|LPT[0-9]|NUL|PRN|AUX|com[0-9]|con|lpt[0-9]|nul|prn|aux)\..+" fname)
-                (re-find #"[\u0000-\u001f\u0080-\u009f]" fname)))))
-
 
 (defn- path-join-internal
   "Joins the given path segments into a single path, handling relative paths,
@@ -143,48 +130,83 @@
                  [])
          (join-fn))))
 
-(defn url-join
-  "Segments are not URL-ecoded"
-  [base-url & segments]
-  (let [^js url (js/URL. base-url)
-        scheme (.-protocol url)
-        domain (or (not-empty (.-host url)) "")
-        path (safe-decode-uri-component (.-pathname url))
-        encoded-new-path (apply uri-path-join-internal path segments)]
-    (str scheme "//" domain encoded-new-path)))
+(defn- preserve-file-url-win-drive
+  [scheme encoded-path]
+  (cond-> encoded-path
+    (= scheme "file:")
+    (string/replace #"^/([a-zA-Z])%3[Aa](?=/|$)" "/$1:")))
 
+(defn url-join
+  "Segments are not URL-encoded"
+  [base-url & segments]
+  (let [custom-scheme (re-find #"^[a-zA-Z0-9_+\-\.]+://" base-url)
+        custom-scheme? (and custom-scheme (not= custom-scheme "file://"))
+        base-url (cond-> base-url
+                   custom-scheme? (string/replace-first custom-scheme "file://"))
+        ^js url (try
+                  (js/URL. (safe-decode-uri-component base-url))
+                  (catch :default e
+                    (js/console.error "Failed to construct URL in url-join:" base-url e)
+                    (js/URL. "file:///")))
+        scheme (if custom-scheme?
+                 (string/replace custom-scheme "//" "")
+                 (.-protocol url))
+        path (.-pathname url)
+        domain (or (not-empty (.-host url))
+                   (if (or custom-scheme? (string/starts-with? path "/")) "" "/"))
+        encoded-new-path (->> (apply uri-path-join-internal path segments)
+                              (preserve-file-url-win-drive scheme))]
+    (str scheme "//" domain encoded-new-path)))
 
 (defn path-join
   "Join path segments, or URL base and path segments"
   [base & segments]
-  (cond
-    ;; For debugging
-    ; (nil? base)
-    ; (js/console.log "path join with nil global directory" segments)
-    (= base "")
-    (js/console.error "BUG: should not join with empty dir" segments)
-    :else
-    nil)
-
   (if (is-file-url? base)
     (apply url-join base segments)
-    (apply path-join-internal base segments)))
+    (let [rejoined-path (apply path-join-internal base segments)]
+      (if (and (not-empty base)
+               (string/starts-with? base "//")) ;; Win path fix
+        (str "/" rejoined-path)
+        rejoined-path))))
 
+(defn prepend-protocol
+  "Prepend protocol to path. Handle UNC path. aka. path-to-url
+
+   protocol is one of file: http: https: assets:"
+  [protocol path]
+  (cond
+    (string/starts-with? path protocol)
+    (do
+      (js/console.error "BUG: should not prepend protocol to path with protocol" protocol path)
+      path)
+
+    (string/starts-with? path "//") ;; Windows UNC path
+    (str protocol path)
+
+    :else
+    (path-join (str protocol "//") path)))
 
 (defn- path-normalize-internal
   "Normalize path using path-join, break into segment and re-join"
   [path]
   (path-join path))
 
-
 (defn url-normalize
   [origin-url]
-  (let [^js url (js/URL. origin-url)
-        scheme (.-protocol url)
-        domain (or (not-empty (.-host url)) "")
-        path (safe-decode-uri-component (.-pathname url))
-        encoded-new-path (uri-path-join-internal path)]
-    (str scheme "//" domain encoded-new-path)))
+  (let [^js url (try
+                  (js/URL. (safe-decode-uri-component origin-url))
+                  (catch :default e
+                    (js/console.error "Failed to construct URL in url-normalize:" origin-url e)
+                    nil))
+        scheme (when url (.-protocol url))
+        domain (when url (or (not-empty (.-host url)) "/"))
+        path (when url (.-pathname url))
+        encoded-new-path (when url
+                           (->> (uri-path-join-internal path)
+                                (preserve-file-url-win-drive scheme)))]
+    (if url
+      (str scheme "//" domain encoded-new-path)
+      origin-url)))
 
 (defn path-normalize
   "Normalize path or URL"
@@ -202,16 +224,31 @@
   (if (is-file-url? original-url)
     ;; NOTE: URL type is not consistent across all protocols
     ;; Check file:// and assets://, pathname behavior is different
-    (let [^js url (js/URL. (string/replace original-url "assets://" "file://"))
-          path (safe-decode-uri-component (.-pathname url))
-          path (if (string/starts-with? path "///")
-                 (subs path 2)
-                 path)
-          path (if (re-find #"(?i)^/[a-zA-Z]:" path) ;; Win path fix
-                 (subs path 1)
-                 path)]
-      path)
+    (if-let [^js url (try
+                       (js/URL. (string/replace (safe-decode-uri-component original-url) "assets://" "file://"))
+                       (catch :default e
+                         (js/console.error "Failed to construct URL in url-to-path:" original-url e)
+                         nil))]
+      (let [path (.-pathname url)
+            host (.-host url)
+            path (if (string/starts-with? path "///")
+                   (subs path 2)
+                   path)
+            path (if (re-find #"(?i)^/[a-zA-Z]:" path) ;; Win path fix
+                   (subs path 1)
+                   path)]
+        (if (string/blank? host)
+          path
+          (str "//" host path)))
+      original-url)
     original-url))
+
+(defn file-url-or-path->path
+  "Converts a file URL to a local filesystem path."
+  [s]
+  (if (is-file-url? s)
+    (url-to-path s)
+    s))
 
 (defn trim-dir-prefix
   "Trim dir prefix from path"
@@ -227,32 +264,6 @@
         (js/console.error "unhandled trim-base" base-path sub-path)
         nil))))
 
-(defn relative-path
-  "Get relative path from base path.
-   Works for both path and URL."
-  [base-path sub-path]
-  (let [base-path (path-normalize base-path)
-        sub-path (path-normalize sub-path)
-        is-url? (is-file-url? base-path)]
-    (if (string/starts-with? sub-path base-path)
-      (if is-url?
-        (safe-decode-uri-component (string/replace (subs sub-path (count base-path)) #"^/+", ""))
-        (string/replace (subs sub-path (count base-path)) #"^/+", ""))
-      ;; append as many ..
-      ;; NOTE: This is a buggy impl, relative-path is different when base-path is a file or a dir
-      (let [base-segs (string/split base-path #"/" -1)
-            path-segs (string/split sub-path #"/" -1)
-            common-segs (take-while #(= (first %) (second %)) (map vector base-segs path-segs))
-            base-segs (drop (count common-segs) base-segs)
-            remain-segs (drop (count common-segs) path-segs)
-            base-prefix (apply str (repeat (max 0 (dec (count base-segs))) "../"))]
-        (js/console.error (js/Error. "buggy relative-path") base-path sub-path)
-        #_{:clj-kondo/ignore [:path-invalid-construct/string-join]}
-        (if is-url?
-          (safe-decode-uri-component (str base-prefix (string/join "/" remain-segs)))
-          (str base-prefix (string/join "/" remain-segs)))))))
-
-
 (defn parent
   "Parent, containing directory"
   [path]
@@ -261,45 +272,11 @@
     (path-normalize (str path "/.."))
     nil))
 
-
-(defn resolve-relative-path
-  "Assume current-path is a file"
-  [current-path rel-path]
-  (if-let [base-dir (parent current-path)]
-    (path-join base-dir rel-path)
-    rel-path))
-
-(defn get-relative-path
-  "Assume current-path is a file, and target-path is a file or directory.
-   Return relative path from current-path to target-path.
-   Works for both path and URL. Also works for relative path.
-   The opposite operation is `resolve-relative-path`"
-  [current-path target-path]
-  (let [base-path (parent current-path)
-        sub-path (path-normalize target-path)
-        is-url? (is-file-url? base-path)
-        base-segs (if base-path
-                    (string/split base-path #"/" -1)
-                    [])
-        path-segs (string/split sub-path #"/" -1)
-        common-segs (take-while #(= (first %) (second %)) (map vector base-segs path-segs))
-        base-segs (drop (count common-segs) base-segs)
-        remain-segs (drop (count common-segs) path-segs)
-        base-prefix (apply str (repeat (max 0 (count base-segs)) "../"))]
-    #_{:clj-kondo/ignore [:path-invalid-construct/string-join]}
-    (if is-url?
-      (safe-decode-uri-component (str base-prefix (string/join "/" remain-segs)))
-      (str base-prefix (string/join "/" remain-segs)))))
-
 ;; compat
 (defn basename
   [path]
   (let [path (string/replace path #"/+$" "")]
     (filename path)))
-
-(defn dirname
-  [path]
-  (parent path))
 
 (defn absolute?
   "Whether path `p` is absolute."
