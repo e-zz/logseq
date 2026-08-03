@@ -117,14 +117,19 @@ jobs:
           cli: ${{ env.CLOJURE_VERSION }}
 
       - name: Set up OCaml
+        # Only upstream can build the OCaml CLI (cached opam state, secrets).
+        # Fork builds skip it - logseq-cli.js is not part of the desktop app itself.
+        if: ${{ github.repository == 'logseq/logseq' }}
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
 
       - name: Fetch OCaml deps
+        if: ${{ github.repository == 'logseq/logseq' }}
         run: cd cli && opam install . --deps-only --with-test --yes
 
       - name: Fetch CLI pnpm deps
+        if: ${{ github.repository == 'logseq/logseq' }}
         run: pnpm --dir cli install --frozen-lockfile --ignore-workspace
 
       - name: Retrieve tag version
@@ -159,7 +164,7 @@ jobs:
           gulp build
           pnpm cljs:release-electron
           pnpm db-worker-node:bundle
-          opam exec -- pnpm cli:release
+          if [ "${{ github.repository }}" = "logseq/logseq" ]; then opam exec -- pnpm cli:release; fi
           pnpm webpack-app-build
           pnpm desktop:prepare-runtime-js
         env:
@@ -172,6 +177,8 @@ jobs:
           test -f ./dist/db-worker-node-assets.json
 
       - name: Verify bundled CLI
+        # logseq-cli.js only exists when the OCaml CLI was built (upstream only)
+        if: ${{ github.repository == 'logseq/logseq' }}
         run: |
           test -f ./static/js/logseq-cli.js
           node ./static/js/logseq-cli.js --help >/tmp/logseq-cli-help.txt
@@ -180,7 +187,6 @@ jobs:
       - name: Verify desktop runtime script locations
         run: |
           test -f ./static/js/db-worker-node.js
-          test -f ./static/js/logseq-cli.js
           test -f ./static/.agents/skills/logseq-cli/SKILL.md
 
       - name: Update APP Version
