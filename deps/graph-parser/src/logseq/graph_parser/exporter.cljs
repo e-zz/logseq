@@ -828,10 +828,15 @@
                            [[:logseq.property.view/type
                              (if prop-value :logseq.property.view/type.table :logseq.property.view/type.list)]]
                            :query-sort-by
-                           [[:logseq.property.table/sorting
-                             [{:id (or (query-table-special-keys (keyword prop-value))
-                                       (get-ident @all-idents (keyword prop-value)))
-                               :asc? true}]]]
+                           (when-let [sort-by-ident (try
+                                                      (or (query-table-special-keys (keyword prop-value))
+                                                          (get-ident @all-idents (keyword prop-value)))
+                                                      (catch :default e
+                                                        (js/console.error "Translating query sort-by failed with:" e)
+                                                        nil))]
+                             [[:logseq.property.table/sorting
+                               [{:id sort-by-ident
+                                 :asc? true}]]])
                            ;; ignore to handle below
                            :query-sort-desc
                            nil
@@ -849,7 +854,8 @@
                            [[(built-in-property-file-to-db-idents prop) prop-value]]))))
              (into {}))]
     (cond-> m
-      (and (contains? props :query-sort-desc) (:query-sort-by props))
+      (and (contains? props :query-sort-desc) (:query-sort-by props)
+           (contains? m :logseq.property.table/sorting))
       (update :logseq.property.table/sorting
               (fn [v]
                 (assoc-in v [0 :asc?] (not (:query-sort-desc props))))))))
