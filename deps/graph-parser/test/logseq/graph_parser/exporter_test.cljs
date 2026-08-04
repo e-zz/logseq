@@ -851,6 +851,29 @@ abc
         (p/finally (fn [_]
                      (set! (.-write (.-stderr js/process)) original-stderr-write))))))
 
+(deftest-async import-query-sort-by-unregistered-property
+  (let [graph-dir (write-temp-file-graph
+                   {"logseq/config.edn" "{}"
+                    "journals/2024_04_27.md"
+                    (str "- {{query (property :journal-abbreviation)}}\n"
+                         "  query-table:: true\n"
+                         "  query-properties:: [:title :publication-title :journal-abbreviation :authors]\n"
+                         "  query-sort-by:: journal-abbreviation\n")})]
+    (-> (p/let [conn (db-test/create-conn)
+                _ (db-pipeline/add-listener conn)
+                _ (import-file-graph-to-db graph-dir conn {})]
+          (let [query-block (find-block-by-property-value @conn :logseq.property/query "(property :journal-abbreviation)")
+                props (db-test/readable-properties query-block)]
+            (is (= :logseq.property.view/type.table (:logseq.property.view/type props))
+                "query with sort-by of unregistered property imports without throwing")
+            (is (not (contains? props :logseq.property.table/sorting))
+                "sort-by of unregistered property is skipped, not imported")
+            (is (= #{:logseq.property.view/type :logseq.property/query :block/tags}
+                   (set (keys props)))
+                "query block still imports its other properties")
+            (is (empty? (map :entity (:errors (db-validate/validate-local-db! @conn))))
+                "Imported graph validates"))))))
+
 (deftest extract-template-blocks
   (let [page-uuid (random-uuid)
         parent-uuid (random-uuid)
