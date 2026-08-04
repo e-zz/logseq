@@ -2759,12 +2759,24 @@
                   (when (and (string? title') (not= title title'))
                     [:db/add source-id :block/title title'])))
               refs-by-source-id)
+        ;; Retract :block/uuid from ALL orphaned placeholder entities, not just
+        ;; those referenced by :block/refs or :block/link. Placeholders can also
+        ;; be created by ref-typed property values e.g. when a property's type
+        ;; changes and the old value is retracted but the placeholder entity
+        ;; it pointed at is left behind (orphaned). An orphaned placeholder
+        ;; has ONLY a :block/uuid - property-value blocks (e.g. :node/:date
+        ;; types) also lack :block/title but carry other attrs, so they're
+        ;; excluded by the stricter check.
+        orphaned-placeholder?
+        (fn [entity]
+          (and (:block/uuid entity)
+               (nil? (:block/title entity))
+               (empty? (dissoc entity :block/uuid :db/id :block/tx-id))))
         retract-placeholder-tx
-        (->> (concat missing-ref-datoms missing-link-datoms)
-             (map (juxt :ref-id :ref-uuid))
-             distinct
-             (map (fn [[ref-id ref-uuid]]
-                    [:db/retract ref-id :block/uuid ref-uuid])))]
+        (->> (d/datoms db :aevt :block/uuid)
+             (keep (fn [datom]
+                     (when (orphaned-placeholder? (into {} (d/entity db (:e datom))))
+                       [:db/retract (:e datom) :block/uuid (:v datom)]))))]
     (concat retract-ref-tx retract-link-tx update-title-tx retract-placeholder-tx)))
 
 (defn- cleanup-missing-block-refs!

@@ -434,6 +434,29 @@
     (is (empty? (map :entity (:errors (db-validate/validate-local-db! @conn))))
         "Imported graph validates")))
 
+(deftest cleanup-orphaned-placeholder-blocks
+  (let [conn (db-test/create-conn)
+        orphan-uuid (d/squuid)
+        ;; stub entity with only :block/uuid (like a placeholder left behind by
+        ;; a property type change - nothing references it)
+        _ (d/transact! conn [{:block/uuid orphan-uuid}])
+        ;; legit block
+        legit-uuid (d/squuid)
+        _ (d/transact! conn [{:block/uuid legit-uuid
+                              :block/title "legit"
+                              :block/parent [:block/uuid legit-uuid]
+                              :block/page [:block/uuid legit-uuid]
+                              :block/order "zzzz"
+                              :block/created-at 1
+                              :block/updated-at 1}])]
+    (gp-exporter/cleanup-missing-block-refs! conn)
+    (let [orphan-entity (d/entity @conn [:block/uuid orphan-uuid])]
+      (is (nil? (:block/uuid orphan-entity))
+          "Orphaned placeholder block refs have their :block/uuid retracted"))
+    (let [legit-entity (d/entity @conn [:block/uuid legit-uuid])]
+      (is (= "legit" (:block/title legit-entity))
+          "Legit blocks keep their :block/uuid and title"))))
+
 (deftest-async import-quote-with-email-address
   (p/let [file (write-temp-graph-file
                  "pages/email.md"
