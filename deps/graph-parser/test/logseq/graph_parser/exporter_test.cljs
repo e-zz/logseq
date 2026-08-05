@@ -1090,8 +1090,68 @@ abc
           "Linked file PDF annotations import and keep highlight positions from the EDN file")
       (is (= 0 (count @(:ignored-assets import-state))) "No ignored assets"))))
 
+(deftest-async import-standalone-zotero-linked-file-pdf-annotations
+  ;; A block that references a pdf ONLY via {{zotero-linked-file "..."}} macro
+  ;; (no matching zotero://select/... link, no file link) must still import the
+  ;; pdf as an Asset and build its annotations from the assets/<name>.edn file.
+  ;; Regression for: annotations dropped when the macro is the only reference.
+  (let [annotation-id #uuid "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        dir (fs/mkdtempSync (node-path/join (os/tmpdir) "logseq-graph-parser-test-"))
+        linked-base-dir (node-path/join dir "library")
+        graph-dir (node-path/join dir "graph")
+        external-pdf-path (node-path/join linked-base-dir "qn/Sample Linked Paper.pdf")
+        linked-file-rel-path "qn/Sample Linked Paper.pdf"]
+    (fs/mkdirSync (node-path/dirname external-pdf-path) #js {:recursive true})
+    (fs/writeFileSync external-pdf-path "pdf")
+    (doseq [[relative-path content]
+            {"logseq/config.edn" (let [base-dir' (string/replace linked-base-dir "\\" "/")]
+                                   (str "{:zotero/settings-v2 {\"default\" {:zotero-linked-attachment-base-directory \""
+                                        base-dir' "\"}}}\n"))
+             "pages/source.md" (str "- some text {{zotero-linked-file \"" linked-file-rel-path "\"}}\n")
+             "pages/hls__Sample Linked Paper.md" (str "file:: [Sample Linked Paper.pdf](" linked-file-rel-path ")\n"
+                                                       "file-path:: " linked-file-rel-path "\n\n"
+                                                       "- Standalone macro highlight\n"
+                                                       "  ls-type:: annotation\n"
+                                                       "  hl-page:: 2\n"
+                                                       "  hl-color:: yellow\n"
+                                                       "  id:: " annotation-id "\n")
+             "assets/Sample Linked Paper.edn" (str "{:highlights [{:id #uuid \"" annotation-id "\","
+                                                    " :page 2,"
+                                                    " :position {:bounding {:x1 1 :y1 2 :x2 3 :y2 4 :width 10 :height 20},"
+                                                    "            :rects (),"
+                                                    "            :page 2},"
+                                                    " :content {:text \"Standalone macro highlight\"},"
+                                                    " :properties {:color \"yellow\"}}]}\n")}]
+      (let [file-path (node-path/join graph-dir relative-path)]
+        (fs/mkdirSync (node-path/dirname file-path) #js {:recursive true})
+        (fs/writeFileSync file-path content)))
+    (p/let [conn (db-test/create-conn)
+            assets (atom [])
+            {:keys [import-state]} (import-file-graph-to-db graph-dir conn {:assets assets})
+            asset (db-test/find-block-by-content @conn "Sample Linked Paper")
+            annotation (db-test/find-block-by-content @conn "Standalone macro highlight")]
+      (is (some? asset)
+          "zotero-linked-file macro-only reference imports the pdf as an Asset")
+      (is (= {:block/tags [:logseq.class/Asset]
+              :logseq.property.asset/type "pdf"
+              :logseq.property.asset/external-url (str "zotero-link://" linked-file-rel-path)}
+             (select-keys (db-test/readable-properties asset)
+                          [:block/tags
+                           :logseq.property.asset/type
+                           :logseq.property.asset/external-url]))
+          "Asset block keeps the zotero-linked-file path as external metadata")
+      (is (= {:block/tags [:logseq.class/Pdf-annotation]
+              :logseq.property/asset "Sample Linked Paper"
+              :logseq.property.pdf/hl-page 2}
+             (select-keys (db-test/readable-properties annotation)
+                          [:block/tags
+                           :logseq.property/asset
+                           :logseq.property.pdf/hl-page]))
+          "Annotations from the EDN file are imported for macro-only references")
+      (is (= 0 (count @(:ignored-assets import-state))) "No ignored assets"))))
+
 (deftest-async ^:integration import-large-flat-file-without-stack-overflow
-  (p/let [file (write-temp-graph-file
+   (p/let [file (write-temp-graph-file
                 "pages/large.md"
                 (apply str (map #(str "- large line " % " #tag\n") (range 45000))))
           conn (db-test/create-conn)
