@@ -178,7 +178,6 @@
  :cmdk.action/search "Hledat"
  :cmdk.action/trigger "Spustit"
 
- :cmdk.create/configure-tag "Konfigurovat štítek"
  :cmdk.create/page "Vytvořit stránku"
  :cmdk.create/tag "Vytvořit štítek"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Nedávno aktualizované"
  :cmdk.group/themes "Motivy"
 
- :cmdk.info/configure-tag "Konfigurovat #{1}"
  :cmdk.info/create-page "Vytvořit stránku '{1}'"
  :cmdk.info/create-tag "Vytvořit štítek '{1}'"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} souborů importováno. Podrobnosti v konzoli."
  :import/assets-imported "{1} souborů importováno."
  :import/assets-skipped "{1} souborů přeskočeno. Podrobnosti v konzoli."
- :import/block-icons-cannot-be-imported "Ikony bloků nelze importovat. Importujte ručně v bloku {1}."
  :import/cannot-import-block-into-non-block-entity "Nelze importovat blok do entity, která není blokem."
  :import/db-edn-desc "Importovat EDN export DB grafu do nového DB grafu"
  :import/db-edn-title "EDN do DB grafu"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Nový název grafu"
  :import/notes "Importovat poznámky"
  :import/org-files-imported "{1} souborů Org importováno jako Markdown. Podpora Org bude přidána později."
- :import/page-icons-cannot-be-imported "Ikony stránek nelze importovat. Importujte ručně na stránce {1}."
  :import/properties-case-insensitive-commas "Názvy vlastností (bez rozlišení velikosti písmen, oddělené čárkami)"
  :import/property-classes-placeholder "např. type"
- :import/property-import-manually "Tuto vlastnost je třeba importovat ručně"
  :import/property-parent-classes-placeholder "např. parent"
- :import/property-type-mismatch "Hodnota vlastnosti je typu {1}, ne {2}"
  :import/property-value-tag-parents "Importovat rodiče štítků z hodnot vlastností"
  :import/property-value-tags "Importovat další štítky z hodnot vlastností"
  :import/remove-inline-tags "Odstranit inline štítky"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Vestavěné prvky nelze smazat."
  :node/new "Nový uzel"
 
- :notification/clear-all "Odstranit vše"
  :notification/copied "Zkopírováno"
 
  :onboarding.import/desc "Popis importu"
@@ -1718,7 +1711,6 @@
  :ui/image "obrázek"
  :ui/label "Štítek"
  :ui/link "Odkaz"
- :ui/load-more "Načíst více"
  :ui/loading "Načítání"
  :ui/login "Přihlásit se"
  :ui/logout "Odhlásit se"

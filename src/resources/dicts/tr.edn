@@ -178,7 +178,6 @@
  :cmdk.action/search "Ara"
  :cmdk.action/trigger "Çalıştır"
 
- :cmdk.create/configure-tag "Etiketi yapılandır"
  :cmdk.create/page "Sayfa oluştur"
  :cmdk.create/tag "Etiket oluştur"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Son güncellenenler"
  :cmdk.group/themes "Temalar"
 
- :cmdk.info/configure-tag "#{1} yapılandır"
  :cmdk.info/create-page "'{1}' sayfası oluştur"
  :cmdk.info/create-tag "'{1}' etiketi oluştur"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} dosya içe aktarıldı. Ayrıntılar konsolda."
  :import/assets-imported "{1} dosya içe aktarıldı."
  :import/assets-skipped "{1} dosya atlandı. Ayrıntılar konsolda."
- :import/block-icons-cannot-be-imported "Blok simgeleri içe aktarılamaz. {1} bloğunda elle içe aktarın."
  :import/cannot-import-block-into-non-block-entity "Blok olmayan varlığa blok içe aktarılamaz."
  :import/db-edn-desc "Bir DB grafiğinin EDN dışa aktarımını yeni bir DB grafiğine içe aktar"
  :import/db-edn-title "EDN'den DB grafiğine"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Yeni grafik adı"
  :import/notes "Notları içe aktar"
  :import/org-files-imported "{1} Org dosyası Markdown olarak içe aktarıldı. Org desteği daha sonra eklenecek."
- :import/page-icons-cannot-be-imported "Sayfa simgeleri içe aktarılamaz. {1} sayfasında elle içe aktarın."
  :import/properties-case-insensitive-commas "Özellik adları (büyük/küçük harf duyarsız, virgülle ayrılmış)"
  :import/property-classes-placeholder "örn. type"
- :import/property-import-manually "Bu özellik elle içe aktarılmalıdır"
  :import/property-parent-classes-placeholder "örn. parent"
- :import/property-type-mismatch "Özellik değeri {1} türünde, {2} değil"
  :import/property-value-tag-parents "Özellik değerlerinden etiket üst öğelerini içe aktar"
  :import/property-value-tags "Özellik değerlerinden ek etiketleri içe aktar"
  :import/remove-inline-tags "Satır içi etiketleri kaldır"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Yerleşik öğeler silinemez."
  :node/new "Yeni düğüm"
 
- :notification/clear-all "Tümünü temizle"
  :notification/copied "Kopyalandı"
 
  :onboarding.import/desc "Notlarınız EDN veya Markdown biçimindeyse, Logseq bunlarla çalışabilir."
@@ -1718,7 +1711,6 @@
  :ui/image "görsel"
  :ui/label "Etiket"
  :ui/link "Bağlantı"
- :ui/load-more "Daha fazla yükle"
  :ui/loading "Yükleniyor"
  :ui/login "Giriş yap"
  :ui/logout "Çıkış yap"

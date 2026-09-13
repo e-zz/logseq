@@ -5,9 +5,10 @@
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.date :as date]
-            [frontend.db :as db]
+            [frontend.db.async :as db-async]
             [frontend.db.persist :as db-persist]
             [frontend.db.restore :as db-restore]
+            [frontend.db.subs :as db-subs]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.graph :as graph-handler]
             [frontend.handler.notification :as notification]
@@ -19,6 +20,7 @@
             [frontend.state :as state]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
+            [lambdaisland.glogi :as log]
             [logseq.common.version :as build-version]
             [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
@@ -54,7 +56,7 @@
                           :repo url}))
     (let [current-repo (state/get-current-repo)]
       (p/do!
-       (db/remove-conn! url)
+       (persist-db/<close-db url)
        (db-persist/delete-graph! url)
        (search/remove-db! url)
        (state/delete-repo! repo)
@@ -62,6 +64,7 @@
          (if (= current-repo url)
            (do
              (state/set-current-repo! nil)
+             (db-subs/reset-graph! nil)
              (when-let [graph (:url (first (state/get-repos)))]
                (notification/show! (t :graph/removed-and-redirecting
                                       (text-util/get-graph-name-from-path url)
@@ -70,25 +73,24 @@
                (state/pub-event! [:graph/switch graph {:persist? false}])))
            (notification/show! (t :graph/removed (text-util/get-graph-name-from-path url)) :success)))))))
 
-(defn start-repo-db-if-not-exists!
-  [repo & {:as opts}]
-  (state/set-current-repo! repo)
-  (db/start-db-conn! repo (assoc opts :db-graph? true)))
-
 (defn restore-and-setup-repo!
   "Restore the db of a graph from the persisted data, and setup. Create a new
   conn, or replace the conn in state with a new one."
   [repo & {:as opts}]
   (p/do!
-   (state/set-db-restoring! true)
+   (when-not (true? (:file-graph-import? opts))
+     (state/set-db-restoring! true))
    (db-restore/restore-graph! repo opts)
+   (p/let [date-formatter (db-async/<get-date-formatter repo)]
+     (state/set-date-formatter! repo date-formatter))
    (repo-config-handler/restore-repo-config! repo)
    (when (config/global-config-enabled?)
      (global-config-handler/restore-global-config!))
     ;; Don't have to unlisten the old listener, as it will be destroyed with the conn
    (when-not (true? (:ignore-style? opts))
      (ui-handler/add-style-if-exists!))
-   (when-not config/publishing?
+   (when-not (or config/publishing?
+                 (true? (:file-graph-import? opts)))
      (state/set-db-restoring! false))))
 
 (defn get-repos
@@ -162,7 +164,6 @@
                                        :graph-git-sha (build-version/revision)
                                        :creating-remote-graph? creating-remote-graph?}
                                 file-graph-import? (assoc :import-type :file-graph)))
-           _ (start-repo-db-if-not-exists! full-graph-name)
            _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
            _ (restore-and-setup-repo! full-graph-name {:file-graph-import? file-graph-import?})
            _ (when-not file-graph-import? (route-handler/redirect-to-home!))
@@ -171,14 +172,17 @@
            _ (state/pub-event! [:init/commands])
            _ (when-not file-graph-import? (state/pub-event! [:page/create (date/today) {:redirect? false}]))]
      (state/pub-event! [:shortcut/refresh])
-     (route-handler/redirect-to-home!)
-     (ui-handler/re-render-root!)
+     (when-not file-graph-import?
+       (route-handler/redirect-to-home!)
+       (ui-handler/re-render-root!))
      (graph-handler/settle-metadata-to-local! {:created-at (js/Date.now)})
      (prn "New db created: " full-graph-name)
      full-graph-name)
    (p/catch (fn [error]
               (notification/show! (t :graph/create-error) :error)
-              (js/console.error error)))))
+              (log/error :graph-create-failed {:error error})
+              (when file-graph-import?
+                (throw error))))))
 
 (defn new-db!
   "Handler for creating a new database graph"

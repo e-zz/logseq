@@ -178,7 +178,6 @@
  :cmdk.action/search "搜尋"
  :cmdk.action/trigger "觸發"
 
- :cmdk.create/configure-tag "設定標籤"
  :cmdk.create/page "建立頁面"
  :cmdk.create/tag "建立標籤"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "最近更新"
  :cmdk.group/themes "主題"
 
- :cmdk.info/configure-tag "設定 #{1}"
  :cmdk.info/create-page "建立名為「{1}」的頁面"
  :cmdk.info/create-tag "建立名為「{1}」的標籤"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "已匯入 {1} / {2} 個資源。詳情請查看主控台。"
  :import/assets-imported "已匯入 {1} 個資源。"
  :import/assets-skipped "已略過 {1} 個資源。詳情請查看主控台。"
- :import/block-icons-cannot-be-imported "塊圖示無法匯入，請在塊 {1} 中手動匯入。"
  :import/cannot-import-block-into-non-block-entity "不能把區塊匯入到非區塊實體中。請在其他位置匯入該區塊。"
  :import/db-edn-desc "將 DB 圖譜的 EDN 匯出匯入至新的 DB 圖譜"
  :import/db-edn-title "EDN 至 DB 圖譜"
@@ -844,12 +841,9 @@
  :import/new-graph-name "新圖譜名稱"
  :import/notes "注意事項"
  :import/org-files-imported "已將 {1} 個 org 檔案匯入為 Markdown。後續將新增對 org 檔案的支援。"
- :import/page-icons-cannot-be-imported "頁面圖示無法匯入，請前往頁面 {1} 手動匯入。"
  :import/properties-case-insensitive-commas "屬性名不區分大小寫，以逗號分隔"
  :import/property-classes-placeholder "例如 type"
- :import/property-import-manually "此屬性需要手動匯入"
  :import/property-parent-classes-placeholder "例如 parent"
- :import/property-type-mismatch "屬性值的型別為 {1}，而非 {2}"
  :import/property-value-tag-parents "從屬性值中匯入標籤父級"
  :import/property-value-tags "從屬性值中匯入額外標籤"
  :import/remove-inline-tags "移除行內標籤"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "無法刪除內建項。"
  :node/new "新增節點"
 
- :notification/clear-all "清除所有通知"
  :notification/copied "已複製！"
 
  :onboarding.import/desc "如果它們是 EDN 或 Markdown 格式，Logseq 可以使用它們。"
@@ -1731,7 +1724,6 @@
  :ui/image "圖片"
  :ui/label "標籤"
  :ui/link "連結"
- :ui/load-more "載入更多"
  :ui/loading "載入中..."
  :ui/login "登入"
  :ui/logout "登出"

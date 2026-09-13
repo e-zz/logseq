@@ -178,7 +178,6 @@
  :cmdk.action/search "Cercar"
  :cmdk.action/trigger "Executar"
 
- :cmdk.create/configure-tag "Configurar etiqueta"
  :cmdk.create/page "Crear pàgina"
  :cmdk.create/tag "Crear etiqueta"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Actualitzats recentment"
  :cmdk.group/themes "Temes"
 
- :cmdk.info/configure-tag "Configurar #{1}"
  :cmdk.info/create-page "Crear la pàgina '{1}'"
  :cmdk.info/create-tag "Crear l'etiqueta '{1}'"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} recursos importats. Detalls a la consola."
  :import/assets-imported "{1} recursos importats."
  :import/assets-skipped "{1} recursos omesos. Detalls a la consola."
- :import/block-icons-cannot-be-imported "Les icones de blocs no es poden importar. Importeu-les manualment al bloc {1}."
  :import/cannot-import-block-into-non-block-entity "No es pot importar un bloc en una entitat que no és bloc."
  :import/db-edn-desc "Importar l'exportació EDN d'un graf DB a un graf DB nou"
  :import/db-edn-title "EDN a graf DB"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Nou nom del graf"
  :import/notes "Importar notes existents"
  :import/org-files-imported "{1} fitxers Org importats com a Markdown. El suport a fitxers Org s'afegirà més endavant."
- :import/page-icons-cannot-be-imported "Les icones de pàgines no es poden importar. Importeu-les manualment a la pàgina {1}."
  :import/properties-case-insensitive-commas "Noms de propietats (sense distinció de majúscules, separats per comes)"
  :import/property-classes-placeholder "ex. type"
- :import/property-import-manually "Aquesta propietat s'ha d'importar manualment"
  :import/property-parent-classes-placeholder "ex. parent"
- :import/property-type-mismatch "El valor de la propietat és de tipus {1}, no {2}"
  :import/property-value-tag-parents "Importar pares d'etiquetes dels valors de propietats"
  :import/property-value-tags "Importar etiquetes addicionals dels valors de propietats"
  :import/remove-inline-tags "Eliminar etiquetes inline"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Els elements integrats no es poden eliminar."
  :node/new "Nou node"
 
- :notification/clear-all "Netejar tot"
  :notification/copied "Copiat"
 
  :onboarding.import/desc "Descripció d'importació"
@@ -1718,7 +1711,6 @@
  :ui/image "imatge"
  :ui/label "Etiqueta"
  :ui/link "Enllaç"
- :ui/load-more "Carrega'n més"
  :ui/loading "Carregant"
  :ui/login "Iniciar sessió"
  :ui/logout "Tancar sessió"

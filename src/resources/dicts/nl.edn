@@ -178,7 +178,6 @@
  :cmdk.action/search "Zoeken"
  :cmdk.action/trigger "Uitvoeren"
 
- :cmdk.create/configure-tag "Tag configureren"
  :cmdk.create/page "Pagina aanmaken"
  :cmdk.create/tag "Tag aanmaken"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Recent bijgewerkt"
  :cmdk.group/themes "Thema's"
 
- :cmdk.info/configure-tag "#{1} configureren"
  :cmdk.info/create-page "Pagina '{1}' aanmaken"
  :cmdk.info/create-tag "Tag '{1}' aanmaken"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} bestanden geïmporteerd. Details in console."
  :import/assets-imported "{1} bestanden geïmporteerd."
  :import/assets-skipped "{1} bestanden overgeslagen. Details in console."
- :import/block-icons-cannot-be-imported "Blokpictogrammen kunnen niet worden geïmporteerd. Importeer handmatig in blok {1}."
  :import/cannot-import-block-into-non-block-entity "Kan blok niet importeren in niet-blokentiteit."
  :import/db-edn-desc "Importeer de EDN-export van een DB-grafiek in een nieuwe DB-grafiek"
  :import/db-edn-title "EDN naar DB-grafiek"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Nieuwe grafieknaam"
  :import/notes "Notities importeren"
  :import/org-files-imported "{1} Org-bestanden geïmporteerd als Markdown. Org-ondersteuning wordt later toegevoegd."
- :import/page-icons-cannot-be-imported "Paginapictogrammen kunnen niet worden geïmporteerd. Importeer handmatig op pagina {1}."
  :import/properties-case-insensitive-commas "Eigenschapsnamen (hoofdletterongevoelig, kommagescheiden)"
  :import/property-classes-placeholder "bijv. type"
- :import/property-import-manually "Deze eigenschap moet handmatig worden geïmporteerd"
  :import/property-parent-classes-placeholder "bijv. parent"
- :import/property-type-mismatch "Eigenschapswaarde is van type {1}, niet {2}"
  :import/property-value-tag-parents "Tag-bovenliggende elementen importeren uit eigenschapswaarden"
  :import/property-value-tags "Extra tags importeren uit eigenschapswaarden"
  :import/remove-inline-tags "Inline tags verwijderen"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Ingebouwde elementen kunnen niet worden verwijderd."
  :node/new "Nieuw knooppunt"
 
- :notification/clear-all "Alles wissen"
  :notification/copied "Gekopieerd"
 
  :onboarding.import/desc "Beschrijving van importeren"
@@ -1718,7 +1711,6 @@
  :ui/image "afbeelding"
  :ui/label "Label"
  :ui/link "Link"
- :ui/load-more "Meer laden"
  :ui/loading "Laden"
  :ui/login "Inloggen"
  :ui/logout "Uitloggen"
