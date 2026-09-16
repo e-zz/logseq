@@ -178,7 +178,6 @@
  :cmdk.action/search "Suchen"
  :cmdk.action/trigger "Ausführen"
 
- :cmdk.create/configure-tag "Tag konfigurieren"
  :cmdk.create/page "Seite erstellen"
  :cmdk.create/tag "Tag erstellen"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Kürzlich aktualisiert"
  :cmdk.group/themes "Designs"
 
- :cmdk.info/configure-tag "#{1} konfigurieren"
  :cmdk.info/create-page "Seite '{1}' erstellen"
  :cmdk.info/create-tag "Tag '{1}' erstellen"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} Assets importiert. Details in der Konsole."
  :import/assets-imported "{1} Assets importiert."
  :import/assets-skipped "{1} Assets übersprungen. Details in der Konsole."
- :import/block-icons-cannot-be-imported "Block-Symbole können nicht importiert werden. Bitte manuell bei Block {1} importieren."
  :import/cannot-import-block-into-non-block-entity "Block kann nicht in eine Nicht-Block-Entität importiert werden. Bitte an anderer Stelle importieren."
  :import/db-edn-desc "EDN-Export eines DB-Graphen in einen neuen DB-Graphen importieren"
  :import/db-edn-title "EDN zu DB-Graph"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Neuer Graphname"
  :import/notes "Vorhandene Notizen importieren"
  :import/org-files-imported "{1} Org-Dateien als Markdown importiert. Org-Datei-Unterstützung wird später hinzugefügt."
- :import/page-icons-cannot-be-imported "Seiten-Symbole können nicht importiert werden. Bitte manuell bei Seite {1} importieren."
  :import/properties-case-insensitive-commas "Eigenschaftsnamen (Groß-/Kleinschreibung egal, durch Komma getrennt)"
  :import/property-classes-placeholder "z.B. type"
- :import/property-import-manually "Diese Eigenschaft muss manuell importiert werden"
  :import/property-parent-classes-placeholder "z.B. parent"
- :import/property-type-mismatch "Eigenschaftswert hat den Typ {1}, nicht {2}"
  :import/property-value-tag-parents "Tag-Eltern aus Eigenschaftswerten importieren"
  :import/property-value-tags "Zusätzliche Tags aus Eigenschaftswerten importieren"
  :import/remove-inline-tags "Inline-Tags entfernen"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Eingebaute Elemente können nicht gelöscht werden."
  :node/new "Neuer Knoten"
 
- :notification/clear-all "Alles löschen"
  :notification/copied "Kopiert"
 
  :onboarding.import/desc "Logseq importiert EDN und Markdown."
@@ -1718,7 +1711,6 @@
  :ui/image "Bild"
  :ui/label "Bezeichnung"
  :ui/link "Link"
- :ui/load-more "Mehr laden"
  :ui/loading "Laden"
  :ui/login "Anmelden"
  :ui/logout "Abmelden"

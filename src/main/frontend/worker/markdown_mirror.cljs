@@ -2,10 +2,11 @@
   "Markdown mirror derived-file support for DB graphs."
   (:require [clojure.string :as string]
             [datascript.core :as d]
-            [frontend.worker.graph-dir :as graph-dir]
+            [datascript.impl.entity :as de]
             [frontend.worker.platform :as platform]
             [lambdaisland.glogi :as log]
             [logseq.common.export.file :as common-file]
+            [logseq.common.graph-dir :as graph-dir]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
             [logseq.db.frontend.property :as db-property]
@@ -121,14 +122,25 @@
       (and (:block/parent entity) (ldb/page? (:block/parent entity))) (:db/id (:block/parent entity))
       (some-> entity :block/parent :block/page) (:db/id (:block/page (:block/parent entity))))))
 
+(defn- referring-page-ids
+  "Page ids of blocks that reference `page-eid` via :block/refs."
+  [db page-eid]
+  (keep (fn [ref-block]
+          (page-id-for-entity db (:db/id ref-block)))
+        (:block/_refs (d/entity db page-eid))))
+
 (defn affected-page-ids
   [{:keys [db-before db-after tx-data]}]
   (->> tx-data
-       (mapcat (fn [{:keys [e a v]}]
+       (mapcat (fn [{:keys [e a v added]}]
                  (cond-> [(page-id-for-entity db-before e)
                           (page-id-for-entity db-after e)]
                    (= a :block/page)
-                   (conj v))))
+                   (conj v)
+                   (and added
+                        (#{:block/title :block/name} a)
+                        (some-> (d/entity db-after e) ldb/page?))
+                   (into (referring-page-ids db-after e)))))
        (remove nil?)
        set))
 
@@ -374,13 +386,15 @@
 
 (defn- block-line-info
   [db block marker]
-  {:first-line-fragment (block-first-line-fragment block)
-   :code-block? (code-block? block)
-   :status-marker (when (seq (d/datoms db :eavt (:db/id block) :logseq.property/status))
-                    (some-> (:logseq.property/status block) status-marker))
-   :tag-tokens (mirror-tag-tokens block)
-   :marker marker
-   :embed-target (embed-target block)})
+  (let [block (if (de/entity? block) block (d/entity db (:db/id block)))]
+    {:first-line-fragment (block-first-line-fragment block)
+     :code-block? (code-block? block)
+     :status-marker (when (or (seq (d/datoms db :eavt (:db/id block) :logseq.property/status))
+                              (ldb/class-instance? (d/entity db :logseq.class/Task) block))
+                      (some-> (:logseq.property/status block) status-marker))
+     :tag-tokens (mirror-tag-tokens block)
+     :marker marker
+     :embed-target (embed-target block)}))
 
 (defn- property-derived-block?
   [block]
@@ -528,10 +542,16 @@
    (block-content db (:block/uuid page) {:include-page-properties? true} options)
    options))
 
+(defn- contents-page?
+  "The Contents page is created as built-in but holds ordinary user blocks."
+  [page]
+  (= "contents" (:block/name page)))
+
 (defn- mirrorable-page?
   [page]
   (and (ldb/page? page)
-       (not (ldb/built-in? page))
+       (or (not (ldb/built-in? page))
+           (contents-page? page))
        (not (ldb/property? page))
        (not (ldb/hidden? page))
        (not (:logseq.property.user/email page))))

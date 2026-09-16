@@ -178,7 +178,6 @@
  :cmdk.action/search "Soek"
  :cmdk.action/trigger "Voer uit"
 
- :cmdk.create/configure-tag "Tag configureren"
  :cmdk.create/page "Skep bladsy"
  :cmdk.create/tag "Skep etiket"
 
@@ -205,7 +204,6 @@
  :cmdk.group/recently-updated "Onlangs opgedateer"
  :cmdk.group/themes "Tema's"
 
- :cmdk.info/configure-tag "#{1} configureren"
  :cmdk.info/create-page "Bladsy '{1}' aanmaken"
  :cmdk.info/create-tag "Tag '{1}' aanmaken"
 
@@ -819,7 +817,6 @@
  :import/assets-import-partial "{1}/{2} lêers geïmporteerd. Details in console."
  :import/assets-imported "{1} lêers geïmporteerd."
  :import/assets-skipped "{1} lêers overgeslagen. Details in console."
- :import/block-icons-cannot-be-imported "Blokpictogrammen kunnen nie worden geïmporteerd. Importeer handmatig in blok {1}."
  :import/cannot-import-block-into-non-block-entity "Kan blok nie voer in in niet-blokentiteit."
  :import/db-edn-desc "Voer 'n DB-grafiek se EDN-uitvoer in na 'n nuwe DB-grafiek"
  :import/db-edn-title "EDN na DB-grafiek"
@@ -844,12 +841,9 @@
  :import/new-graph-name "Nuwe grafieknaam"
  :import/notes "Voer notas in"
  :import/org-files-imported "{1} Org-lêers geïmporteerd als Markdown. Org-ondersteuning wordt later toegevoegd."
- :import/page-icons-cannot-be-imported "Bladsypictogrammen kunnen nie worden geïmporteerd. Importeer handmatig op bladsy {1}."
  :import/properties-case-insensitive-commas "Eienskapsnamen (hoofdletterongevoelig, kommagescheiden)"
  :import/property-classes-placeholder "bijv. type"
- :import/property-import-manually "Deze eienskap moet handmatig worden geïmporteerd"
  :import/property-parent-classes-placeholder "bijv. parent"
- :import/property-type-mismatch "Eienskapswaarde is van type {1}, nie {2}"
  :import/property-value-tag-parents "Tag-bovenliggende elementen voer in uit eienskapswaarden"
  :import/property-value-tags "Extra tags voer in uit eienskapswaarden"
  :import/remove-inline-tags "Inline tags verwyder"
@@ -994,7 +988,6 @@
  :node/built-in-cant-delete-error "Ingebouwde elementen kunnen nie worden verwijderd."
  :node/new "Nuwe node"
 
- :notification/clear-all "Verwyder alles"
  :notification/copied "Gekopieer"
 
  :onboarding.import/desc "Beschrijving van voer in"
@@ -1718,7 +1711,6 @@
  :ui/image "beeld"
  :ui/label "Etiket"
  :ui/link "Skakel"
- :ui/load-more "Laai meer"
  :ui/loading "Laai"
  :ui/login "Meld aan"
  :ui/logout "Meld af"

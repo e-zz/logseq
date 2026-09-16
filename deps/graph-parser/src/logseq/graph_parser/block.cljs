@@ -42,6 +42,20 @@
                   "")))
          (string/join))))
 
+(defn- inline-nodes->plain-text
+  "Collect visible text from mldoc inline AST, stripping Emphasis wrappers.
+   File-link labels can be Plain or nested Emphasis; page-name->map requires a string."
+  [nodes]
+  (->> (tree-seq sequential? seq nodes)
+       (keep (fn [form]
+               (when (and (vector? form)
+                          (#{"Plain" "Spaces" "Verbatim" "Code"} (first form))
+                          (string? (second form)))
+                 (second form))))
+       (apply str)
+       string/trim
+       not-empty))
+
 (defn get-page-reference
   [block format]
   (let [page (cond
@@ -68,7 +82,7 @@
 
                   (and
                    (= url-type "File")
-                   (second (first (:label (second block)))))))
+                   (inline-nodes->plain-text (:label (second block))))))
 
                (and (vector? block) (= "Nested_link" (first block)))
                (let [content (:content (last block))]
@@ -164,19 +178,6 @@
      properties)
     []))
 
-(defn- extract-refs-from-property-value
-  [value format]
-  (cond
-    (coll? value)
-    (filter (fn [v] (and (string? v) (not (string/blank? v)))) value)
-    (and (string? value) (= \" (first value) (last value)))
-    nil
-    (string? value)
-    (let [ast (gp-mldoc/inline->edn value (gp-mldoc/default-config format))]
-      (text/extract-refs-from-mldoc-ast ast))
-    :else
-    nil))
-
 (defn- get-page-ref-names-from-properties
   [properties user-config]
   (let [page-refs (->>
@@ -188,14 +189,13 @@
                                                 gp-property/editable-linkable-built-in-properties)
                                          (gp-property/hidden-built-in-properties))
                               (keyword k))))
-                   ;; get links ast
-                   (map last)
-                   (mapcat (fn [value]
-                             (extract-refs-from-property-value value (get user-config :format :markdown))))
-                   ;; comma separated collections
-                   (concat (->> (map second properties)
-                                (filter coll?)
-                                (apply concat))))
+                   (mapcat (fn [[_k v mldoc-ast]]
+                             (concat (when (seq mldoc-ast)
+                                       (text/extract-refs-from-mldoc-ast mldoc-ast))
+                                     (when (coll? v)
+                                       (filter (fn [x]
+                                                 (and (string? x) (not (string/blank? x))))
+                                               v))))))
         page-refs-from-property-names (get-page-refs-from-property-names properties user-config)]
     (->> (concat page-refs page-refs-from-property-names)
          (remove string/blank?)
@@ -335,14 +335,23 @@
                         (not (boolean (text/get-nested-page-name original-page-name')))
                         (text/namespace-page? original-page-name'))
         page-entity (when (and db (not skip-existing-page-check?))
-                      (if (and class? db-based?)
+                      (cond
+                        journal-day
+                        (ldb/get-journal-page-by-day db journal-day)
+
+                        (and class? db-based?)
                         (some->> (ldb/page-exists? db original-page-name' #{:logseq.class/Tag})
                                  first
                                  (d/entity db))
+
+                        :else
                         (get-page db original-page-name')))
         original-page-name' (or from-page (:block/title page-entity) original-page-name')
+        page-name' (if (and journal-day page-entity)
+                     (:block/name page-entity)
+                     page-name)
         page (merge
-              {:block/name page-name
+              {:block/name page-name'
                :block/title original-page-name'}
               (when (and original-page-name
                          (not= (string/lower-case original-page-name)
@@ -579,11 +588,6 @@
           (some-> custom-id parse-uuid)))
       (d/squuid)))
 
-(defn get-page-refs-from-properties
-  [properties db date-formatter user-config]
-  (let [page-refs (get-page-ref-names-from-properties properties user-config)]
-    (map (fn [page] (page-name->map page db true date-formatter)) page-refs)))
-
 (defn- with-page-block-refs
   [block db date-formatter opts]
   (some-> block
@@ -613,7 +617,7 @@
     (mapv macro->block @*result)))
 
 (defn with-pre-block-if-exists
-  [blocks body pre-block-properties encoded-content {:keys [db date-formatter user-config]}]
+  [blocks body pre-block-properties encoded-content {:keys [db date-formatter]}]
   (let [first-block (first blocks)
         first-block-start-pos (get-in first-block [:block/meta :start_pos])
 
@@ -623,12 +627,12 @@
                  (cons
                   (merge
                    (let [content (utf8/substring encoded-content 0 first-block-start-pos)
-                         {:keys [properties properties-order properties-text-values invalid-properties]} pre-block-properties
+                         {:keys [properties properties-order properties-text-values invalid-properties page-refs]} pre-block-properties
                          id (get-custom-id-or-new-id {:properties properties})
-                         property-refs (->> (get-page-refs-from-properties
-                                             properties db date-formatter
-                                             user-config)
-                                            (map :block/title))
+                         ;; extract-properties already collected these from the drawer AST
+                         property-refs (->> page-refs
+                                            (map (fn [page]
+                                                   (:block/title (page-name->map page db true date-formatter)))))
                          pre-block? (if (:heading properties) false true)
                          block {:block/uuid id
                                 :block/title content

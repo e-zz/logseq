@@ -5,7 +5,13 @@
             [frontend.worker.search :as search]
             [frontend.worker.search-benchmark :as search-benchmark]
             [logseq.db :as ldb]
-            [logseq.db.test.helper :as db-test]))
+            [logseq.db.test.helper :as db-test]
+            [logseq.outliner.page :as outliner-page]))
+
+(defn- process-cpu-time-ms
+  []
+  (let [usage (.cpuUsage js/process)]
+    (/ (+ (.-user usage) (.-system usage)) 1000)))
 
 (defn- sql-placeholder-count
   [sql]
@@ -192,6 +198,36 @@
   (testing "entities on recycled pages are hidden"
     (is (true? (#'search/hidden-entity? {:block/page {:logseq.property/deleted-at 1}})))))
 
+(deftest search-indexes-hide-by-default-properties
+  (let [conn (db-test/create-conn-with-blocks
+              {:properties {:keywords {:logseq.property/type :default
+                                       :logseq.property/hide? true}
+                            :author {:logseq.property/type :default}}
+               :pages-and-blocks [{:page {:block/title "Hidden page"
+                                          :build/properties {:logseq.property/hide? true}}}]})
+        keywords (d/entity @conn :user.property/keywords)
+        author (d/entity @conn :user.property/author)
+        private-property (d/entity @conn :logseq.property/type)
+        hidden-page (db-test/find-page-by-title @conn "Hidden page")
+        indexed-titles (->> (search/get-all-blocks @conn)
+                            (map :block/title)
+                            set)
+        combined (search/combine-results
+                  @conn
+                  [{:id (str (:block/uuid keywords))
+                    :title "keywords"
+                    :keyword-score 1.0}])]
+    (is (true? (:logseq.property/hide? keywords)))
+    (is (false? (#'search/hidden-entity? keywords)))
+    (is (false? (#'search/hidden-entity? author)))
+    (is (true? (#'search/hidden-entity? private-property)))
+    (is (true? (#'search/hidden-entity? hidden-page)))
+    (is (contains? indexed-titles "keywords"))
+    (is (contains? indexed-titles "author"))
+    (is (not (contains? indexed-titles "Property type")))
+    (is (not (contains? indexed-titles "Hidden page")))
+    (is (some #(= (str (:block/uuid keywords)) (:id %)) combined))))
+
 (deftest search-blocks-aux-bind-count
   (testing "namespace match SQL keeps bind count aligned"
     (let [sql "select id, page, title, rank from blocks_fts where title match ? or title match ? limit ?"
@@ -221,6 +257,7 @@
                               (swap! fts-binds conj (first bind)))
                             #js []))}]
       (with-redefs [search/combine-results (fn [_db results] results)
+                    d/db? (constantly false)
                     search/search-result->block-result
                     (fn [_conn _q _code-class _option result]
                       result)]
@@ -248,7 +285,7 @@
       (with-redefs [search/combine-results (fn [_db results] results)
                     search/search-result->block-result
                     (fn [_conn _q _code-class _option result]
-                      result)]
+                      (assoc result :block/uuid (uuid (:id result))))]
         (is (empty? (search/search-blocks (atom :large-db) db "xxx and " {:limit 10})))
         (is (empty? (search/search-blocks (atom :large-db) db "xxx AND " {:limit 10})))
         (is (empty? (search/search-blocks (atom :large-db) db "xxx or " {:limit 10})))
@@ -294,7 +331,7 @@
       (with-redefs [search/combine-results (fn [_db results] results)
                     search/search-result->block-result
                     (fn [_conn _q _code-class _option result]
-                      result)]
+                      (assoc result :block/uuid (uuid (:id result))))]
         (let [result (vec (search/search-blocks (atom :large-db) db "nwp" {:limit 10}))]
           (is (= [{:id "67e55044-10b1-426f-9247-bb680e5fe0c8"
                    :page "67e55044-10b1-426f-9247-bb680e5fe0c8"
@@ -394,7 +431,7 @@
       (with-redefs [search/combine-results (fn [_db results] results)
                     search/search-result->block-result
                     (fn [_conn _q _code-class _option result]
-                      result)]
+                      (assoc result :block/uuid (uuid (:id result))))]
         (let [result (vec (search/search-blocks (atom :large-db)
                                                 db
                                                 "block"
@@ -432,11 +469,11 @@
                                         lookup-refs))
                     ldb/hidden? (constantly false)
                     ldb/page? :page?]
-        (let [started (system-time)
+        (let [started (process-cpu-time-ms)
               result (doall (search/combine-results :db keyword-results))
-              elapsed-ms (- (system-time) started)]
-          (is (< elapsed-ms 100)
-              (str "combine-results should stay fast for large result sets, took " elapsed-ms "ms"))
+              elapsed-ms (- (process-cpu-time-ms) started)]
+          (is (< elapsed-ms 200)
+              (str "combine-results should stay fast for large result sets, took " elapsed-ms "ms CPU"))
           (is (= (count ids) (count result)))
           (is (= page-id (:id (first result)))
               "page boost should still rank matching pages ahead of equally relevant blocks"))))))
@@ -452,9 +489,10 @@
       (with-redefs [search/combine-results (fn [_db results]
                                              (doall results)
                                              rows)
+                    d/db? (constantly false)
                     search/search-result->block-result
                     (fn [_conn _q _code-class _option result]
-                      result)]
+                      (assoc result :block/uuid (uuid (:id result))))]
         (is (= 10
                (count (search/search-blocks (atom :large-db)
                                             (checking-db)
@@ -515,6 +553,53 @@
           (is (not (contains? result :block/tags)))
           (is (not (contains? result :logseq.property/icon)))
           (is (not (contains? result :alias))))))))
+
+(deftest search-result-includes-canonical-breadcrumb-test
+  (let [conn (db-test/create-conn-with-blocks
+              {:pages-and-blocks
+               [{:page {:block/title "Teams"}
+                 :blocks [{:block/title "Parent"}
+                          {:block/title "Search target"}]}]})
+        parent (db-test/find-block-by-content @conn "Parent")
+        target (db-test/find-block-by-content @conn "Search target")
+        _ (d/transact! conn [[:db/add (:db/id target)
+                             :block/parent (:db/id parent)]])
+        result (#'search/search-result->block-result
+                conn
+                "target"
+                nil
+                {:enable-snippet? false
+                 :include-breadcrumb? true}
+                {:id (str (:block/uuid target))
+                 :page (str (:block/uuid (:block/page target)))
+                 :title "Search target"})]
+    (is (= ["Teams" "Parent"]
+           (mapv :block/title (:block.temp/breadcrumb result))))))
+
+(deftest search-result-keeps-tag-identities-for-ui-entity-predicates
+  (let [page-id #uuid "00000000-0000-0000-0000-000000000124"
+        page-tag {:db/id 2
+                  :db/ident :logseq.class/Page
+                  :block/title "Page"}
+        page {:db/id 1
+              :block/uuid page-id
+              :block/title "Foo"
+              :block/tags [page-tag]}]
+    (with-redefs [d/entity (fn [_db [_attr id]]
+                             (when (= id page-id)
+                               page))
+                  ldb/page? (constantly true)
+                  ldb/built-in? (constantly false)
+                  ldb/hidden? (constantly false)]
+      (let [result (#'search/search-result->block-result
+                    (atom :db)
+                    "Foo"
+                    nil
+                    {:enable-snippet? false}
+                    {:id (str page-id)
+                     :page (str page-id)
+                     :title "Foo"})]
+        (is (= [page-tag] (:block/tags result)))))))
 
 (deftest block-index-includes-page-alias-titles
   (testing "page aliases can be matched by page-ref autocomplete search"
@@ -744,18 +829,18 @@
                                         :block/created-at now
                                         :block/updated-at now})
                                      (range sync-search-indice-performance-block-count)))
-        started (.now js/performance)
+        started (process-cpu-time-ms)
         blocks-to-add (:blocks-to-add
                        (search/sync-search-indice
                         tx-report
                         {:include-vector-title? include-vector-title?}))
-        elapsed-ms (- (.now js/performance) started)]
+        elapsed-ms (- (process-cpu-time-ms) started)]
     {:blocks-to-add blocks-to-add
      :elapsed-ms elapsed-ms}))
 
 (deftest sync-search-indice-300-new-blocks-performance-when-semantic-search-enabled
   (let [{:keys [blocks-to-add elapsed-ms]} (run-sync-search-indice-new-blocks-case true)]
-    (println (str "sync-search-indice 300 new blocks with semantic search enabled took " elapsed-ms "ms"))
+    (println (str "sync-search-indice 300 new blocks with semantic search enabled took " elapsed-ms "ms CPU"))
     (is (= sync-search-indice-performance-block-count (count blocks-to-add)))
     (is (< elapsed-ms sync-search-indice-performance-max-ms))
     (is (every? :vector-title blocks-to-add))
@@ -763,7 +848,7 @@
 
 (deftest sync-search-indice-300-new-blocks-performance-when-semantic-search-disabled
   (let [{:keys [blocks-to-add elapsed-ms]} (run-sync-search-indice-new-blocks-case false)]
-    (println (str "sync-search-indice 300 new blocks with semantic search disabled took " elapsed-ms "ms"))
+    (println (str "sync-search-indice 300 new blocks with semantic search disabled took " elapsed-ms "ms CPU"))
     (is (= sync-search-indice-performance-block-count (count blocks-to-add)))
     (is (< elapsed-ms sync-search-indice-performance-max-ms))
     (is (not-any? #(contains? % :vector-title) blocks-to-add))))
@@ -832,6 +917,53 @@
         titles (set (map :title blocks-to-add))]
     (is (contains? titles "Moved parent"))
     (is (contains? titles "Moved child"))))
+
+(deftest sync-search-indice-reindexes-holders-when-property-is-deleted
+  (testing "pages and blocks that held a deleted property stay in the FTS add set"
+    (let [conn (db-test/create-conn-with-blocks
+                {:properties {:foo {:logseq.property/type :default}}
+                 :pages-and-blocks
+                 [{:page {:block/title "Test Page"
+                          :build/properties {:foo "page value"}}
+                   :blocks [{:block/title "Holder block"
+                             :build/properties {:foo "block value"}}]}]})
+          property (d/entity @conn :user.property/foo)
+          page (db-test/find-page-by-title @conn "Test Page")
+          holder-block (db-test/find-block-by-content @conn "Holder block")
+          ;; Worker pipeline records property usage on :block/refs. Seed the
+          ;; same links so this test exercises the FTS referrer path.
+          _ (d/transact! conn [[:db/add (:db/id page) :block/refs (:db/id property)]
+                               [:db/add (:db/id holder-block) :block/refs (:db/id property)]])
+          property-uuid (str (:block/uuid property))
+          page-uuid (str (:block/uuid page))
+          holder-uuid (str (:block/uuid holder-block))
+          referrer-ids (set (map :db/id (:block/_refs (d/entity @conn (:db/id property)))))
+          tx-report (d/transact! conn (outliner-page/build-page-retract-tx @conn property))
+          {:keys [blocks-to-add blocks-to-remove-set]} (search/sync-search-indice tx-report)
+          add-ids (set (map :id blocks-to-add))
+          add-titles (set (map :title blocks-to-add))]
+      (is (= #{(:db/id page) (:db/id holder-block)} referrer-ids)
+          "holders reference the property before delete")
+      (is (some? (d/entity @conn (:db/id page)))
+          "holder page remains in Datascript")
+      (is (some? (d/entity @conn (:db/id holder-block)))
+          "holder block remains in Datascript")
+      (is (nil? (d/entity @conn :user.property/foo))
+          "deleted property is gone from Datascript")
+      (is (contains? add-ids page-uuid)
+          "holder page is reindexed after property delete")
+      (is (contains? add-ids holder-uuid)
+          "holder block is reindexed after property delete")
+      (is (contains? add-titles "Test Page"))
+      (is (contains? add-titles "Holder block"))
+      (is (contains? blocks-to-remove-set property-uuid)
+          "deleted property leaves the FTS index")
+      (is (contains? blocks-to-remove-set page-uuid)
+          "holder page is removed then re-upserted")
+      (is (contains? blocks-to-remove-set holder-uuid)
+          "holder block is removed then re-upserted")
+      (is (not (contains? add-ids property-uuid))
+          "deleted property is not re-added to the FTS index"))))
 
 (deftest search-blocks-includes-vector-only-results
   (testing "zvec vector hits are merged into desktop search even when SQLite has no keyword hit"

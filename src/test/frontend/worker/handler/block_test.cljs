@@ -1,0 +1,740 @@
+(ns frontend.worker.handler.block-test
+  (:require [cljs.test :refer [deftest is testing]]
+            [datascript.core :as d]
+            [frontend.util.entity :as entity]
+            [frontend.worker.handler.block :as block-handler]
+            [frontend.worker.handler.property :as property-handler]
+            [logseq.db :as ldb]
+            [logseq.db.test.helper :as db-test]))
+
+(defn- canonical-block-api
+  []
+  (let [api (some-> (resolve 'frontend.worker.handler.block/canonical-block) deref)]
+    (is (fn? api) "Missing worker block API: canonical-block")
+    api))
+
+(defn- canonical-blocks-api
+  []
+  (let [api (some-> (resolve 'frontend.worker.handler.block/canonical-blocks) deref)]
+    (is (fn? api) "Missing worker block API: canonical-blocks")
+    api))
+
+(defn- direct-children-membership-api
+  []
+  (let [api (some-> (resolve 'frontend.worker.handler.block/direct-children-membership)
+                    deref)]
+    (is (fn? api) "Missing worker block API: direct-children-membership")
+    api))
+
+(defn- open-block-tree-api
+  []
+  (let [api (some-> (resolve 'frontend.worker.handler.block/open-block-tree)
+                    deref)]
+    (is (fn? api) "Missing worker block API: open-block-tree")
+    api))
+
+(defn- canonical-block-fixture
+  []
+  (let [conn (db-test/create-conn)
+        page-uuid #uuid "10000000-0000-0000-0000-000000000001"
+        parent-uuid #uuid "10000000-0000-0000-0000-000000000002"
+        ref-uuid #uuid "10000000-0000-0000-0000-000000000003"
+        tag-uuid #uuid "10000000-0000-0000-0000-000000000004"
+        target-uuid #uuid "10000000-0000-0000-0000-000000000005"]
+    (d/transact! conn
+                 [{:db/id -1
+                   :block/uuid page-uuid
+                   :block/tx-id 10
+                   :block/title "Page"
+                   :block/name "page"
+                   :block/tags :logseq.class/Page}
+                  {:db/id -2
+                   :block/uuid parent-uuid
+                   :block/tx-id 10
+                   :block/title "Parent"
+                   :block/page -1
+                   :block/parent -1
+                   :block/order "a0"}
+                  {:db/id -3
+                   :block/uuid ref-uuid
+                   :block/tx-id 10
+                   :block/title "Referenced title must not be copied"}
+                  {:db/id -4
+                   :db/ident :user.class/Test
+                   :block/uuid tag-uuid
+                   :block/tx-id 10
+                   :block/title "Referenced tag title must not be copied"
+                   :logseq.property.class/hide-from-node true
+                   :logseq.property/choice-exclusions [-7]}
+                  {:db/id -7
+                   :block/uuid #uuid "10000000-0000-0000-0000-000000000007"
+                   :block/tx-id 10
+                   :block/title "Excluded choice"}
+                  {:db/id -6
+                   :block/uuid #uuid "10000000-0000-0000-0000-000000000006"
+                   :block/tx-id 10
+                   :block/title "number"
+                   :logseq.property/created-from-property :logseq.property/order-list-type}
+                  {:db/id -5
+                   :block/uuid target-uuid
+                   :block/tx-id 10
+                   :block/title "Target"
+                   :block/page -1
+                   :block/parent -2
+                   :block/order "a1"
+                   :block/link -3
+                   :block/refs [-3]
+                   :block/tags [-4]
+                   :block/collapsed? true
+                   :logseq.property/order-list-type -6
+                   :block/created-at 1000
+                   :user.property/priority "high"
+                   :block/children "legacy tree"
+                   :block/properties {:legacy true}
+                   :block.temp/load-status :full}])
+    {:conn conn
+     :page-uuid page-uuid
+     :parent-uuid parent-uuid
+     :ref-uuid ref-uuid
+     :target-uuid target-uuid}))
+
+(defn- assert-shallow-identity-ref
+  [reference]
+  (is (map? reference))
+  (is (contains? reference :db/id))
+  (is (or (uuid? (:block/uuid reference))
+          (keyword? (:db/ident reference))))
+  (is (every? #{:db/id :block/uuid :db/ident :block/title :block/name
+                :block/tags :logseq.property/value :logseq.property/icon
+                :logseq.property/type :db/cardinality
+                :logseq.property.class/hide-from-node
+                :logseq.property/choice-exclusions
+                :logseq.property.asset/type
+                :logseq.property.asset/width
+                :logseq.property.asset/height
+                :logseq.property.asset/resize-metadata
+                :logseq.property.asset/external-url}
+              (keys reference))))
+
+(deftest canonical-property-reference-values-keep-type-tags-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [conn (db-test/create-conn)
+          block-uuid (random-uuid)
+          cases [{:property-ident :user.property/Page
+                  :target-id -11
+                  :tag-ident :logseq.class/Page
+                  :predicate entity/page?}
+                 {:property-ident :user.property/Class
+                  :target-id -12
+                  :tag-ident :logseq.class/Tag
+                  :predicate entity/class?}
+                 {:property-ident :user.property/Property
+                  :target-id -13
+                  :tag-ident :logseq.class/Property
+                  :predicate entity/property?}
+                 {:property-ident :user.property/Journal
+                  :target-id -14
+                  :tag-ident :logseq.class/Journal
+                  :predicate entity/journal?}]]
+      (d/transact! conn
+                   (concat
+                    (map-indexed (fn [index {:keys [property-ident]}]
+                                   {:db/id (- -20 index)
+                                    :db/ident property-ident
+                                    :db/valueType :db.type/ref
+                                    :db/cardinality :db.cardinality/one})
+                                 cases)
+                    (map (fn [{:keys [target-id tag-ident]}]
+                           {:db/id target-id
+                            :block/uuid (random-uuid)
+                            :block/tx-id 1
+                            :block/title (name tag-ident)
+                            :block/name (name tag-ident)
+                            :block/tags tag-ident})
+                         cases)
+                    [(reduce (fn [block {:keys [property-ident target-id]}]
+                               (assoc block property-ident target-id))
+                             {:db/id -2
+                              :block/uuid block-uuid
+                              :block/tx-id 1
+                              :block/title "Block"}
+                             cases)]))
+      (let [block (canonical-block @conn
+                                   (d/entity @conn [:block/uuid block-uuid]))]
+        (doseq [{:keys [property-ident tag-ident predicate]} cases]
+          (let [value (get block property-ident)]
+            (is (= tag-ident (get-in value [:block/tags 0 :db/ident])))
+            (is (predicate value)
+                "Reference-valued properties retain their renderer type identity")))))))
+
+(deftest canonical-property-values-retain-source-property-type-test
+  (let [{:keys [conn target-uuid page-uuid]} (canonical-block-fixture)
+        property-uuid (random-uuid)]
+    (d/transact! conn [{:db/id -1
+                       :block/uuid property-uuid
+                       :block/title "URL"
+                       :db/ident :user.property/URL
+                       :db/valueType :db.type/ref
+                       :db/cardinality :db.cardinality/many
+                       :block/tags :logseq.class/Property
+                       :logseq.property/type :url}
+                      {:block/uuid target-uuid
+                       :logseq.property/created-from-property -1}])
+    (doseq [property-type [:url :default]]
+      (d/transact! conn [{:block/uuid property-uuid
+                         :logseq.property/type property-type}])
+      (let [block (block-handler/canonical-block
+                   @conn (d/entity @conn [:block/uuid target-uuid]))]
+        (is (= property-type
+               (get-in block [:logseq.property/created-from-property
+                              :logseq.property/type])))
+        (is (= :db.cardinality/many
+               (get-in block [:logseq.property/created-from-property :db/cardinality])))
+        (is (= (= :url property-type) (entity/url-property-value? block)))))
+    (is (not (entity/url-property-value?
+              (block-handler/canonical-block
+               @conn (d/entity @conn [:block/uuid page-uuid])))))))
+
+(deftest canonical-block-keeps-own-attributes-and-only-shallow-references-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [{:keys [conn target-uuid]} (canonical-block-fixture)
+          entity (d/entity @conn [:block/uuid target-uuid])
+          block (canonical-block @conn entity)
+          references (concat [(:block/page block)
+                              (:block/parent block)
+                              (:block/link block)]
+                             (:block/refs block)
+                             (:block/tags block))]
+      (is (= {:block/uuid target-uuid
+              :block/tx-id 10
+              :block/title "Target"
+              :block/order "a1"
+              :block/collapsed? true
+              :block/created-at 1000
+              :user.property/priority "high"}
+             (select-keys block
+                          [:block/uuid :block/tx-id :block/title :block/order
+                           :block/collapsed? :block/created-at
+                           :user.property/priority])))
+      (is (= 5 (count references)))
+      (doseq [reference references]
+        (assert-shallow-identity-ref reference))
+      (is (= #uuid "10000000-0000-0000-0000-000000000007"
+             (get-in block
+                     [:block/tags 0
+                      :logseq.property/choice-exclusions 0
+                      :block/uuid])))
+      (is (true? (get-in block
+                         [:block/tags 0
+                          :logseq.property.class/hide-from-node])))
+      (is (= "number"
+             (get-in block
+                     [:logseq.property/order-list-type
+                      :block/title]))
+          "Property references retain the scalar content required to render their value.")
+      (is (= 1 (:block.temp/order-list-index block))
+          "Canonical blocks retain worker-derived ordered-list indexes.")
+      (is (map? (:block.temp/positioned-properties block)))
+      (is (not (contains? block :block.temp/breadcrumb)))
+      (is (integer? (:block.temp/refs-count block)))
+      (is (some #{:user.property/priority} (:block.temp/property-keys block))
+          "Own property idents are persisted for collapse.")
+      (is (not (contains? block :block/children)))
+      (is (not (contains? block :block/properties)))
+      (is (not-any? #(and (keyword? %)
+                          (= "block.temp" (namespace %)))
+                    (remove #{:block.temp/order-list-index
+                              :block.temp/positioned-properties
+                              :block.temp/property-keys
+                              :block.temp/refs-count}
+                            (keys block)))))))
+
+(deftest canonical-block-full-replacement-drops-retracted-attributes-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [{:keys [conn target-uuid]} (canonical-block-fixture)
+          before (canonical-block @conn (d/entity @conn [:block/uuid target-uuid]))]
+      (d/transact! conn
+                   [[:db/retract [:block/uuid target-uuid]
+                     :block/collapsed? true]
+                    [:db/add [:block/uuid target-uuid] :block/tx-id 11]])
+      (let [after (canonical-block @conn
+                                   (d/entity @conn [:block/uuid target-uuid]))]
+        (is (true? (:block/collapsed? before)))
+        (is (= 11 (:block/tx-id after)))
+        (is (not (contains? after :block/collapsed?)))))))
+
+(deftest canonical-block-exposes-page-reference-titles-for-editing-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [conn (db-test/create-conn)
+          page-uuid (random-uuid)
+          block-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :block/uuid page-uuid
+                     :block/tx-id 1
+                     :block/title "Foo"
+                     :block/name "foo"
+                     :block/tags :logseq.class/Page}
+                    {:block/uuid block-uuid
+                     :block/tx-id 1
+                     :block/title (str "Reference [[" page-uuid "]]")
+                     :block/refs [-1]}])
+      (let [block (canonical-block @conn
+                                   (d/entity @conn [:block/uuid block-uuid]))]
+        (is (= (str "Reference [[" page-uuid "]]")
+               (:block/raw-title block)))
+        (is (= "Reference [[Foo]]" (:block/title block)))))))
+
+(deftest canonical-property-includes-derived-closed-values-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [{:keys [conn]} (canonical-block-fixture)
+          property-id (:db/id (d/entity @conn :logseq.property/priority))
+          _ (d/transact! conn [[:db/add property-id :block/tx-id 10]])
+          property (d/entity @conn property-id)
+          canonical-property (canonical-block @conn property)]
+      (is (seq (:property/closed-values canonical-property)))
+      (is (every? :block/uuid (:property/closed-values canonical-property))))))
+
+(deftest canonical-block-allows-db-id-only-reference-identities-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [conn (db-test/create-conn)
+          block-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :file/path "assets/image.png"}
+                    {:block/uuid block-uuid
+                     :block/tx-id 1
+                     :block/title "Asset link"
+                     :block/link -1}])
+      (let [file-id (:db/id (d/entity @conn [:file/path "assets/image.png"]))
+            block (canonical-block @conn
+                                   (d/entity @conn [:block/uuid block-uuid]))]
+        (is (= {:db/id file-id} (:block/link block)))))))
+
+(deftest canonical-block-requires-a-uuid-and-numeric-transaction-id-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [conn (db-test/create-conn)
+          missing-tx-id-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :block/tx-id 1
+                     :block/title "Missing UUID"}
+                    {:block/uuid missing-tx-id-uuid
+                     :block/title "Missing transaction ID"}
+                    {:block/uuid "not-a-uuid"
+                     :block/tx-id 1
+                     :block/title "Invalid UUID"}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id "not-a-number"
+                     :block/title "Invalid transaction ID"}])
+      (testing "missing UUID"
+        (is (thrown? js/Error
+                     (canonical-block
+                      @conn
+                      (d/entity @conn
+                                (ffirst
+                                 (d/q '[:find ?e
+                                        :where [?e :block/title "Missing UUID"]]
+                                      @conn)))))))
+      (testing "non-UUID identity"
+        (is (thrown? js/Error
+                     (canonical-block
+                      @conn
+                      (d/entity @conn [:block/uuid "not-a-uuid"])))))
+      (testing "missing transaction ID"
+        (is (thrown? js/Error
+                     (canonical-block
+                      @conn
+                      (d/entity @conn [:block/uuid missing-tx-id-uuid])))))
+      (testing "non-numeric transaction ID"
+        (let [entity-id (ffirst
+                         (d/q '[:find ?e
+                                :where
+                                [?e :block/title "Invalid transaction ID"]]
+                              @conn))]
+          (is (thrown? js/Error
+                       (canonical-block @conn (d/entity @conn entity-id)))))))))
+
+(deftest canonical-blocks-returns-uuid-keyed-replacements-at-one-basis-test
+  (let [canonical-block (canonical-block-api)
+        canonical-blocks (canonical-blocks-api)]
+    (when (and canonical-block canonical-blocks)
+      (let [{:keys [conn page-uuid ref-uuid target-uuid]} (canonical-block-fixture)
+            db @conn
+            response (canonical-blocks db [target-uuid page-uuid])]
+        (is (= (:max-tx db) (:basis-rev response)))
+        (is (= #{target-uuid page-uuid ref-uuid}
+               (set (keys (:blocks response)))))
+        (doseq [[block-uuid block] (:blocks response)]
+          (is (= block-uuid (:block/uuid block)))
+          (is (= block
+                 (canonical-block db
+                                  (d/entity db [:block/uuid block-uuid])))))))))
+
+(deftest canonical-blocks-omits-absent-requested-uuids-at-the-same-basis-test
+  (when-let [canonical-blocks (canonical-blocks-api)]
+    (let [{:keys [conn target-uuid ref-uuid]} (canonical-block-fixture)
+          missing-uuid (random-uuid)
+          db @conn
+          response (canonical-blocks db [target-uuid missing-uuid])]
+      (is (= (:max-tx db) (:basis-rev response)))
+      (is (= #{target-uuid ref-uuid} (set (keys (:blocks response)))))
+      (is (= target-uuid
+             (get-in response [:blocks target-uuid :block/uuid]))))))
+
+(defn- padded-order
+  [index]
+  (str "a-"
+       (cond
+         (< index 10) "00"
+         (< index 100) "0"
+         :else "")
+       index))
+
+(deftest direct-page-children-membership-is-complete-ordered-and-visible-test
+  (when-let [direct-children-membership
+             (direct-children-membership-api)]
+    (let [conn (db-test/create-conn)
+          page-uuid (random-uuid)
+          property-uuid (random-uuid)
+          visible-children (mapv (fn [index]
+                                   {:block/uuid (random-uuid)
+                                    :block/tx-id 11
+                                    :block/title (str "Child " index)
+                                    :block/page [:block/uuid page-uuid]
+                                    :block/parent [:block/uuid page-uuid]
+                                    :block/order (padded-order index)})
+                                 (range 105))
+          expected-items (mapv (juxt :block/uuid :block/order)
+                               visible-children)
+          first-child-uuid (:block/uuid (first visible-children))]
+      (d/transact! conn
+                   [{:block/uuid page-uuid
+                     :block/tx-id 10
+                     :block/title "Page"
+                     :block/name "page"
+                     :block/tags :logseq.class/Page}
+                    {:block/uuid property-uuid
+                     :block/tx-id 10
+                     :block/title "Closed value property"}])
+      (d/transact! conn
+                   (into [[:db/add [:block/uuid page-uuid] :block/tx-id 11]]
+                         visible-children))
+      (d/transact! conn
+                   [[:db/add [:block/uuid page-uuid] :block/tx-id 12]
+                    [:db/add [:block/uuid first-child-uuid] :block/tx-id 12]
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 12
+                     :block/title "Grandchild"
+                     :block/page [:block/uuid page-uuid]
+                     :block/parent [:block/uuid first-child-uuid]
+                     :block/order "a-grandchild"}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 12
+                     :block/title "Recycled direct child"
+                     :block/page [:block/uuid page-uuid]
+                     :block/parent [:block/uuid page-uuid]
+                     :block/order "a-recycled"
+                     :logseq.property/deleted-at 1000}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 12
+                     :block/title "Closed value direct child"
+                     :block/page [:block/uuid page-uuid]
+                     :block/parent [:block/uuid page-uuid]
+                     :block/order "a-closed"
+                     :block/closed-value-property
+                     [:block/uuid property-uuid]}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 12
+                     :block/title "Text property value"
+                     :block/page [:block/uuid page-uuid]
+                     :block/parent [:block/uuid page-uuid]
+                     :block/order "a-property-value"
+                     :logseq.property/created-from-property
+                     [:block/uuid property-uuid]}])
+      (let [db @conn
+            response (direct-children-membership db page-uuid)]
+        (is (= (:max-tx db) (:basis-rev response)))
+        (is (= 12 (:parent-tx-id response)))
+        (is (= 105 (count (:items response))))
+        (is (= expected-items (:items response)))))))
+
+(deftest direct-block-children-membership-does-not-traverse-descendants-test
+  (when-let [direct-children-membership
+             (direct-children-membership-api)]
+    (let [conn (db-test/create-conn)
+          page-uuid (random-uuid)
+          parent-uuid (random-uuid)
+          first-child-uuid (random-uuid)
+          second-child-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :block/uuid page-uuid
+                     :block/tx-id 20
+                     :block/title "Page"
+                     :block/name "page"
+                     :block/tags :logseq.class/Page}
+                    {:db/id -2
+                     :block/uuid parent-uuid
+                     :block/tx-id 21
+                     :block/title "Parent"
+                     :block/page -1
+                     :block/parent -1
+                     :block/order "a0"}
+                    {:db/id -3
+                     :block/uuid first-child-uuid
+                     :block/tx-id 21
+                     :block/title "First child"
+                     :block/page -1
+                     :block/parent -2
+                     :block/order "a0"}
+                    {:db/id -4
+                     :block/uuid second-child-uuid
+                     :block/tx-id 21
+                     :block/title "Second child"
+                     :block/page -1
+                     :block/parent -2
+                     :block/order "b0"}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 21
+                     :block/title "Grandchild"
+                     :block/page -1
+                     :block/parent -3
+                     :block/order "a0"}])
+      (let [db @conn
+            response (direct-children-membership db parent-uuid)]
+        (is (= (:max-tx db) (:basis-rev response)))
+        (is (= 21 (:parent-tx-id response)))
+        (is (= [[first-child-uuid "a0"]
+                [second-child-uuid "b0"]]
+               (:items response)))))))
+
+(deftest open-block-tree-includes-open-descendants-and-stops-at-collapsed-blocks-test
+  (when-let [open-block-tree (open-block-tree-api)]
+    (let [conn (db-test/create-conn)
+          page-uuid (random-uuid)
+          open-child-uuid (random-uuid)
+          open-grandchild-uuid (random-uuid)
+          collapsed-child-uuid (random-uuid)
+          hidden-grandchild-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :block/uuid page-uuid
+                     :block/tx-id 30
+                     :block/title "Page"
+                     :block/name "page"
+                     :block/tags :logseq.class/Page}
+                    {:db/id -2
+                     :block/uuid open-child-uuid
+                     :block/tx-id 30
+                     :block/title "Open child"
+                     :block/page -1
+                     :block/parent -1
+                     :block/order "a0"}
+                    {:db/id -3
+                     :block/uuid open-grandchild-uuid
+                     :block/tx-id 30
+                     :block/title "Open grandchild"
+                     :block/page -1
+                     :block/parent -2
+                     :block/order "a0"}
+                    {:db/id -4
+                     :block/uuid collapsed-child-uuid
+                     :block/tx-id 30
+                     :block/title "Collapsed child"
+                     :block/collapsed? true
+                     :block/page -1
+                     :block/parent -1
+                     :block/order "b0"}
+                    {:block/uuid hidden-grandchild-uuid
+                     :block/tx-id 30
+                     :block/title "Hidden grandchild"
+                     :block/page -1
+                     :block/parent -4
+                     :block/order "a0"}])
+      (let [{:keys [blocks children]} (open-block-tree @conn page-uuid)]
+        (is (= #{page-uuid open-child-uuid open-grandchild-uuid
+                 collapsed-child-uuid}
+               (set (keys blocks))))
+        (is (= #{page-uuid open-child-uuid open-grandchild-uuid}
+               (set (keys children))))
+        (is (= [[open-child-uuid "a0"] [collapsed-child-uuid "b0"]]
+               (get-in children [page-uuid :items])))
+        (is (= [[open-grandchild-uuid "a0"]]
+               (get-in children [open-child-uuid :items])))))))
+
+(deftest direct-children-membership-requires-parent-transaction-id-test
+  (when-let [direct-children-membership
+             (direct-children-membership-api)]
+    (let [conn (db-test/create-conn)
+          page-uuid (random-uuid)]
+      (d/transact! conn
+                   [{:db/id -1
+                     :block/uuid page-uuid
+                     :block/title "Page without transaction ID"
+                     :block/name "page"
+                     :block/tags :logseq.class/Page}
+                    {:block/uuid (random-uuid)
+                     :block/tx-id 1
+                     :block/title "Child"
+                     :block/page -1
+                     :block/parent -1
+                     :block/order "a0"}])
+      (is (thrown? js/Error
+                   (direct-children-membership @conn page-uuid))))))
+
+(deftest canonical-block-snapshots-are-transit-safe-pure-results-test
+  (let [canonical-blocks (canonical-blocks-api)
+        direct-children-membership (direct-children-membership-api)
+        open-block-tree (open-block-tree-api)]
+    (when (and canonical-blocks direct-children-membership open-block-tree)
+      (let [{:keys [conn target-uuid parent-uuid]}
+            (canonical-block-fixture)
+            block-uuids [target-uuid]
+            blocks (canonical-blocks @conn block-uuids)
+            membership (direct-children-membership @conn parent-uuid)
+            tree (open-block-tree @conn parent-uuid)]
+        (doseq [value [blocks membership tree]]
+          (is (= value
+                 (-> value ldb/write-transit-str ldb/read-transit-str))))))))
+
+(deftest block-property-keys-include-own-and-class-properties-test
+  (let [conn (db-test/create-conn-with-blocks
+              {:classes {:c1 {:build/class-properties [:p1]}}
+               :properties {:own {:logseq.property/type :default}}
+               :pages-and-blocks
+               [{:page {:block/title "Page"}
+                 :blocks [{:block/title "with-own"
+                           :build/properties {:own "v"}}
+                          {:block/title "with-class"
+                           :build/tags [:c1]}
+                          {:block/title "plain"}]}]})
+        db @conn
+        with-own (db-test/find-block-by-content db "with-own")
+        with-class (db-test/find-block-by-content db "with-class")
+        plain (db-test/find-block-by-content db "plain")
+        own-map (:block (block-handler/get-block-and-children db (:db/id with-own) {:children? false}))
+        class-map (:block (block-handler/get-block-and-children db (:db/id with-class) {:children? false}))
+        plain-map (:block (block-handler/get-block-and-children db (:db/id plain) {:children? false}))]
+    (is (some #{:user.property/own} (property-handler/block-property-keys db with-own)))
+    (is (some #{:user.property/p1} (property-handler/block-property-keys db with-class))
+        "Class-provided properties are included even when the node has no own value.")
+    (is (not-any? #{:user.property/own :user.property/p1}
+                  (property-handler/block-property-keys db plain)))
+    (is (some #{:user.property/own} (:block.temp/property-keys own-map)))
+    (is (some #{:user.property/p1} (:block.temp/property-keys class-map)))
+    (is (not-any? #{:user.property/own :user.property/p1}
+                  (:block.temp/property-keys plain-map)))
+    (when-let [canonical-block (canonical-block-api)]
+      (d/transact! conn [{:db/id (:db/id with-class)
+                          :block/tx-id 1}])
+      (is (some #{:user.property/p1}
+                (:block.temp/property-keys
+                 (canonical-block @conn (d/entity @conn (:db/id with-class)))))
+          "Canonical renderer maps persist class-provided property keys."))))
+
+(deftest canonical-block-positions-default-task-status-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [conn (db-test/create-conn-with-blocks
+                [{:page {:block/title "Page"}
+                  :blocks [{:block/title "task only"
+                            :build/tags [:logseq.class/Task]}
+                           {:block/title "task doing"
+                            :build/tags [:logseq.class/Task]
+                            :build/properties {:logseq.property/status :logseq.property/status.doing}}]}])
+          task-only (db-test/find-block-by-content @conn "task only")
+          task-doing (db-test/find-block-by-content @conn "task doing")
+          status-uuid (:block/uuid (d/entity @conn :logseq.property/status))]
+      (d/transact! conn [{:db/id (:db/id task-only) :block/tx-id 1}
+                         {:db/id (:db/id task-doing) :block/tx-id 1}])
+      (let [only-block (canonical-block @conn (d/entity @conn (:db/id task-only)))
+            doing-block (canonical-block @conn (d/entity @conn (:db/id task-doing)))
+            only-left (set (get-in only-block [:block.temp/positioned-properties :block-left]))
+            doing-left (set (get-in doing-block [:block.temp/positioned-properties :block-left]))]
+        (is (contains? only-left status-uuid)
+            "Tag-only #Task still exposes the default status icon.")
+        (is (not (contains? only-block :logseq.property/status))
+            "Canonical row maps omit unset status so table/query cells stay empty.")
+        (is (contains? doing-left status-uuid)
+            "Explicit status still positions.")
+        (is (some? (:logseq.property/status doing-block)))))))
+
+(deftest get-block-and-children-positions-default-task-status-test
+  (let [conn (db-test/create-conn-with-blocks
+              [{:page {:block/title "Page"}
+                :blocks [{:block/title "task only"
+                          :build/tags [:logseq.class/Task]}
+                         {:block/title "plain"}]}])
+        task-only (db-test/find-block-by-content @conn "task only")
+        plain (db-test/find-block-by-content @conn "plain")
+        task-result (:block (block-handler/get-block-and-children
+                             @conn (:db/id task-only)
+                             {:children? false :render-data? true}))
+        plain-result (:block (block-handler/get-block-and-children
+                              @conn (:db/id plain)
+                              {:children? false :render-data? true}))
+        task-left (set (map :db/ident
+                            (get-in task-result [:block.temp/positioned-properties :block-left])))]
+    (is (contains? task-left :logseq.property/status)
+        "Tag-only #Task is not treated as a plain block for positioned status.")
+    (is (empty? (get-in plain-result [:block.temp/positioned-properties :block-left]))
+        "Untagged blocks still skip positioned status.")))
+
+(defn- cover-row-fixture
+  []
+  (let [conn (db-test/create-conn)
+        page-uuid #uuid "20000000-0000-0000-0000-000000000001"
+        row-uuid #uuid "20000000-0000-0000-0000-000000000002"
+        cover-uuid #uuid "20000000-0000-0000-0000-000000000003"]
+    (d/transact! conn
+                 [{:db/id -1
+                   :block/uuid page-uuid
+                   :block/tx-id 10
+                   :block/title "Movies"
+                   :block/name "movies"
+                   :block/tags :logseq.class/Page}
+                  {:db/id -2
+                   :db/ident :user.property/cover
+                   :db/valueType :db.type/ref
+                   :db/cardinality :db.cardinality/one
+                   :block/uuid #uuid "20000000-0000-0000-0000-000000000004"
+                   :block/tx-id 10
+                   :block/title "Cover"
+                   :logseq.property/type :asset
+                   :block/tags :logseq.class/Property}
+                  {:db/id -3
+                   :block/uuid cover-uuid
+                   :block/tx-id 10
+                   :block/title "poster"
+                   :block/tags :logseq.class/Asset
+                   :logseq.property.asset/type "webp"
+                   :logseq.property.asset/width 800
+                   :logseq.property.asset/height 1200
+                   :logseq.property.asset/external-url "https://example.com/poster.webp"}
+                  {:db/id -4
+                   :block/uuid row-uuid
+                   :block/tx-id 10
+                   :block/title "Inception"
+                   :block/page -1
+                   :block/parent -1
+                   :block/order "a0"
+                   :user.property/cover -3}])
+    {:conn conn
+     :row-uuid row-uuid
+     :cover-uuid cover-uuid}))
+
+(deftest canonical-cover-property-is-not-a-db-id-stub-test
+  (when-let [canonical-block (canonical-block-api)]
+    (let [{:keys [conn row-uuid cover-uuid]} (cover-row-fixture)
+          block (canonical-block @conn (d/entity @conn [:block/uuid row-uuid]))
+          cover (:user.property/cover block)]
+      (is (map? cover))
+      (is (not= {:db/id (:db/id cover)} cover)
+          "Gallery/Table Cover values must keep more than a bare db/id stub.")
+      (is (= cover-uuid (:block/uuid cover)))
+      (is (= "webp" (:logseq.property.asset/type cover)))
+      (is (= 800 (:logseq.property.asset/width cover)))
+      (is (= 1200 (:logseq.property.asset/height cover)))
+      (is (= "https://example.com/poster.webp"
+             (:logseq.property.asset/external-url cover)))
+      (assert-shallow-identity-ref cover))))
