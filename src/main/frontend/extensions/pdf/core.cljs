@@ -183,7 +183,7 @@
                            ;; colors
                            (let [pdf-current (state/get-current-pdf)
                                  add-highlight!
-                                 (fn [pdf-current]
+                                 (fn [& _args]
                                    (let [properties {:color action}]
                                      (if-not id
                                        ;; add highlight
@@ -204,13 +204,13 @@
                                              ;; Attach the newly-created DB asset to the
                                              ;; live viewer before creating the annotation.
                                              (state/set-current-pdf! pdf-current')
-                                             (add-highlight! pdf-current')))
+                                             (add-highlight!)))
                                    (p/catch (fn [error]
                                               (js/console.error "[PDF asset creation]" error)
                                               (notification/show!
                                                (t :asset/create-local-copy-warning)
                                                :error)))
-                               (add-highlight! pdf-current))))))
+                              (add-highlight!))))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
 
