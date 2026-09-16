@@ -201,9 +201,9 @@
                              (if-not (:block pdf-current)
                                (-> (pdf-assets/ensure-db-asset! pdf-current)
                                    (p/then (fn [pdf-current']
-                                             ;; Attach the newly-created DB asset to the
-                                             ;; live viewer before creating the annotation.
-                                             (state/set-current-pdf! pdf-current')
+                                             ;; Keep the viewer identity, but attach the
+                                             ;; newly-created DB asset to its live state.
+                                             (state/set-state! :pdf/current pdf-current')
                                              (add-highlight!)))
                                    (p/catch (fn [error]
                                               (js/console.error "[PDF asset creation]" error)
