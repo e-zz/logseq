@@ -68,6 +68,27 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
+(defn ensure-db-asset!
+  "Create the database Asset record needed by PDF annotations.
+
+  The PDF remains external: db-based-save-assets! receives a source string,
+  so new-asset-block stores it as external-url without copying the file."
+  [pdf-current]
+  (if (:block pdf-current)
+    (p/resolved pdf-current)
+    (p/let [repo (state/get-current-repo)
+            blocks (editor-handler/db-based-save-assets!
+                    repo
+                    [{:title (:filename pdf-current)
+                      :src   (:original-path pdf-current)}])
+            block (first blocks)]
+      (if block
+        (inflate-asset (:original-path pdf-current)
+                       :href (:url pdf-current)
+                       :block block)
+        (throw (ex-info "Unable to create PDF asset record"
+                        {:path (:original-path pdf-current)}))))))
+
 (defn db-based-ensure-ref-block!
   [pdf-current {:keys [id content page properties] :as hl} insert-opts]
   (when-let [pdf-block (:block pdf-current)]

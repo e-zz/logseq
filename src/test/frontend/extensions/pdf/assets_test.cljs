@@ -1,8 +1,11 @@
 (ns frontend.extensions.pdf.assets-test
-  (:require [clojure.test :as test :refer [are deftest testing]]
+  (:require [cljs.test :as test :refer [are async deftest testing]]
             [frontend.extensions.pdf.assets :as pdf-assets]
+            [frontend.extensions.pdf.utils :as pdf-utils]
+            [frontend.handler.editor :as editor-handler]
+            [frontend.state :as state]
             [frontend.util :as util]
-            [frontend.extensions.pdf.utils :as pdf-utils]))
+            [promesa.core :as p]))
 
 (deftest fix-local-asset-pagename
   (testing "matched filenames"
@@ -25,3 +28,25 @@
                 (:url (pdf-assets/inflate-asset
                        "C:/Users/charlie/sicp.pdf"
                        {:href "assets:///C:/Users/charlie/sicp.pdf"}))))))
+
+(deftest ensure-db-asset-creates-record-for-external-pdf
+  (async done
+    (let [pdf-current {:filename      "paper.pdf"
+                       :original-path "file:///C:/library/paper.pdf"
+                       :url           "assets:///C/logseq__colon/library/paper.pdf"}
+          asset-block {:block/uuid #uuid "8d6c5f58-5fa8-4d8a-a6ee-c8f7c6b1c3af"}
+          created (atom nil)]
+      (with-redefs [state/get-current-repo (constantly "repo")
+                    editor-handler/db-based-save-assets!
+                    (fn [repo files]
+                      (reset! created {:repo repo :files files})
+                      (p/resolved [asset-block]))]
+        (-> (pdf-assets/ensure-db-asset! pdf-current)
+            (p/then (fn [result]
+                      (test/is (= {:repo "repo"
+                                   :files [{:title "paper.pdf"
+                                            :src "file:///C:/library/paper.pdf"}]}
+                                  @created))
+                      (test/is (= asset-block (:block result)))
+                      (test/is (= (:url pdf-current) (:url result)))))
+            (p/finally done))))))

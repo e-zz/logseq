@@ -181,23 +181,36 @@
                            :dune
 
                            ;; colors
-                           (let [pdf-current (state/get-current-pdf)]
+                           (let [pdf-current (state/get-current-pdf)
+                                 add-highlight!
+                                 (fn [pdf-current]
+                                   (let [properties {:color action}]
+                                     (if-not id
+                                       ;; add highlight
+                                       (let [highlight (merge highlight
+                                                              {:id (pdf-utils/gen-uuid)
+                                                               :properties properties})]
+                                         (p/let [highlight' (add-hl! highlight)]
+                                           (pdf-utils/clear-all-selection owner-win)
+                                           (pdf-assets/copy-hl-ref! highlight' viewer)))
+
+                                       ;; update highlight
+                                       (upd-hl! (assoc highlight :properties properties)))
+
+                                     (reset! *highlight-last-color (keyword action))))]
                              (if-not (:block pdf-current)
-                               (state/pub-event! [:asset/dialog-edit-external-url nil pdf-current])
-                               (let [properties {:color action}]
-                                 (if-not id
-                                   ;; add highlight
-                                   (let [highlight (merge highlight
-                                                          {:id (pdf-utils/gen-uuid)
-                                                           :properties properties})]
-                                     (p/let [highlight' (add-hl! highlight)]
-                                       (pdf-utils/clear-all-selection owner-win)
-                                       (pdf-assets/copy-hl-ref! highlight' viewer)))
-
-                                   ;; update highlight
-                                   (upd-hl! (assoc highlight :properties properties)))
-
-                                 (reset! *highlight-last-color (keyword action)))))))
+                               (-> (pdf-assets/ensure-db-asset! pdf-current)
+                                   (p/then (fn [pdf-current']
+                                             ;; Attach the newly-created DB asset to the
+                                             ;; live viewer before creating the annotation.
+                                             (state/set-current-pdf! pdf-current')
+                                             (add-highlight! pdf-current')))
+                                   (p/catch (fn [error]
+                                              (js/console.error "[PDF asset creation]" error)
+                                              (notification/show!
+                                               (t :asset/create-local-copy-warning)
+                                               :error)))
+                               (add-highlight! pdf-current))))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
 
