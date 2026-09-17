@@ -4,6 +4,7 @@
             [frontend.extensions.pdf.assets :as pdf-assets]
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.handler.editor :as editor-handler]
+            [frontend.handler.page :as page-handler]
             [frontend.state :as state]
             [frontend.util :as util]
             [promesa.core :as p]))
@@ -54,21 +55,28 @@
 
 (deftest ensure-db-asset-creates-record-for-external-pdf
   (async done
-    (let [pdf-current {:filename      "paper.pdf"
-                       :original-path "file:///C:/library/paper.pdf"
-                       :url           "assets:///C/logseq__colon/library/paper.pdf"}
+    (let [pdf-current {:key            "paper"
+                       :filename       "paper.pdf"
+                       :original-path  "file:///C:/library/paper.pdf"
+                       :url            "assets:///C/logseq__colon/library/paper.pdf"}
           asset-block {:block/uuid #uuid "8d6c5f58-5fa8-4d8a-a6ee-c8f7c6b1c3af"}
+          hls-page {:block/uuid #uuid "c99a82f5-fb96-4e9a-a11f-2edab6b34ed1"}
           created (atom nil)]
       (with-redefs [state/get-current-repo (constantly "repo")
+                    page-handler/<create! (fn [title opts]
+                                            (test/is (= "hls__paper" title))
+                                            (test/is (= {:redirect? false :edit? false} opts))
+                                            (p/resolved hls-page))
                     editor-handler/db-based-save-assets!
-                    (fn [repo files]
-                      (reset! created {:repo repo :files files})
+                    (fn [repo files & opts]
+                      (reset! created {:repo repo :files files :opts opts})
                       (p/resolved [asset-block]))]
         (-> (pdf-assets/ensure-db-asset! pdf-current)
             (p/then (fn [result]
                       (test/is (= {:repo "repo"
                                    :files [{:title "paper.pdf"
-                                            :src "file:///C:/library/paper.pdf"}]}
+                                            :src "file:///C:/library/paper.pdf"}]
+                                   :opts [:save-to-page hls-page]}
                                   @created))
                       (test/is (= asset-block (:block result)))
                       (test/is (= (:url pdf-current) (:url result)))))

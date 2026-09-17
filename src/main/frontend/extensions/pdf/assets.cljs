@@ -9,6 +9,7 @@
             [frontend.handler.assets :as assets-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
+            [frontend.handler.page :as page-handler]
             [frontend.handler.property :as property-handler]
             [frontend.handler.route :as route-handler]
             [frontend.state :as state]
@@ -79,10 +80,15 @@
   (if (:block pdf-current)
     (p/resolved pdf-current)
     (p/let [repo (state/get-current-repo)
+            page (page-handler/<create!
+                  (str "hls__" (:key pdf-current))
+                  {:redirect? false
+                   :edit? false})
             blocks (editor-handler/db-based-save-assets!
                     repo
                     [{:title (:filename pdf-current)
-                      :src   (:original-path pdf-current)}])
+                      :src   (:original-path pdf-current)}]
+                    :save-to-page page)
             block (first blocks)]
       (if block
         (inflate-asset (:original-path pdf-current)
