@@ -84,11 +84,20 @@
                   (str "hls__" (:key pdf-current))
                   {:redirect? false
                    :edit? false})
-            blocks (editor-handler/db-based-save-assets!
-                    repo
-                    [{:title (:filename pdf-current)
-                      :src   (:original-path pdf-current)}]
-                    :save-to-page page)
+            source (:original-path pdf-current)
+            checksum (assets-handler/get-file-checksum source)
+            existing-block (when checksum
+                             (db-async/<get-asset-with-checksum repo checksum))
+            _ (when existing-block
+                (editor-handler/move-blocks! [existing-block] page
+                                              {:sibling? false :bottom? true}))
+            blocks (if existing-block
+                     [existing-block]
+                     (editor-handler/db-based-save-assets!
+                      repo
+                      [{:title (:filename pdf-current)
+                        :src   source}]
+                      :save-to-page page))
             block (first blocks)]
       (if block
         (inflate-asset (:original-path pdf-current)

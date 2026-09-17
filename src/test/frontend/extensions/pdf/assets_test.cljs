@@ -3,6 +3,7 @@
             [frontend.db.async :as db-async]
             [frontend.extensions.pdf.assets :as pdf-assets]
             [frontend.extensions.pdf.utils :as pdf-utils]
+            [frontend.handler.assets :as assets-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.page :as page-handler]
             [frontend.state :as state]
@@ -80,4 +81,38 @@
                                   @created))
                       (test/is (= asset-block (:block result)))
                       (test/is (= (:url pdf-current) (:url result)))))
+            (p/finally done))))))
+
+(deftest ensure-db-asset-reuses-existing-record
+  (async done
+    (let [pdf-current {:key "paper"
+                       :filename "paper.pdf"
+                       :original-path "assets:///D/logseq__colon/library/paper.pdf"
+                       :url "assets:///D/logseq__colon/library/paper.pdf"}
+          existing-block {:block/uuid #uuid "1c6e0f0d-dc5f-46d1-9f4a-bf6f4f5fc885"}
+          hls-page {:block/uuid #uuid "c99a82f5-fb96-4e9a-a11f-2edab6b34ed1"}
+          moved (atom nil)]
+      (with-redefs [state/get-current-repo (constantly "repo")
+                    page-handler/<create! (constantly (p/resolved hls-page))
+                    assets-handler/get-file-checksum (constantly "checksum")
+                    db-async/<get-asset-with-checksum (fn [repo checksum]
+                                                         (test/is (= "repo" repo))
+                                                         (test/is (= "checksum" checksum))
+                                                         (p/resolved existing-block))
+                    editor-handler/move-blocks! (fn [blocks target opts]
+                                                  (reset! moved {:blocks blocks
+                                                                 :target target
+                                                                 :opts opts})
+                                                  (p/resolved true))
+                    editor-handler/db-based-save-assets!
+                    (fn [& _]
+                      (test/is false "duplicate asset must not be created")
+                      (p/resolved nil))]
+        (-> (pdf-assets/ensure-db-asset! pdf-current)
+            (p/then (fn [result]
+                      (test/is (= existing-block (:block result)))
+                      (test/is (= {:blocks [existing-block]
+                                   :target hls-page
+                                   :opts {:sibling? false :bottom? true}}
+                                  @moved))))
             (p/finally done))))))
