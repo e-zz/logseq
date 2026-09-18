@@ -71,6 +71,23 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
+(defn- <find-zotero-asset-by-source
+  [repo source]
+  (when-let [suffix (some-> source
+                            js/decodeURIComponent
+                            (re-find #"/(qn/.+)$")
+                            second)]
+    (p/let [assets (db-async/<q repo {:transact-db? false}
+                               '[:find [(pull ?b [*]) ...]
+                                 :where
+                                 [?b :logseq.property.asset/external-file-name ?name]] )]
+      (some (fn [asset]
+              (when (string/ends-with?
+                     (:logseq.property.asset/external-file-name asset)
+                     suffix)
+                asset))
+            assets))))
+
 (defn ensure-db-asset!
   "Create the database Asset record needed by PDF annotations.
 
@@ -86,8 +103,9 @@
                    :edit? false})
             source (:original-path pdf-current)
             checksum (assets-handler/get-file-checksum source)
-            existing-block (when checksum
-                             (db-async/<get-asset-with-checksum repo checksum))
+            existing-block (or (when checksum
+                                 (db-async/<get-asset-with-checksum repo checksum))
+                               (<find-zotero-asset-by-source repo source))
             _ (when existing-block
                 (editor-handler/move-blocks! [existing-block] page
                                               {:sibling? false :bottom? true}))
