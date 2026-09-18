@@ -116,3 +116,20 @@
                                    :opts {:sibling? false :bottom? true}}
                                   @moved))))
             (p/finally done))))))
+
+(deftest persist-area-image-reuses-existing-asset
+  (async done
+    (let [existing-image {:block/uuid #uuid "7f34842f-a734-4f2e-9fd2-8c7ac1b5fd0"}
+          file #js {:name "pdf area highlight.png"}]
+      (with-redefs [editor-handler/db-based-save-assets!
+                    (fn [_repo _files _opts] (p/resolved []))
+                    assets-handler/get-file-checksum
+                    (fn [_file] (p/resolved "image-checksum"))
+                    db-async/<get-asset-with-checksum
+                    (fn [_repo checksum]
+                      (test/is (= "image-checksum" checksum))
+                      (p/resolved existing-image))]
+        (-> (#'pdf-assets/db-based-persist-hl-area-image "repo" file)
+            (p/then (fn [result]
+                      (test/is (= [existing-image] result))))
+            (p/finally done))))))

@@ -179,7 +179,12 @@
 (defn- db-based-persist-hl-area-image
   [repo png]
   (let [file (js/File. #js [png] "pdf area highlight.png")]
-    (editor-handler/db-based-save-assets! repo [file] {:pdf-area? true})))
+    (p/let [blocks (editor-handler/db-based-save-assets! repo [file] {:pdf-area? true})]
+      (if (seq blocks)
+        blocks
+        (when-let [checksum (assets-handler/get-file-checksum file)]
+          (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
+            [existing]))))))
 
 (defn- persist-hl-area-image
   [repo-url _repo-dir _current _new-hl _old-hl png]
