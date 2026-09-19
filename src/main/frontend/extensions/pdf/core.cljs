@@ -237,7 +237,7 @@
                                  (js/console.error "[PDF-ANNOTATION-DEBUG] before-add-highlight")
                                  (add-highlight!)))))
 
-                       (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
+                       (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))))]
 
     (hooks/use-effect!
      (fn []
