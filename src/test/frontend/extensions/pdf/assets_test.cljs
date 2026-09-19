@@ -83,6 +83,83 @@
                       (test/is (= (:url pdf-current) (:url result)))))
             (p/finally done))))))
 
+(deftest ensure-db-asset-falls-back-to-url-when-original-path-is-missing
+  (async done
+    (let [url "assets:///D/logseq__colon/library/qn/paper.pdf"
+          pdf-current {:key "paper"
+                       :filename "paper.pdf"
+                       :url url}
+          hls-page {:block/uuid #uuid "d1c0c4c8-2b4a-4f93-a7bf-144a2cd6510c"}
+          asset-block {:block/uuid #uuid "f8ce7c35-212c-44af-a902-3bcd1f9fa836"}
+          queried? (atom false)
+          checksum-source (atom nil)
+          saved-source (atom nil)
+          original-get-current-repo state/get-current-repo
+          original-create-page page-handler/<create!
+          original-query db-async/<q
+          original-get-file-checksum assets-handler/get-file-checksum
+          original-get-asset-with-checksum db-async/<get-asset-with-checksum
+          original-save-assets editor-handler/db-based-save-assets!]
+      (set! state/get-current-repo (constantly "repo"))
+      (set! page-handler/<create! (constantly (p/resolved hls-page)))
+      (set! db-async/<q (fn [& _]
+                          (reset! queried? true)
+                          (p/resolved [])))
+      (set! assets-handler/get-file-checksum (fn [source]
+                                               (reset! checksum-source source)
+                                               (p/resolved "checksum")))
+      (set! db-async/<get-asset-with-checksum (constantly (p/resolved nil)))
+      (set! editor-handler/db-based-save-assets!
+            (fn [_repo files & _opts]
+              (reset! saved-source (:src (first files)))
+              (p/resolved [asset-block])))
+      (-> (pdf-assets/ensure-db-asset! pdf-current)
+          (p/then (fn [result]
+                    (test/is (true? @queried?))
+                    (test/is (= url @checksum-source))
+                    (test/is (= url @saved-source))
+                    (test/is (= asset-block (:block result)))
+                    (test/is (= url (:original-path result)))))
+          (p/catch (fn [error]
+                     (test/is (= url @saved-source))
+                     (test/is false (str "unexpected error: " error))))
+          (p/finally (fn []
+                       (set! state/get-current-repo original-get-current-repo)
+                       (set! page-handler/<create! original-create-page)
+                       (set! db-async/<q original-query)
+                       (set! assets-handler/get-file-checksum original-get-file-checksum)
+                       (set! db-async/<get-asset-with-checksum original-get-asset-with-checksum)
+                       (set! editor-handler/db-based-save-assets! original-save-assets)
+                       (done)))))))
+
+(deftest ensure-db-asset-rejects-when-pdf-has-no-source-path
+  (async done
+    (let [page-called? (atom false)
+          query-called? (atom false)
+          checksum-called? (atom false)
+          hls-page {:block/uuid #uuid "8d32f065-b381-4f2e-8c8b-f0f11c506af0"}]
+      (with-redefs [state/get-current-repo (constantly "repo")
+                    page-handler/<create! (fn [& _]
+                                            (reset! page-called? true)
+                                            (p/resolved hls-page))
+                    db-async/<q (fn [& _]
+                                  (reset! query-called? true)
+                                  (p/resolved []))
+                    assets-handler/get-file-checksum (fn [_source]
+                                                       (reset! checksum-called? true)
+                                                       (p/resolved nil))
+                    editor-handler/db-based-save-assets! (fn [& _] (p/resolved []))]
+        (-> (pdf-assets/ensure-db-asset! {:key "paper" :filename "paper.pdf"})
+            (p/then (fn [_]
+                      (test/is false "expected missing PDF source path to reject")))
+            (p/catch (fn [error]
+                       (test/is (= "PDF asset has no source path" (ex-message error)))))
+            (p/finally (fn []
+                         (test/is (false? @page-called?))
+                         (test/is (false? @query-called?))
+                         (test/is (false? @checksum-called?))
+                         (done))))))))
+
 (deftest ensure-db-asset-reuses-existing-record
   (async done
     (let [pdf-current {:key "paper"

@@ -127,7 +127,7 @@
   "The contextual menu which appears over a text selection and allows e.g. creating a highlight."
   [^js viewer
    {:keys [highlight point ^js selection]}
-   {:keys [clear-ctx-menu! add-hl! upd-hl! del-hl!]}]
+   {:keys [clear-ctx-menu! add-hl! upd-hl! del-hl! pdf-current]}]
 
   (hooks/use-effect!
    (fn []
@@ -159,7 +159,7 @@
                              ^js owner-win (pdf-windows/resolve-own-window viewer)]
                          (case action
                            "ref"
-                           (pdf-assets/copy-hl-ref! highlight viewer)
+                           (pdf-assets/copy-hl-ref! highlight viewer pdf-current)
 
                            "copy"
                            (do
@@ -181,21 +181,20 @@
                            :dune
 
                            ;; colors
-                           (let [pdf-current (state/get-current-pdf)
-                                 add-highlight!
-                                 (fn [& _args]
+                           (let [add-highlight!
+                                 (fn [current]
                                    (let [properties {:color action}]
                                      (if-not id
                                        ;; add highlight
                                        (let [highlight (merge highlight
                                                               {:id (pdf-utils/gen-uuid)
                                                                :properties properties})]
-                                         (p/let [highlight' (add-hl! highlight)]
+                                         (p/let [highlight' (add-hl! highlight current)]
                                            (when-not highlight'
                                              (throw (ex-info "PDF highlight creation returned no highlight"
                                                              {:highlight-id (:id highlight)})))
                                            (pdf-utils/clear-all-selection owner-win)
-                                           (pdf-assets/copy-hl-ref! highlight' viewer)))
+                                           (pdf-assets/copy-hl-ref! highlight' viewer current)))
 
                                        ;; update highlight
                                        (upd-hl! (assoc highlight :properties properties)))
@@ -204,18 +203,21 @@
                              (if-not (:block pdf-current)
                                (-> (pdf-assets/ensure-db-asset! pdf-current)
                                    (p/then (fn [pdf-current']
-                                             ;; Keep the viewer identity, but attach the
-                                             ;; newly-created DB asset to its live state.
-                                             (state/set-state! :pdf/current pdf-current')
-                                             (add-highlight!)))
+                                             ;; The asset import may outlive this viewer.
+                                             ;; Do not let its completion reactivate a PDF
+                                             ;; the user has already left.
+                                             (when (= (:identity pdf-current)
+                                                      (:identity (state/get-current-pdf)))
+                                               (state/set-state! :pdf/current pdf-current')
+                                               (add-highlight! pdf-current'))))
                                    (p/catch (fn [error]
                                               (js/console.error "[PDF asset creation]" error)
                                               (notification/show!
                                                (t :asset/create-local-copy-warning)
-                                               :error)))
-                              (add-highlight!))))))
+                                               :error))))
+                              (add-highlight! pdf-current))))))
 
-                       (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
+                       (and clear? (js/setTimeout #(clear-ctx-menu!) 68)))]
 
     (hooks/use-effect!
      (fn []
@@ -571,7 +573,7 @@
        [:div.shadow-rect {:style (calc-rect start end)}])]))
 
 (hsx/defc ^:large-vars/cleanup-todo pdf-highlights
-  [^js el ^js viewer initial-hls loaded-pages {:keys [set-dirty-hls!]}]
+  [^js el ^js viewer initial-hls loaded-pages {:keys [set-dirty-hls! pdf-current]}]
 
   (let [^js doc (.-ownerDocument el)
         ^js win (.-defaultView doc)
@@ -590,16 +592,17 @@
                          (let [vw-pos (pdf-utils/scaled-to-vw-pos viewer (:position hl))]
                            (set-ctx-menu-state! (apply merge (list* {:highlight hl :vw-pos vw-pos :point point} ops)))))
 
-        add-hl! (fn [hl]
+        add-hl! (fn [hl & [current]]
                   (when (:id hl)
                     ;; fix js object
                     (let [highlights (pdf-utils/fix-nested-js highlights)
-                          highlights' (conj highlights hl)]
+                          highlights' (conj highlights hl)
+                          effective-pdf-current (or current pdf-current)]
                       (set-highlights! highlights')
 
                       (if-let [vw-pos (and (pdf-assets/area-highlight? hl)
                                            (pdf-utils/scaled-to-vw-pos viewer (:position hl)))]
-                        (-> (p/let [result (pdf-assets/persist-hl-area-image$ viewer (state/get-state :pdf/current)
+                        (-> (p/let [result (pdf-assets/persist-hl-area-image$ viewer effective-pdf-current
                                                                               hl nil (:bounding vw-pos))]
                               (if (:db/id result)
                                 (let [hl' (assoc-in hl [:content :image] (:db/id result))]
@@ -778,9 +781,10 @@
                                                 {:clear-ctx-menu! clear-ctx-menu!
                                                  :add-hl! add-hl!
                                                  :del-hl! del-hl!
-                                                 :upd-hl! upd-hl!}))))))
+                                                 :upd-hl! upd-hl!
+                                                 :pdf-current pdf-current}))))))
        #())
-     [ctx-menu-state])
+     [ctx-menu-state pdf-current])
 
     [:div.extensions__pdf-highlights-cnt
 
@@ -1069,7 +1073,8 @@
               :initial-scale initial-scale
               :initial-error initial-error}
              {:set-dirty-hls! set-dirty-hls!
-              :set-hls-extra! set-hls-extra!}])))]]))
+              :set-hls-extra! set-hls-extra!
+              :pdf-current pdf-current}])))]]))
 
 (hsx/defc pdf-container-outer
   [child]

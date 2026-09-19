@@ -73,11 +73,9 @@
 
 (defn- zotero-linked-source
   [source]
-  (when-let [suffix (some-> source
-                            js/decodeURIComponent
-                            (re-find #"/(qn/.+)$")
-                            second)]
-    (str "zotero-link://" suffix)))
+  (when (string? source)
+    (when-let [[_ suffix] (re-find #"/(qn/.+)$" (js/decodeURIComponent source))]
+      (str "zotero-link://" suffix))))
 
 (defn- <find-zotero-asset-by-source
   [repo source]
@@ -110,35 +108,41 @@
   [pdf-current]
   (if (:block pdf-current)
     (p/resolved pdf-current)
-    (p/let [repo (state/get-current-repo)
-            page (page-handler/<create!
-                  (str "hls__" (:key pdf-current))
-                  {:redirect? false
-                   :edit? false})
-            source (:original-path pdf-current)
-            imported-block (<find-zotero-asset-by-source repo source)
-            checksum (assets-handler/get-file-checksum source)
-            existing-block (or imported-block
-                               (when checksum
-                                 (db-async/<get-asset-with-checksum repo checksum)))
-            _ (when existing-block
-                (editor-handler/move-blocks! [existing-block] page
-                                              {:sibling? false :bottom? true}))
-            blocks (if existing-block
-                     [existing-block]
-                     (<save-or-reuse-asset!
-                      repo
-                      [{:title (:filename pdf-current)
-                        :src   source}]
-                      [:save-to-page page]
-                      source))
-            block (first blocks)]
-      (if block
-        (inflate-asset (:original-path pdf-current)
-                       :href (:url pdf-current)
-                       :block block)
-        (throw (ex-info "Unable to create PDF asset record"
-                        {:path (:original-path pdf-current)}))))))
+    (let [source (or (:original-path pdf-current)
+                     (:url pdf-current))]
+      (if-not (string? source)
+        (p/rejected (ex-info "PDF asset has no source path"
+                             {:key (:key pdf-current)
+                              :original-path (:original-path pdf-current)
+                              :url (:url pdf-current)}))
+        (p/let [repo (state/get-current-repo)
+                page (page-handler/<create!
+                      (str "hls__" (:key pdf-current))
+                      {:redirect? false
+                       :edit? false})
+                imported-block (<find-zotero-asset-by-source repo source)
+                checksum (assets-handler/get-file-checksum source)
+                existing-block (or imported-block
+                                   (when checksum
+                                     (db-async/<get-asset-with-checksum repo checksum)))
+                _ (when existing-block
+                    (editor-handler/move-blocks! [existing-block] page
+                                                  {:sibling? false :bottom? true}))
+                blocks (if existing-block
+                         [existing-block]
+                         (<save-or-reuse-asset!
+                          repo
+                          [{:title (:filename pdf-current)
+                            :src   source}]
+                          [:save-to-page page]
+                          source))
+                block (first blocks)]
+          (if block
+            (inflate-asset source
+                           :href (:url pdf-current)
+                           :block block)
+            (throw (ex-info "Unable to create PDF asset record"
+                            {:path source}))))))))
 
 (defn <highlight-color-id
   [repo color]
@@ -306,18 +310,20 @@
         (editor-handler/delete-block-aux! block)))))
 
 (defn copy-hl-ref!
-  [highlight ^js viewer]
-  (-> (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
-        (when ref-block
-          (util/copy-to-clipboard!
-           (ref/->block-ref (:block/uuid ref-block))
-           :owner-window (pdf-windows/resolve-own-window viewer))))
-      (p/catch (fn [error]
-                 (js/console.error "[PDF annotation creation]" error)
-                 (notification/show!
-                  (str "Failed to create PDF annotation: " (.-message error))
-                  :error
-                  false)))))
+  ([highlight ^js viewer]
+   (copy-hl-ref! highlight viewer (state/get-current-pdf)))
+  ([highlight ^js viewer pdf-current]
+   (-> (p/let [ref-block (ensure-ref-block! pdf-current highlight nil)]
+         (when ref-block
+           (util/copy-to-clipboard!
+            (ref/->block-ref (:block/uuid ref-block))
+            :owner-window (pdf-windows/resolve-own-window viewer))))
+       (p/catch (fn [error]
+                  (js/console.error "[PDF annotation creation]" error)
+                  (notification/show!
+                   (str "Failed to create PDF annotation: " (.-message error))
+                   :error
+                   false))))))
 
 (defn zotero-protocol-url?
   [url]
