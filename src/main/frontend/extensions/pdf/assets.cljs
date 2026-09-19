@@ -102,10 +102,11 @@
                   {:redirect? false
                    :edit? false})
             source (:original-path pdf-current)
+            imported-block (<find-zotero-asset-by-source repo source)
             checksum (assets-handler/get-file-checksum source)
-            existing-block (or (when checksum
-                                 (db-async/<get-asset-with-checksum repo checksum))
-                               (<find-zotero-asset-by-source repo source))
+            existing-block (or imported-block
+                               (when checksum
+                                 (db-async/<get-asset-with-checksum repo checksum)))
             _ (when existing-block
                 (editor-handler/move-blocks! [existing-block] page
                                               {:sibling? false :bottom? true}))
