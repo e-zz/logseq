@@ -151,37 +151,54 @@
 
 (defn db-based-ensure-ref-block!
   [pdf-current {:keys [id content page properties] :as hl} insert-opts]
-  (when-let [pdf-block (:block pdf-current)]
-    (p/let [ref-block (db-async/<get-block (state/get-current-repo) id {:children? false})]
+  (let [repo (state/get-current-repo)
+        pdf-block (:block pdf-current)]
+    (when-not pdf-block
+      (throw (ex-info "PDF annotation has no Asset block"
+                      {:highlight-id id})))
+    (p/let [ref-block (db-async/<get-block repo id {:children? false})]
       (if (:block/title ref-block)
         (do
           (println "[existed ref block]" ref-block)
           ref-block)
         (p/let [ref-asset-id (:image content)
                 image? (not (nil? ref-asset-id))
-                text (if image? (i18n/locale-format-date (js/Date.))
-                         (:text content))
-                color-id (<highlight-color-id (state/get-current-repo) (:color properties))]
-          (when color-id
-            (let [properties (cond->
-                              {:block/tags #{:logseq.class/Pdf-annotation}
-                               :block/collapsed? image?
-                               :logseq.property/ls-type  :annotation
-                               :logseq.property.pdf/hl-color color-id
-                               :logseq.property/asset (:db/id pdf-block)
-                               :logseq.property.pdf/hl-page  page
-                               :logseq.property.pdf/hl-value hl}
+                text (if image?
+                       (i18n/locale-format-date (js/Date.))
+                       (:text content))
+                color-id (<highlight-color-id repo (:color properties))]
+          (when-not color-id
+            (throw (ex-info "PDF annotation color is not configured"
+                            {:color (:color properties)
+                             :highlight-id id})))
+          (when-not (string? text)
+            (throw (ex-info "PDF annotation has no text"
+                            {:highlight-id id})))
+          (let [properties (cond->
+                             {:block/tags #{:logseq.class/Pdf-annotation}
+                              :block/collapsed? image?
+                              :logseq.property/ls-type :annotation
+                              :logseq.property.pdf/hl-color color-id
+                              :logseq.property/asset (:db/id pdf-block)
+                              :logseq.property.pdf/hl-page page
+                              :logseq.property.pdf/hl-value hl}
 
-                               image?
-                               (assoc :logseq.property.pdf/hl-type :area
-                                      :logseq.property.pdf/hl-image ref-asset-id))]
-              (when (string? text)
-                (editor-handler/api-insert-new-block!
-                 text (merge {:block-uuid (:block/uuid pdf-block)
-                              :sibling? false
-                              :custom-uuid id
-                              :properties properties}
-                             (assoc insert-opts :edit-block? false)))))))))))
+                             image?
+                             (assoc :logseq.property.pdf/hl-type :area
+                                    :logseq.property.pdf/hl-image ref-asset-id))]
+            (p/let [_ (editor-handler/api-insert-new-block!
+                       text
+                       (merge {:block-uuid (:block/uuid pdf-block)
+                               :sibling? false
+                               :custom-uuid id
+                               :properties properties}
+                              (assoc insert-opts :edit-block? false)))
+                    created-block (db-async/<get-block repo id {:children? false})]
+              (if (:block/title created-block)
+                created-block
+                (throw (ex-info "PDF annotation transaction did not create a block"
+                                {:highlight-id id
+                                 :asset-id (:db/id pdf-block)}))))))))))
 
 (defn ensure-ref-block!
   [pdf-current hl insert-opts]
@@ -283,11 +300,17 @@
 
 (defn copy-hl-ref!
   [highlight ^js viewer]
-  (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
-    (when ref-block
-      (util/copy-to-clipboard!
-       (ref/->block-ref (:block/uuid ref-block))
-       :owner-window (pdf-windows/resolve-own-window viewer)))))
+  (-> (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
+        (when ref-block
+          (util/copy-to-clipboard!
+           (ref/->block-ref (:block/uuid ref-block))
+           :owner-window (pdf-windows/resolve-own-window viewer))))
+      (p/catch (fn [error]
+                 (js/console.error "[PDF annotation creation]" error)
+                 (notification/show!
+                  (str "Failed to create PDF annotation: " (.-message error))
+                  :error
+                  false)))))
 
 (defn zotero-protocol-url?
   [url]
