@@ -153,11 +153,18 @@
         content (:content highlight)
         area? (not (string/blank? (:image content)))
         action-fn! (fn [action clear?]
+                     (js/console.error "[PDF-ANNOTATION-DEBUG] action-entry"
+                                       {:action action :clear? clear? :new? new?})
                      (when-let [action (and action (name action))]
                        (let [highlight (if (fn? highlight) (highlight) highlight)
                              content (:content highlight)
                              ^js owner-win (pdf-windows/resolve-own-window viewer)]
-                         (case action
+                       (js/console.error "[PDF-ANNOTATION-DEBUG] action"
+                                         {:action action
+                                          :highlight-id (:id highlight)
+                                          :area? area?
+                                          :has-pdf-block? (boolean (:block (state/get-current-pdf)))})
+                        (case action
                            "ref"
                            (pdf-assets/copy-hl-ref! highlight viewer)
 
@@ -184,6 +191,10 @@
                            (let [pdf-current (state/get-current-pdf)
                                  add-highlight!
                                  (fn [& _args]
+                                  (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
+                                                    {:highlight-id id
+                                                     :color action
+                                                     :has-pdf-block? (boolean (:block pdf-current))})
                                    (let [properties {:color action}]
                                      (if-not id
                                        ;; add highlight

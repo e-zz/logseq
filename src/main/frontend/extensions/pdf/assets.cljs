@@ -153,10 +153,18 @@
   [pdf-current {:keys [id content page properties] :as hl} insert-opts]
   (let [repo (state/get-current-repo)
         pdf-block (:block pdf-current)]
+    (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/start"
+                      {:highlight-id id
+                       :asset-id (:db/id pdf-block)
+                       :asset-uuid (:block/uuid pdf-block)
+                       :has-pdf-block? (boolean pdf-block)})
     (when-not pdf-block
       (throw (ex-info "PDF annotation has no Asset block"
                       {:highlight-id id})))
     (p/let [ref-block (db-async/<get-block repo id {:children? false})]
+      (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/ref-lookup"
+                        {:highlight-id id
+                         :existing? (boolean (:block/title ref-block))})
       (if (:block/title ref-block)
         (do
           (println "[existed ref block]" ref-block)
@@ -167,6 +175,10 @@
                        (i18n/locale-format-date (js/Date.))
                        (:text content))
                 color-id (<highlight-color-id repo (:color properties))]
+          (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/color"
+                            {:highlight-id id
+                             :color (:color properties)
+                             :color-id color-id})
           (when-not color-id
             (throw (ex-info "PDF annotation color is not configured"
                             {:color (:color properties)
@@ -186,6 +198,11 @@
                              image?
                              (assoc :logseq.property.pdf/hl-type :area
                                     :logseq.property.pdf/hl-image ref-asset-id))]
+            (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/insert"
+                              {:highlight-id id
+                               :asset-id (:db/id pdf-block)
+                               :page page
+                               :image? image?})
             (p/let [_ (editor-handler/api-insert-new-block!
                        text
                        (merge {:block-uuid (:block/uuid pdf-block)
@@ -194,6 +211,10 @@
                                :properties properties}
                               (assoc insert-opts :edit-block? false)))
                     created-block (db-async/<get-block repo id {:children? false})]
+              (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/readback"
+                                {:highlight-id id
+                                 :created? (boolean (:block/title created-block))
+                                 :db-id (:db/id created-block)})
               (if (:block/title created-block)
                 created-block
                 (throw (ex-info "PDF annotation transaction did not create a block"
