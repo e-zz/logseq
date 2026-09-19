@@ -167,30 +167,31 @@
                                               " original=" (:original-path pdf-current)
                                               " url=" (:url pdf-current)
                                               " has-block=" (boolean (:block pdf-current))))
-                        (case action
-                           "ref"
+                        (cond
+                           (= action "ref")
                            (pdf-assets/copy-hl-ref! highlight viewer)
 
-                           "copy"
+                           (= action "copy")
                            (do
                              (util/copy-to-clipboard!
                               (or (:text content) (pdf-utils/fix-selection-text-breakline (.toString selection)))
                               :owner-window owner-win)
                              (pdf-utils/clear-all-selection))
 
-                           "link"
+                           (= action "link")
                            (pdf-assets/goto-block-ref! highlight)
 
-                           "del"
+                           (= action "del")
                            (do
                              (del-hl! highlight)
                              (pdf-assets/del-ref-block! highlight)
                              (pdf-assets/unlink-hl-area-image$ viewer (state/get-state :pdf/current) highlight))
 
-                           "hook"
+                           (= action "hook")
                            :dune
 
                            ;; colors
+                           :else
                            (let [add-highlight!
                                  (fn [& _args]
                                    (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
