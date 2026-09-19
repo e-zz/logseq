@@ -191,10 +191,10 @@
                            (let [pdf-current (state/get-current-pdf)
                                  add-highlight!
                                  (fn [& _args]
-                                  (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
-                                                    {:highlight-id id
-                                                     :color action
-                                                     :has-pdf-block? (boolean (:block pdf-current))})
+                                   (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
+                                                     {:highlight-id id
+                                                      :color action
+                                                      :has-pdf-block? (boolean (:block pdf-current))})
                                    (let [properties {:color action}]
                                      (if-not id
                                        ;; add highlight
@@ -202,6 +202,9 @@
                                                               {:id (pdf-utils/gen-uuid)
                                                                :properties properties})]
                                          (p/let [highlight' (add-hl! highlight)]
+                                           (when-not highlight'
+                                             (throw (ex-info "PDF highlight creation returned no highlight"
+                                                             {:highlight-id (:id highlight)})))
                                            (pdf-utils/clear-all-selection owner-win)
                                            (pdf-assets/copy-hl-ref! highlight' viewer)))
 

@@ -261,7 +261,7 @@
 (defn persist-hl-area-image$
   "Save pdf highlight area image"
   [^js viewer current new-hl old-hl {:keys [top left width height]}]
-  (when-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
+  (if-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
     (let [^js doc     (.-ownerDocument canvas)
           ^js canvas' (.createElement doc "canvas")
           dpr         js/window.devicePixelRatio
@@ -273,22 +273,29 @@
       (set! (. canvas' -width) dw)
       (set! (. canvas' -height) dh)
 
-      (when-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
-        (set! (. ctx -imageSmoothingEnabled) false)
-        (.drawImage
-         ctx canvas
-         (* left dpr) (* top dpr) (* width dpr) (* height dpr)
-         0 0 dw dh)
+      (if-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
+        (do
+          (set! (. ctx -imageSmoothingEnabled) false)
+          (.drawImage
+           ctx canvas
+           (* left dpr) (* top dpr) (* width dpr) (* height dpr)
+           0 0 dw dh)
 
-        (js/Promise.
-         (fn [resolve reject]
-           (.toBlob canvas'
-                    (fn [^js png]
-                      (p/catch
-                       (resolve (persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
-                       (fn [err]
-                         (reject err)
-                         (js/console.error "[write area image Error]" err)))))))))))
+          (js/Promise.
+           (fn [resolve reject]
+             (.toBlob canvas'
+                      (fn [^js png]
+                        (if png
+                          (p/catch
+                           (resolve (persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
+                           (fn [err]
+                             (reject err)
+                             (js/console.error "[write area image Error]" err)))
+                          (reject (ex-info "PDF area highlight canvas produced no image" {}))))))))
+        (p/rejected (ex-info "PDF area highlight canvas has no 2D context" {}))))
+    (p/rejected (ex-info "PDF area highlight page canvas is unavailable"
+                        {:page (:page new-hl)
+                         :asset-key (:key current)}))))
 
 (defn update-hl-block!
   [highlight]
