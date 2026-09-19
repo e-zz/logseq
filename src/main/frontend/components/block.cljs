@@ -513,8 +513,12 @@
 (defn- open-pdf-file
   [e block href]
   (let [href (if-let [url (:logseq.property.asset/external-url block)]
-               (if (string/starts-with? url "zotero://")
-                 (pdf-assets/get-zotero-local-pdf-path (:logseq.property.asset/external-file-name block) :id (last (string/split url #"/")))
+               (if (or (string/starts-with? url "zotero://")
+                       (string/starts-with? url "zotero-link://")
+                       (string/starts-with? url "zotero-path://"))
+                 (pdf-assets/get-zotero-local-pdf-path
+                  (or (:logseq.property.asset/external-file-name block) url)
+                  :id (last (string/split url #"/")))
                  url)
                href)]
     (when-let [s (or href (some-> (.-target e) (.-dataset) (.-href)))]

@@ -278,6 +278,13 @@
        (ref/->block-ref (:block/uuid ref-block))
        :owner-window (pdf-windows/resolve-own-window viewer)))))
 
+(defn- zotero-protocol-url?
+  [url]
+  (and (string? url)
+       (or (string/starts-with? url "zotero://")
+           (string/starts-with? url "zotero-link://")
+           (string/starts-with? url "zotero-path://"))))
+
 (defn get-zotero-local-pdf-path
   [path & {:keys [id]}]
   (let [zotero-config (get-in (state/get-config) [:zotero/settings-v2 "default"])
@@ -304,9 +311,11 @@
   (let [hl-value (:logseq.property.pdf/hl-value block)
         asset (:logseq.property/asset block)
         external-url (:logseq.property.asset/external-url asset)
+        external-file-name (:logseq.property.asset/external-file-name asset)
         file-path (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
-        file-path (if (string/starts-with? file-path "zotero://")
-                    (get-zotero-local-pdf-path (:logseq.property.asset/external-file-name asset))
+        file-path (if (zotero-protocol-url? file-path)
+                    (get-zotero-local-pdf-path (or external-file-name file-path)
+                                               :id (last (string/split file-path #"/")))
                     file-path)]
     (if asset
       (->
