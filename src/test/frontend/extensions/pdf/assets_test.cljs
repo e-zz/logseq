@@ -122,7 +122,7 @@
     (let [existing-image {:block/uuid #uuid "7f34842f-a734-4f2e-9fd2-8c7ac1b5fd0"}
           file #js {:name "pdf area highlight.png"}]
       (with-redefs [editor-handler/db-based-save-assets!
-                    (fn [_repo _files _opts] (p/resolved []))
+                    (fn [_repo _files & _opts] (p/resolved []))
                     assets-handler/get-file-checksum
                     (fn [_file] (p/resolved "image-checksum"))
                     db-async/<get-asset-with-checksum
@@ -146,3 +146,36 @@
                 (pdf-assets/resolve-external-pdf-url
                  "assets:///D/logseq__colon/library/paper.pdf"
                  nil)))))
+
+(deftest ensure-db-asset-prefers-imported-zotero-record
+  (async done
+    (let [pdf-current {:key "paper"
+                       :filename "paper.pdf"
+                       :original-path "assets:///D/logseq__colon/library/qn/paper.pdf"
+                       :url "assets:///D/logseq__colon/library/qn/paper.pdf"}
+          imported-block {:block/uuid #uuid "1c6e0f0d-dc5f-46d1-9f4a-bf6f4f5fc885"
+                          :logseq.property.asset/external-file-name
+                          "zotero-link://qn/paper.pdf"}
+          checksum-block {:block/uuid #uuid "2d7f1e1e-e7f7-4aa9-bf0a-5aa5e20a4b02"}
+          hls-page {:block/uuid #uuid "c99a82f5-fb96-4e9a-a11f-2edab6b34ed1"}
+          moved (atom nil)]
+      (with-redefs [state/get-current-repo (constantly "repo")
+                    page-handler/<create! (constantly (p/resolved hls-page))
+                    db-async/<q (fn [& _]
+                                  (p/resolved [imported-block]))
+                    assets-handler/get-file-checksum (constantly (p/resolved "checksum"))
+                    db-async/<get-asset-with-checksum (constantly (p/resolved checksum-block))
+                    editor-handler/move-blocks! (fn [blocks target opts]
+                                                  (reset! moved {:blocks blocks
+                                                                 :target target
+                                                                 :opts opts})
+                                                  (p/resolved true))
+                    editor-handler/db-based-save-assets!
+                    (fn [& _]
+                      (test/is false "an imported Zotero Asset should win")
+                      (p/resolved nil))]
+        (-> (pdf-assets/ensure-db-asset! pdf-current)
+            (p/then (fn [result]
+                      (test/is (= imported-block (:block result)))
+                      (test/is (= [imported-block] (:blocks @moved)))))
+            (p/finally done))))))

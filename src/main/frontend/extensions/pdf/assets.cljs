@@ -92,6 +92,16 @@
                 asset))
             assets))))
 
+(defn- <save-or-reuse-asset!
+  [repo files option-pairs checksum-source]
+  (p/let [blocks (apply editor-handler/db-based-save-assets!
+                         repo files option-pairs)]
+    (if (seq blocks)
+      blocks
+      (when-let [checksum (assets-handler/get-file-checksum checksum-source)]
+        (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
+          [existing])))))
+
 (defn ensure-db-asset!
   "Create the database Asset record needed by PDF annotations.
 
@@ -116,11 +126,12 @@
                                               {:sibling? false :bottom? true}))
             blocks (if existing-block
                      [existing-block]
-                     (editor-handler/db-based-save-assets!
+                     (<save-or-reuse-asset!
                       repo
                       [{:title (:filename pdf-current)
                         :src   source}]
-                      :save-to-page page))
+                      [:save-to-page page]
+                      source))
             block (first blocks)]
       (if block
         (inflate-asset (:original-path pdf-current)
@@ -202,12 +213,7 @@
 (defn- db-based-persist-hl-area-image
   [repo png]
   (let [file (js/File. #js [png] "pdf area highlight.png")]
-    (p/let [blocks (editor-handler/db-based-save-assets! repo [file] {:pdf-area? true})]
-      (if (seq blocks)
-        blocks
-        (when-let [checksum (assets-handler/get-file-checksum file)]
-          (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
-            [existing]))))))
+    (<save-or-reuse-asset! repo [file] [:pdf-area? true] file)))
 
 (defn- persist-hl-area-image
   [repo-url _repo-dir _current _new-hl _old-hl png]
