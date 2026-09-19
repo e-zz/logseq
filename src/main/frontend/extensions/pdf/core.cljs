@@ -235,7 +235,7 @@
                                (do
                                  (js/console.error "[PDF-ANNOTATION-DEBUG] branch=existing-asset")
                                  (js/console.error "[PDF-ANNOTATION-DEBUG] before-add-highlight")
-                                 (add-highlight!))))))
+                                 (add-highlight!)))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
 
