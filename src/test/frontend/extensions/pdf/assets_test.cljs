@@ -133,3 +133,16 @@
             (p/then (fn [result]
                       (test/is (= [existing-image] result))))
             (p/finally done))))))
+
+(deftest resolve-external-pdf-url-centralizes-zotero-protocols
+  (with-redefs [pdf-assets/get-zotero-local-pdf-path
+                (fn [path & opts] {:path path :opts opts})]
+    (test/is (= {:path "zotero-link://qn/paper.pdf"
+                 :opts '(:id "paper.pdf")}
+                (pdf-assets/resolve-external-pdf-url
+                 "zotero-link://qn/paper.pdf"
+                 "zotero-link://qn/paper.pdf")))
+    (test/is (= "assets:///D/logseq__colon/library/paper.pdf"
+                (pdf-assets/resolve-external-pdf-url
+                 "assets:///D/logseq__colon/library/paper.pdf"
+                 nil)))))

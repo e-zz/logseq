@@ -71,20 +71,24 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
-(defn- <find-zotero-asset-by-source
-  [repo source]
+(defn- zotero-linked-source
+  [source]
   (when-let [suffix (some-> source
                             js/decodeURIComponent
                             (re-find #"/(qn/.+)$")
                             second)]
+    (str "zotero-link://" suffix)))
+
+(defn- <find-zotero-asset-by-source
+  [repo source]
+  (when-let [canonical-source (zotero-linked-source source)]
     (p/let [assets (db-async/<q repo {:transact-db? false}
                                '[:find [(pull ?b [*]) ...]
                                  :where
-                                 [?b :logseq.property.asset/external-file-name ?name]] )]
+                                 [?b :logseq.property.asset/external-file-name ?name]])]
       (some (fn [asset]
-              (when (string/ends-with?
-                     (:logseq.property.asset/external-file-name asset)
-                     suffix)
+              (when (= (:logseq.property.asset/external-file-name asset)
+                       canonical-source)
                 asset))
             assets))))
 
@@ -279,7 +283,7 @@
        (ref/->block-ref (:block/uuid ref-block))
        :owner-window (pdf-windows/resolve-own-window viewer)))))
 
-(defn- zotero-protocol-url?
+(defn zotero-protocol-url?
   [url]
   (and (string? url)
        (or (string/starts-with? url "zotero://")
@@ -307,17 +311,23 @@
       (assets-handler/normalize-asset-resource-url local-path)
       (str "file://" local-path))))
 
+(defn resolve-external-pdf-url
+  [external-url external-file-name]
+  (if (and (zotero-protocol-url? external-url)
+           (string? external-file-name))
+    (get-zotero-local-pdf-path external-file-name
+                               :id (last (string/split external-url #"/")))
+    external-url))
+
 (defn db-based-open-block-ref!
   [block]
   (let [hl-value (:logseq.property.pdf/hl-value block)
         asset (:logseq.property/asset block)
         external-url (:logseq.property.asset/external-url asset)
         external-file-name (:logseq.property.asset/external-file-name asset)
-        file-path (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
-        file-path (if (zotero-protocol-url? file-path)
-                    (get-zotero-local-pdf-path (or external-file-name file-path)
-                                               :id (last (string/split file-path #"/")))
-                    file-path)]
+        file-path (resolve-external-pdf-url
+                   (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
+                   external-file-name)]
     (if asset
       (->
        (p/let [href (assets-handler/<make-asset-url file-path)]
