@@ -127,7 +127,7 @@
   "The contextual menu which appears over a text selection and allows e.g. creating a highlight."
   [^js viewer
    {:keys [highlight point ^js selection]}
-   {:keys [clear-ctx-menu! add-hl! upd-hl! del-hl!]}]
+   {:keys [clear-ctx-menu! add-hl! upd-hl! del-hl! pdf-current]}]
 
   (hooks/use-effect!
    (fn []
@@ -188,8 +188,7 @@
                            :dune
 
                            ;; colors
-                           (let [pdf-current (state/get-current-pdf)
-                                 add-highlight!
+                           (let [add-highlight!
                                  (fn [& _args]
                                    (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
                                                      (str "id=" id
@@ -206,7 +205,7 @@
                                              (throw (ex-info "PDF highlight creation returned no highlight"
                                                              {:highlight-id (:id highlight)})))
                                            (pdf-utils/clear-all-selection owner-win)
-                                           (pdf-assets/copy-hl-ref! highlight' viewer)))
+                                           (pdf-assets/copy-hl-ref! highlight' viewer pdf-current)))
 
                                        ;; update highlight
                                        (upd-hl! (assoc highlight :properties properties)))
@@ -593,7 +592,7 @@
        [:div.shadow-rect {:style (calc-rect start end)}])]))
 
 (hsx/defc ^:large-vars/cleanup-todo pdf-highlights
-  [^js el ^js viewer initial-hls loaded-pages {:keys [set-dirty-hls!]}]
+  [^js el ^js viewer initial-hls loaded-pages {:keys [set-dirty-hls! pdf-current]}]
 
   (let [^js doc (.-ownerDocument el)
         ^js win (.-defaultView doc)
@@ -621,7 +620,7 @@
 
                       (if-let [vw-pos (and (pdf-assets/area-highlight? hl)
                                            (pdf-utils/scaled-to-vw-pos viewer (:position hl)))]
-                        (-> (p/let [result (pdf-assets/persist-hl-area-image$ viewer (state/get-state :pdf/current)
+                        (-> (p/let [result (pdf-assets/persist-hl-area-image$ viewer pdf-current
                                                                               hl nil (:bounding vw-pos))]
                               (if (:db/id result)
                                 (let [hl' (assoc-in hl [:content :image] (:db/id result))]
@@ -773,7 +772,8 @@
              (let [page-hls (get grouped-hls page)
                    hls-render (pdf-highlights-region-container
                                viewer page-hls {:show-ctx-menu! show-ctx-menu!
-                                                :upd-hl! upd-hl!})
+                                                :upd-hl! upd-hl!
+                                                :pdf-current pdf-current})
                    ^js mounted-root (.-mountedRoot hls-layer)]
                (if (nil? mounted-root)
                  (let [root (rdc/createRoot hls-layer)]
@@ -800,7 +800,8 @@
                                                 {:clear-ctx-menu! clear-ctx-menu!
                                                  :add-hl! add-hl!
                                                  :del-hl! del-hl!
-                                                 :upd-hl! upd-hl!}))))))
+                                                 :upd-hl! upd-hl!
+                                                 :pdf-current pdf-current}))))))
        #())
      [ctx-menu-state])
 
@@ -1091,7 +1092,8 @@
               :initial-scale initial-scale
               :initial-error initial-error}
              {:set-dirty-hls! set-dirty-hls!
-              :set-hls-extra! set-hls-extra!}])))]]))
+              :set-hls-extra! set-hls-extra!
+              :pdf-current pdf-current}])))]]))
 
 (hsx/defc pdf-container-outer
   [child]

@@ -333,8 +333,8 @@
         (editor-handler/delete-block-aux! block)))))
 
 (defn copy-hl-ref!
-  [highlight ^js viewer]
-  (-> (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
+  [highlight ^js viewer & [pdf-current]]
+  (-> (p/let [ref-block (ensure-ref-block! (or pdf-current (state/get-current-pdf)) highlight nil)]
         (when ref-block
           (util/copy-to-clipboard!
            (ref/->block-ref (:block/uuid ref-block))
