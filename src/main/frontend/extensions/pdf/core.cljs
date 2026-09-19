@@ -160,10 +160,13 @@
                              content (:content highlight)
                              ^js owner-win (pdf-windows/resolve-own-window viewer)]
                        (js/console.error "[PDF-ANNOTATION-DEBUG] action"
-                                         {:action action
-                                          :highlight-id (:id highlight)
-                                          :area? area?
-                                          :has-pdf-block? (boolean (:block (state/get-current-pdf)))})
+                                         (str "action=" action
+                                              " highlight-id=" (:id highlight)
+                                              " area=" area?
+                                              " key=" (:key pdf-current)
+                                              " original=" (:original-path pdf-current)
+                                              " url=" (:url pdf-current)
+                                              " has-block=" (boolean (:block pdf-current))))
                         (case action
                            "ref"
                            (pdf-assets/copy-hl-ref! highlight viewer)
@@ -595,6 +598,11 @@
   [^js el ^js viewer initial-hls loaded-pages {:keys [set-dirty-hls! pdf-current]}]
 
   (let [^js doc (.-ownerDocument el)
+        _debug (js/console.error "[PDF-ANNOTATION-DEBUG] pdf-highlights-state"
+                                 (str "key=" (:key pdf-current)
+                                      " original=" (:original-path pdf-current)
+                                      " url=" (:url pdf-current)
+                                      " has-block=" (boolean (:block pdf-current))))
         ^js win (.-defaultView doc)
         *mounted (hooks/use-ref false)
         [sel-state, set-sel-state!] (hooks/use-state {:selection nil :range nil :collapsed nil :point nil})
@@ -829,7 +837,12 @@
 
 (hsx/defc ^:large-vars/data-var pdf-viewer
   [_url ^js pdf-document {:keys [identity filename pdf-current initial-hls initial-page initial-scale initial-error]} ops]
-  (let [*el-ref (hooks/create-ref)
+  (let [_debug (js/console.error "[PDF-ANNOTATION-DEBUG] pdf-viewer-state"
+                                 (str "key=" (:key pdf-current)
+                                      " original=" (:original-path pdf-current)
+                                      " url=" (:url pdf-current)
+                                      " has-block=" (boolean (:block pdf-current))))
+        *el-ref (hooks/create-ref)
         [state, set-state!] (hooks/use-state {:viewer nil :bus nil :link nil :el nil})
         [ano-state, set-ano-state!] (hooks/use-state {:loaded-pages []})
         [page-ready?, set-page-ready!] (hooks/use-state false)
@@ -977,7 +990,12 @@
 
 (hsx/defc ^:large-vars/data-var pdf-loader
   [{:keys [url hls-file identity filename block] :as pdf-current}]
-  (let [*doc-ref       (hooks/use-ref nil)
+  (let [_debug        (js/console.error "[PDF-ANNOTATION-DEBUG] pdf-loader-state"
+                                        (str "key=" (:key pdf-current)
+                                             " original=" (:original-path pdf-current)
+                                             " url=" (:url pdf-current)
+                                             " has-block=" (boolean (:block pdf-current))))
+        *doc-ref       (hooks/use-ref nil)
         [loader-state, set-loader-state!] (hooks/use-state {:error nil :pdf-document nil :status nil})
         [hls-state, set-hls-state!] (hooks/use-state {:initial-hls nil :latest-hls nil :extra nil :loaded false :error nil})
         [doc-password, set-doc-password!] (hooks/use-state nil) ;; use nil to handle empty string

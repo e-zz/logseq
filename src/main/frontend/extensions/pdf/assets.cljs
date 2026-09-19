@@ -160,10 +160,12 @@
   (let [repo (state/get-current-repo)
         pdf-block (:block pdf-current)]
     (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-ref-block/start"
-                      {:highlight-id id
-                       :asset-id (:db/id pdf-block)
-                       :asset-uuid (:block/uuid pdf-block)
-                       :has-pdf-block? (boolean pdf-block)})
+                      (str "highlight-id=" id
+                           " original=" (:original-path pdf-current)
+                           " url=" (:url pdf-current)
+                           " key=" (:key pdf-current)
+                           " asset-id=" (:db/id pdf-block)
+                           " has-pdf-block=" (boolean pdf-block)))
     (when-not pdf-block
       (throw (ex-info "PDF annotation has no Asset block"
                       {:highlight-id id})))
