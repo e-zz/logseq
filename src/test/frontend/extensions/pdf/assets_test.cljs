@@ -145,6 +145,11 @@
     (test/is (= "assets:///D/logseq__colon/library/paper.pdf"
                 (pdf-assets/resolve-external-pdf-url
                  "assets:///D/logseq__colon/library/paper.pdf"
+                 nil)))
+    (test/is (= {:path "zotero-link://qn/paper.pdf"
+                 :opts '(:id "paper.pdf")}
+                (pdf-assets/resolve-external-pdf-url
+                 "zotero-link://qn/paper.pdf"
                  nil)))))
 
 (deftest ensure-db-asset-prefers-imported-zotero-record

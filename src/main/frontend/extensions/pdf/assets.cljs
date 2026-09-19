@@ -342,11 +342,16 @@
 
 (defn resolve-external-pdf-url
   [external-url external-file-name]
-  (if (and (zotero-protocol-url? external-url)
-           (string? external-file-name))
-    (get-zotero-local-pdf-path external-file-name
-                               :id (last (string/split external-url #"/")))
-    external-url))
+  (let [source (or external-file-name
+                   (when (or (string/starts-with? external-url "zotero-link://")
+                             (string/starts-with? external-url "zotero-path://"))
+                     external-url))]
+    (if (and (zotero-protocol-url? external-url)
+             (string? source))
+      (get-zotero-local-pdf-path
+       source
+       :id (last (string/split external-url #"/")))
+      external-url)))
 
 (defn db-based-open-block-ref!
   [block]
