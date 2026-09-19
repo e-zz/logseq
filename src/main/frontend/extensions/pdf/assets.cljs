@@ -110,35 +110,41 @@
   [pdf-current]
   (if (:block pdf-current)
     (p/resolved pdf-current)
-    (p/let [repo (state/get-current-repo)
-            page (page-handler/<create!
-                  (str "hls__" (:key pdf-current))
-                  {:redirect? false
-                   :edit? false})
-            source (:original-path pdf-current)
-            imported-block (<find-zotero-asset-by-source repo source)
-            checksum (assets-handler/get-file-checksum source)
-            existing-block (or imported-block
-                               (when checksum
-                                 (db-async/<get-asset-with-checksum repo checksum)))
-            _ (when existing-block
-                (editor-handler/move-blocks! [existing-block] page
-                                              {:sibling? false :bottom? true}))
-            blocks (if existing-block
-                     [existing-block]
-                     (<save-or-reuse-asset!
-                      repo
-                      [{:title (:filename pdf-current)
-                        :src   source}]
-                      [:save-to-page page]
-                      source))
-            block (first blocks)]
-      (if block
-        (inflate-asset (:original-path pdf-current)
-                       :href (:url pdf-current)
-                       :block block)
-        (throw (ex-info "Unable to create PDF asset record"
-                        {:path (:original-path pdf-current)}))))))
+    (let [source (or (:original-path pdf-current)
+                     (:url pdf-current))]
+      (if-not (string? source)
+        (p/rejected (ex-info "PDF asset has no source path"
+                            {:key (:key pdf-current)
+                             :original-path (:original-path pdf-current)
+                             :url (:url pdf-current)}))
+        (p/let [repo (state/get-current-repo)
+                page (page-handler/<create!
+                      (str "hls__" (:key pdf-current))
+                      {:redirect? false
+                       :edit? false})
+                imported-block (<find-zotero-asset-by-source repo source)
+                checksum (assets-handler/get-file-checksum source)
+                existing-block (or imported-block
+                                   (when checksum
+                                     (db-async/<get-asset-with-checksum repo checksum)))
+                _ (when existing-block
+                    (editor-handler/move-blocks! [existing-block] page
+                                                  {:sibling? false :bottom? true}))
+                blocks (if existing-block
+                         [existing-block]
+                         (<save-or-reuse-asset!
+                          repo
+                          [{:title (:filename pdf-current)
+                            :src   source}]
+                          [:save-to-page page]
+                          source))
+                block (first blocks)]
+          (if block
+            (inflate-asset source
+                           :href (:url pdf-current)
+                           :block block)
+            (throw (ex-info "Unable to create PDF asset record"
+                            {:path source}))))))))
 
 (defn <highlight-color-id
   [repo color]
