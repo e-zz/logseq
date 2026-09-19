@@ -191,6 +191,9 @@
                                                               {:id (pdf-utils/gen-uuid)
                                                                :properties properties})]
                                          (p/let [highlight' (add-hl! highlight)]
+                                           (when-not highlight'
+                                             (throw (ex-info "PDF highlight creation returned no highlight"
+                                                             {:highlight-id (:id highlight)})))
                                            (pdf-utils/clear-all-selection owner-win)
                                            (pdf-assets/copy-hl-ref! highlight' viewer)))
 
