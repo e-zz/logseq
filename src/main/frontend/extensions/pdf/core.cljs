@@ -216,6 +216,7 @@
                                                (str "has-pdf-block=" (boolean (:block pdf-current))))
                              (if-not (:block pdf-current)
                                (do
+                                 (js/console.error "[PDF-ANNOTATION-DEBUG] branch=missing-asset")
                                  (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-db-asset/start"
                                                    (:original-path pdf-current))
                                  (-> (pdf-assets/ensure-db-asset! pdf-current)
@@ -231,7 +232,10 @@
                                                (notification/show!
                                                 (t :asset/create-local-copy-warning)
                                                 :error))))
-                               (add-highlight!))))))
+                               (do
+                                 (js/console.error "[PDF-ANNOTATION-DEBUG] branch=existing-asset")
+                                 (js/console.error "[PDF-ANNOTATION-DEBUG] before-add-highlight")
+                                 (add-highlight!))))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
 
