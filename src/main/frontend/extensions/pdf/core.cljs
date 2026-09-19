@@ -192,9 +192,9 @@
                                  add-highlight!
                                  (fn [& _args]
                                    (js/console.error "[PDF-ANNOTATION-DEBUG] add-highlight"
-                                                     {:highlight-id id
-                                                      :color action
-                                                      :has-pdf-block? (boolean (:block pdf-current))})
+                                                     (str "id=" id
+                                                          " color=" action
+                                                          " has-pdf-block=" (boolean (:block pdf-current))))
                                    (let [properties {:color action}]
                                      (if-not id
                                        ;; add highlight
@@ -212,19 +212,26 @@
                                        (upd-hl! (assoc highlight :properties properties)))
 
                                      (reset! *highlight-last-color (keyword action))))]
+                             (js/console.error "[PDF-ANNOTATION-DEBUG] asset-check"
+                                               (str "has-pdf-block=" (boolean (:block pdf-current))))
                              (if-not (:block pdf-current)
-                               (-> (pdf-assets/ensure-db-asset! pdf-current)
+                               (do
+                                 (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-db-asset/start"
+                                                   (:original-path pdf-current))
+                                 (-> (pdf-assets/ensure-db-asset! pdf-current)
                                    (p/then (fn [pdf-current']
+                                             (js/console.error "[PDF-ANNOTATION-DEBUG] ensure-db-asset/done"
+                                                               (str "has-block=" (boolean (:block pdf-current'))))
                                              ;; Keep the viewer identity, but attach the
                                              ;; newly-created DB asset to its live state.
                                              (state/set-state! :pdf/current pdf-current')
                                              (add-highlight!)))
                                    (p/catch (fn [error]
-                                              (js/console.error "[PDF asset creation]" error)
-                                              (notification/show!
-                                               (t :asset/create-local-copy-warning)
-                                               :error)))
-                              (add-highlight!))))))
+                                               (js/console.error "[PDF asset creation]" error)
+                                               (notification/show!
+                                                (t :asset/create-local-copy-warning)
+                                                :error))))
+                               (add-highlight!))))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68))))]
 
