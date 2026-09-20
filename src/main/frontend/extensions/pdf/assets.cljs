@@ -17,6 +17,7 @@
             [frontend.util :as util]
             [frontend.util.ref :as ref]
             [logseq.common.config :as common-config]
+            [logseq.common.util :as common-util]
             [logseq.graph-parser.exporter :as gp-exporter]
             [logseq.shui.hooks :as hooks]
             [promesa.core :as p]
@@ -73,22 +74,35 @@
 
 (defn- zotero-linked-source
   [source]
-  (when (string? source)
-    (when-let [[_ suffix] (re-find #"/(qn/.+)$" (js/decodeURIComponent source))]
-      (str "zotero-link://" suffix))))
+  (let [config (get-in (state/get-config) [:zotero/settings-v2 "default"])
+        base-directory (:zotero-linked-attachment-base-directory config)
+        source (some-> source common-util/safe-decode-uri-component)
+        normalize-path (fn [path]
+                         (-> path
+                             (string/replace-first #"^assets:///([A-Za-z])/logseq__colon/" "$1:/")
+                             (string/replace-first #"^file:///([A-Za-z]):/" "$1:/")
+                             (string/replace-first #"^file://([A-Za-z]):/" "$1:/")
+                             (string/replace #"[\\]+" "/")))
+        source (some-> source normalize-path)
+        base-directory (some-> base-directory normalize-path)]
+    (when (and (string? source)
+               (string? base-directory)
+               (not (string/blank? base-directory)))
+      (let [base-directory (string/replace base-directory #"/+$" "")
+            prefix (str base-directory "/")]
+        (when (string/starts-with? source prefix)
+          (str "zotero-link://" (subs source (count prefix))))))))
 
 (defn- <find-zotero-asset-by-source
   [repo source]
   (when-let [canonical-source (zotero-linked-source source)]
-    (p/let [assets (db-async/<q repo {:transact-db? false}
-                               '[:find [(pull ?b [*]) ...]
-                                 :where
-                                 [?b :logseq.property.asset/external-file-name ?name]])]
-      (some (fn [asset]
-              (when (= (:logseq.property.asset/external-file-name asset)
-                       canonical-source)
-                asset))
-            assets))))
+    (db-async/<q repo {:transact-db? false}
+                  '[:find (pull ?b [:block/uuid
+                                     :logseq.property.asset/external-file-name]) .
+                    :in $ ?source
+                    :where
+                    [?b :logseq.property.asset/external-file-name ?source]]
+                  canonical-source)))
 
 (defn- <save-or-reuse-asset!
   [repo files option-pairs checksum-source]
@@ -100,8 +114,75 @@
         (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
           [existing])))))
 
+(defn- asset-source-key
+  [source]
+  (or (zotero-linked-source source) source))
+
+(defonce ^:private *asset-creation-in-flight (atom {}))
+
+(defn- <create-db-asset!
+  [pdf-current source]
+  (p/let [repo (state/get-current-repo)
+          page (page-handler/<create!
+                (str "hls__" (:key pdf-current))
+                {:redirect? false
+                 :edit? false})
+          imported-block (<find-zotero-asset-by-source repo source)
+          checksum (assets-handler/get-file-checksum source)
+          existing-block (or imported-block
+                             (when checksum
+                               (db-async/<get-asset-with-checksum repo checksum)))
+          _ (when existing-block
+              (editor-handler/move-blocks! [existing-block] page
+                                            {:sibling? false :bottom? true}))
+          blocks (if existing-block
+                   [existing-block]
+                   (<save-or-reuse-asset!
+                    repo
+                    [{:title (:filename pdf-current)
+                      :src   source}]
+                    [:save-to-page page]
+                    source))
+          block (first blocks)]
+    (if block
+      (inflate-asset source
+                     :href (:url pdf-current)
+                     :block block)
+      (throw (ex-info "Unable to create PDF asset record"
+                      {:path source})))))
+
+(defn- <share-db-asset-creation!
+  [key create!]
+  (let [resolve-gate (atom nil)
+        reject-gate (atom nil)
+        gate (js/Promise.
+              (fn [resolve reject]
+                (reset! resolve-gate resolve)
+                (reset! reject-gate reject)))
+        in-flight @*asset-creation-in-flight]
+    (if-let [existing (get in-flight key)]
+      existing
+      (if (compare-and-set! *asset-creation-in-flight
+                            in-flight
+                            (assoc in-flight key gate))
+        (do
+          (let [creation (try
+                           (create!)
+                           (catch :default error
+                             (p/rejected error)))]
+            (-> creation
+                (p/then (fn [result]
+                          (@resolve-gate result)
+                          result))
+                (p/catch (fn [error]
+                           (@reject-gate error)
+                           (throw error)))
+                (p/finally #(swap! *asset-creation-in-flight dissoc key))))
+          gate)
+        (<share-db-asset-creation! key create!)))))
+
 (defn ensure-db-asset!
-  "Create the database Asset record needed by PDF annotations.
+  "Create the database Asset record needed for PDF annotations.
 
   The PDF remains external: db-based-save-assets! receives a source string,
   so new-asset-block stores it as external-url without copying the file."
@@ -115,34 +196,11 @@
                              {:key (:key pdf-current)
                               :original-path (:original-path pdf-current)
                               :url (:url pdf-current)}))
-        (p/let [repo (state/get-current-repo)
-                page (page-handler/<create!
-                      (str "hls__" (:key pdf-current))
-                      {:redirect? false
-                       :edit? false})
-                imported-block (<find-zotero-asset-by-source repo source)
-                checksum (assets-handler/get-file-checksum source)
-                existing-block (or imported-block
-                                   (when checksum
-                                     (db-async/<get-asset-with-checksum repo checksum)))
-                _ (when existing-block
-                    (editor-handler/move-blocks! [existing-block] page
-                                                  {:sibling? false :bottom? true}))
-                blocks (if existing-block
-                         [existing-block]
-                         (<save-or-reuse-asset!
-                          repo
-                          [{:title (:filename pdf-current)
-                            :src   source}]
-                          [:save-to-page page]
-                          source))
-                block (first blocks)]
-          (if block
-            (inflate-asset source
-                           :href (:url pdf-current)
-                           :block block)
-            (throw (ex-info "Unable to create PDF asset record"
-                            {:path source}))))))))
+        (let [repo (state/get-current-repo)
+              key [repo (asset-source-key source)]]
+          (<share-db-asset-creation!
+           key
+           #(<create-db-asset! pdf-current source)))))))
 
 (defn <highlight-color-id
   [repo color]
@@ -269,11 +327,9 @@
              (.toBlob canvas'
                       (fn [^js png]
                         (if png
-                          (p/catch
-                           (resolve (persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
-                           (fn [err]
-                             (reject err)
-                             (js/console.error "[write area image Error]" err)))
+                          (-> (persist-hl-area-image repo-url repo-dir current new-hl old-hl png)
+                              (p/then resolve)
+                              (p/catch reject))
                           (reject (ex-info "PDF area highlight canvas produced no image" {}))))))))
         (p/rejected (ex-info "PDF area highlight canvas has no 2D context" {}))))
     (p/rejected (ex-info "PDF area highlight page canvas is unavailable"
@@ -321,7 +377,7 @@
        (p/catch (fn [error]
                   (js/console.error "[PDF annotation creation]" error)
                   (notification/show!
-                   (str "Failed to create PDF annotation: " (.-message error))
+                   (t :pdf/annotation-create-error)
                    :error
                    false))))))
 

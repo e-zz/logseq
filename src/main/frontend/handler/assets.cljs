@@ -108,8 +108,12 @@
       protocol-link?
       (if (and (util/electron?)
                (string/starts-with? path "file://"))
-        ;; strip file:// then normalize (protects Windows drive: C: -> C/logseq__colon/)
-        (normalize-asset-resource-url (string/replace-first path "file://" ""))
+        ;; Strip the protocol, then the URI slash before a Windows drive, and
+        ;; normalize so the drive colon is protected for Electron.
+        (let [path (-> path
+                       (string/replace-first "file://" "")
+                       (string/replace-first #"^/(?=[A-Za-z]:[\\/])" ""))]
+          (normalize-asset-resource-url path))
         path)
 
       ;; BUG: avoid double encoding from PDF assets

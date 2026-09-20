@@ -46,6 +46,88 @@
       "foo__bar" "foo__bar"
       "foo_bar.pdf" "foo_bar.pdf")))
 
+(deftest zotero-linked-source-uses-configured-relative-path
+  (with-redefs [state/get-config
+                (constantly {:zotero/settings-v2
+                             {"default"
+                              {:zotero-linked-attachment-base-directory "D:/library"}}})]
+    (are [source expected]
+         (= expected (#'pdf-assets/zotero-linked-source source))
+      "file:///D:/library/qn/paper.pdf"
+      "zotero-link://qn/paper.pdf"
+      "file:///D:/library/it/Understanding%20EXPLAIN.pdf"
+      "zotero-link://it/Understanding EXPLAIN.pdf"
+      "file:///D:/library/it/100%paper.pdf"
+      "zotero-link://it/100%paper.pdf")))
+
+(deftest find-zotero-asset-by-source-uses-exact-query
+  (async done
+    (let [query-call (atom nil)
+          imported-block {:block/uuid #uuid "1c6e0f0d-dc5f-46d1-9f4a-bf6f4f5fc885"}]
+      (with-redefs [state/get-config
+                    (constantly {:zotero/settings-v2
+                                 {"default"
+                                  {:zotero-linked-attachment-base-directory "D:/library"}}})
+                    db-async/<q
+                    (fn [& args]
+                      (reset! query-call args)
+                      (p/resolved imported-block))]
+        (-> (#'pdf-assets/<find-zotero-asset-by-source
+             "repo"
+             "file:///D:/library/it/Understanding%20EXPLAIN.pdf")
+            (p/then (fn [result]
+                      (test/is (= imported-block result))
+                      (test/is (= ["repo" {:transact-db? false}
+                                   '[:find (pull ?b [:block/uuid
+                                                      :logseq.property.asset/external-file-name]) .
+                                     :in $ ?source
+                                     :where
+                                     [?b :logseq.property.asset/external-file-name ?source]]
+                                   "zotero-link://it/Understanding EXPLAIN.pdf"]
+                                 @query-call))))
+            (p/finally done))))))
+
+(deftest ensure-db-asset-shares-in-flight-creation-and-retries
+  (async done
+    (let [first-resolve (atom nil)
+          save-calls (atom 0)
+          first-save (js/Promise.
+                      (fn [resolve _reject]
+                        (reset! first-resolve resolve)))
+          first-create (fn []
+                         (swap! save-calls inc)
+                         first-save)
+          key ["repo" "zotero-link://it/paper.pdf"]]
+      (reset! @#'pdf-assets/*asset-creation-in-flight {})
+      (let [first-result (#'pdf-assets/<share-db-asset-creation! key first-create)
+            second-result (#'pdf-assets/<share-db-asset-creation! key first-create)
+            asset-block {:block/uuid #uuid "2e7d9a76-76df-4db1-b5e9-1b6cfaa2a6d5"}]
+        (test/is (identical? first-result second-result))
+        (test/is (= 1 @save-calls))
+        (@first-resolve asset-block)
+        (-> (p/all [first-result second-result])
+            (p/then
+             (fn [results]
+               (test/is (= [asset-block asset-block] results))
+               (let [failure (#'pdf-assets/<share-db-asset-creation!
+                             key
+                             (fn []
+                               (swap! save-calls inc)
+                               (throw (js/Error. "save failed"))))]
+                 (p/catch
+                  failure
+                  (fn [_]
+                    (let [retry (#'pdf-assets/<share-db-asset-creation!
+                                 key
+                                 (fn []
+                                   (swap! save-calls inc)
+                                   (p/resolved asset-block)))]
+                      (p/then retry
+                               (fn [result]
+                                 (test/is (= asset-block result))
+                                 (test/is (= 3 @save-calls))))))))))
+            (p/finally done))))))
+
 (deftest inflate-asset-normalizes-local-assets-url-on-windows
   (with-redefs [util/electron? (constantly true)
                 util/win32? true]
@@ -53,6 +135,19 @@
                 (:url (pdf-assets/inflate-asset
                        "C:/Users/charlie/sicp.pdf"
                        {:href "assets:///C:/Users/charlie/sicp.pdf"}))))))
+
+(deftest normalize-asset-resource-url-normalizes-file-protocols
+  (with-redefs [util/electron? (constantly true)]
+    (are [input expected]
+         (= expected (assets-handler/normalize-asset-resource-url input))
+      "file:///C:/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "file://C:/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "file:///tmp/paper.pdf"
+      "assets:///tmp/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf")))
 
 (deftest ensure-db-asset-creates-record-for-external-pdf
   (async done
@@ -82,55 +177,6 @@
                       (test/is (= asset-block (:block result)))
                       (test/is (= (:url pdf-current) (:url result)))))
             (p/finally done))))))
-
-(deftest ensure-db-asset-falls-back-to-url-when-original-path-is-missing
-  (async done
-    (let [url "assets:///D/logseq__colon/library/qn/paper.pdf"
-          pdf-current {:key "paper"
-                       :filename "paper.pdf"
-                       :url url}
-          hls-page {:block/uuid #uuid "d1c0c4c8-2b4a-4f93-a7bf-144a2cd6510c"}
-          asset-block {:block/uuid #uuid "f8ce7c35-212c-44af-a902-3bcd1f9fa836"}
-          queried? (atom false)
-          checksum-source (atom nil)
-          saved-source (atom nil)
-          original-get-current-repo state/get-current-repo
-          original-create-page page-handler/<create!
-          original-query db-async/<q
-          original-get-file-checksum assets-handler/get-file-checksum
-          original-get-asset-with-checksum db-async/<get-asset-with-checksum
-          original-save-assets editor-handler/db-based-save-assets!]
-      (set! state/get-current-repo (constantly "repo"))
-      (set! page-handler/<create! (constantly (p/resolved hls-page)))
-      (set! db-async/<q (fn [& _]
-                          (reset! queried? true)
-                          (p/resolved [])))
-      (set! assets-handler/get-file-checksum (fn [source]
-                                               (reset! checksum-source source)
-                                               (p/resolved "checksum")))
-      (set! db-async/<get-asset-with-checksum (constantly (p/resolved nil)))
-      (set! editor-handler/db-based-save-assets!
-            (fn [_repo files & _opts]
-              (reset! saved-source (:src (first files)))
-              (p/resolved [asset-block])))
-      (-> (pdf-assets/ensure-db-asset! pdf-current)
-          (p/then (fn [result]
-                    (test/is (true? @queried?))
-                    (test/is (= url @checksum-source))
-                    (test/is (= url @saved-source))
-                    (test/is (= asset-block (:block result)))
-                    (test/is (= url (:original-path result)))))
-          (p/catch (fn [error]
-                     (test/is (= url @saved-source))
-                     (test/is false (str "unexpected error: " error))))
-          (p/finally (fn []
-                       (set! state/get-current-repo original-get-current-repo)
-                       (set! page-handler/<create! original-create-page)
-                       (set! db-async/<q original-query)
-                       (set! assets-handler/get-file-checksum original-get-file-checksum)
-                       (set! db-async/<get-asset-with-checksum original-get-asset-with-checksum)
-                       (set! editor-handler/db-based-save-assets! original-save-assets)
-                       (done)))))))
 
 (deftest ensure-db-asset-rejects-when-pdf-has-no-source-path
   (async done
@@ -242,9 +288,12 @@
           hls-page {:block/uuid #uuid "c99a82f5-fb96-4e9a-a11f-2edab6b34ed1"}
           moved (atom nil)]
       (with-redefs [state/get-current-repo (constantly "repo")
+                    state/get-config (constantly {:zotero/settings-v2
+                                                  {"default"
+                                                   {:zotero-linked-attachment-base-directory "D:/library"}}})
                     page-handler/<create! (constantly (p/resolved hls-page))
                     db-async/<q (fn [& _]
-                                  (p/resolved [imported-block]))
+                                  (p/resolved imported-block))
                     assets-handler/get-file-checksum (constantly (p/resolved "checksum"))
                     db-async/<get-asset-with-checksum (constantly (p/resolved checksum-block))
                     editor-handler/move-blocks! (fn [blocks target opts]
