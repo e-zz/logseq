@@ -41,6 +41,14 @@
   []
   (state/set-state! :pdf/current nil))
 
+(defn- complete-asset-creation-for-current-pdf!
+  [pdf-current pdf-current' current-pdf set-current-pdf! add-highlight!]
+  (when (= (:identity pdf-current)
+           (:identity current-pdf))
+    (set-current-pdf! pdf-current')
+    (add-highlight! pdf-current')
+    true))
+
 (hsx/defc pdf-highlight-finder
   [^js viewer]
   (let [*mounted? (hooks/use-ref false)
@@ -206,15 +214,19 @@
                                              ;; The asset import may outlive this viewer.
                                              ;; Do not let its completion reactivate a PDF
                                              ;; the user has already left.
-                                             (when (= (:identity pdf-current)
-                                                      (:identity (state/get-current-pdf)))
-                                               (state/set-state! :pdf/current pdf-current')
-                                               (add-highlight! pdf-current'))))
+                                             (complete-asset-creation-for-current-pdf!
+                                              pdf-current
+                                              pdf-current'
+                                              (state/get-current-pdf)
+                                              #(state/set-state! :pdf/current %)
+                                              add-highlight!)))
                                    (p/catch (fn [error]
                                               (js/console.error "[PDF asset creation]" error)
                                               (notification/show!
-                                               (t :asset/create-local-copy-warning)
-                                               :error))))
+                                               (t :pdf/annotation-create-error)
+                                               :error
+                                               false)
+                                              (throw error))))
                               (add-highlight! pdf-current))))))
 
                        (and clear? (js/setTimeout #(clear-ctx-menu!) 68)))]
@@ -303,6 +315,35 @@
           :data-color    color}])
       rects)]))
 
+(defn- <persist-new-area-highlight!
+  [persist! highlights hl highlights' set-highlights! notify!]
+  (-> (persist!)
+      (p/then (fn [result]
+                (if (:db/id result)
+                  (let [hl' (assoc-in hl [:content :image] (:db/id result))]
+                    (set-highlights! (map (fn [item] (if (= (:id item) (:id hl')) hl' item)) highlights')))
+                  (throw (ex-info "PDF area highlight image was not persisted"
+                                  {:highlight-id (:id hl)})))
+                hl))
+      (p/catch (fn [error]
+                 (set-highlights! highlights)
+                 (js/console.error "[PDF area highlight persistence]" error)
+                 (notify! (t :pdf/area-image-save-error) :error false)
+                 (throw error)))))
+
+(defn- <persist-resized-area-highlight!
+  [persist! update! restore! notify!]
+  (-> (persist!)
+      (p/then (fn [result]
+                (if (:db/id result)
+                  (update! result)
+                  (throw (ex-info "PDF area highlight image was not persisted" {})))))
+      (p/catch (fn [error]
+                 (js/console.error "[PDF area highlight resize]" error)
+                 (notify! (t :pdf/area-image-save-error) :error false)
+                 (throw error)))
+      (p/finally restore!)))
+
 (hsx/defc ^:large-vars/cleanup-todo pdf-highlight-area-region
   [^js viewer vw-hl hl {:keys [show-ctx-menu!] :as ops}]
 
@@ -358,27 +399,23 @@
                                                       to-sc-pos   (pdf-utils/vw-to-scaled-pos viewer to-vw-pos)]
 
                                                   ;; TODO: exception
-                                                  (let [hl' (assoc hl :position to-sc-pos)
-                                                        hl' (assoc-in hl' [:content :image] (js/Date.now))]
-
-                                                    (p/let [result (pdf-assets/persist-hl-area-image$
-                                                                    viewer
-                                                                    (state/get-state :pdf/current)
-                                                                    hl' hl (:bounding to-vw-pos))]
-
-                                                      (js/setTimeout
-                                                       #(do
-                                                          ;; reset dom effects
-                                                          (set! (.. target -style -transform) "translate(0, 0)")
-                                                          (.removeAttribute target "data-x")
-                                                          (.removeAttribute target "data-y")
-                                                          (let [hl' (if (:db/id result)
-                                                                      (assoc-in hl' [:content :image] (:db/id result))
-                                                                      hl')]
-                                                            (update-hl! hl')))
-                                                       200)))
-
-                                                  (js/setTimeout #(hooks/set-ref! *dirty false))))
+                                                  (let [hl' (assoc-in (assoc hl :position to-sc-pos)
+                                                                      [:content :image]
+                                                                      (js/Date.now))
+                                                        restore! (fn []
+                                                                   (set! (.. target -style -transform) "translate(0, 0)")
+                                                                   (.removeAttribute target "data-x")
+                                                                   (.removeAttribute target "data-y")
+                                                                   (hooks/set-ref! *dirty false))]
+                                                    (<persist-resized-area-highlight!
+                                                     #(pdf-assets/persist-hl-area-image$
+                                                       viewer
+                                                       (state/get-state :pdf/current)
+                                                       hl' hl (:bounding to-vw-pos))
+                                                     (fn [result]
+                                                       (update-hl! (assoc-in hl' [:content :image] (:db/id result))))
+                                                     restore!
+                                                     notification/show!))
 
                                        :move (fn [^js/MouseEvent e]
                                                (let [^js/HTMLElement target (.-target e)
@@ -399,7 +436,7 @@
 
                                                    ;; cache pos
                                                    (.setAttribute target "data-x" ax)
-                                                   (.setAttribute target "data-y" ay))))}
+                                                   (.setAttribute target "data-y" ay))))))}
                            :modifiers [(js/interact.modifiers.restrict
                                         (bean/->js {:restriction (.closest el ".page")}))]
                            :inertia true})))]
@@ -602,14 +639,14 @@
 
                       (if-let [vw-pos (and (pdf-assets/area-highlight? hl)
                                            (pdf-utils/scaled-to-vw-pos viewer (:position hl)))]
-                        (-> (p/let [result (pdf-assets/persist-hl-area-image$ viewer effective-pdf-current
-                                                                              hl nil (:bounding vw-pos))]
-                              (if (:db/id result)
-                                (let [hl' (assoc-in hl [:content :image] (:db/id result))]
-                                  (set-highlights! (map (fn [hl] (if (= (:id hl) (:id hl')) hl' hl)) highlights'))
-                                  hl')
-                                hl))
-                            (p/catch (fn [e] (js/console.error e))))
+                        (<persist-new-area-highlight!
+                         #(pdf-assets/persist-hl-area-image$ viewer effective-pdf-current
+                                                          hl nil (:bounding vw-pos))
+                         highlights
+                         hl
+                         highlights'
+                         set-highlights!
+                         notification/show!)
                         hl))))
         upd-hl! (fn [hl]
                   (let [highlights (pdf-utils/fix-nested-js highlights)]

@@ -2,12 +2,76 @@
   (:require [cljs.test :as test :refer [async deftest]]
             [frontend.db.async :as db-async]
             [frontend.extensions.pdf.assets :as pdf-assets]
+            [frontend.extensions.pdf.core :as pdf-core]
             [frontend.extensions.pdf.windows :as pdf-windows]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
             [frontend.state :as state]
             [frontend.util :as util]
             [promesa.core :as p]))
+
+(deftest async-asset-completion-does-not-restore-a-left-pdf
+  (let [set-state-calls (atom [])
+        highlight-calls (atom [])
+        pdf-a {:identity "A"}
+        pdf-b {:identity "B"}
+        created-a (assoc pdf-a :block {:db/id 42})]
+    (test/is (nil?
+              (#'pdf-core/complete-asset-creation-for-current-pdf!
+               pdf-a
+               created-a
+               pdf-b
+               #(swap! set-state-calls conj %)
+               #(swap! highlight-calls conj %))))
+    (test/is (empty? @set-state-calls))
+    (test/is (empty? @highlight-calls))))
+
+(deftest async-asset-completion-updates-the-current-pdf
+  (let [set-state-calls (atom [])
+        highlight-calls (atom [])
+        pdf-a {:identity "A"}
+        created-a (assoc pdf-a :block {:db/id 42})]
+    (test/is (true?
+              (#'pdf-core/complete-asset-creation-for-current-pdf!
+               pdf-a
+               created-a
+               pdf-a
+               #(swap! set-state-calls conj %)
+               #(swap! highlight-calls conj %))))
+    (test/is (= [created-a] @set-state-calls))
+    (test/is (= [created-a] @highlight-calls))))
+
+(deftest resize-area-highlight-cleans-up-on-rejection
+  (async done
+    (let [cleaned? (atom false)
+          notified? (atom false)]
+      (-> (#'pdf-core/<persist-resized-area-highlight!
+           #(p/rejected (js/Error. "save failed"))
+           (fn [_] (test/is false "update must not run after save failure"))
+           #(reset! cleaned? true)
+           (fn [& _] (reset! notified? true)))
+          (p/catch (fn [_]
+                     (test/is @cleaned?)
+                     (test/is @notified?)))
+          (p/finally done)))))
+
+(deftest new-area-highlight-rolls-back-after-image-save-failure
+  (async done
+    (let [original-highlights [{:id "old"}]
+          optimistic-highlights (conj original-highlights {:id "new"})
+          restored (atom nil)
+          notified? (atom false)]
+      (-> (#'pdf-core/<persist-new-area-highlight!
+           #(p/rejected (js/Error. "save failed"))
+           original-highlights
+           {:id "new"}
+           optimistic-highlights
+           #(reset! restored %)
+           (fn [& _] (reset! notified? true)))
+          (p/catch (fn [_]
+                     (test/is (= original-highlights @restored))
+                     (test/is @notified?)))
+          (p/finally done)))))
 
 (deftest copy-hl-ref-uses-explicit-pdf-current
   (async done

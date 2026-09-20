@@ -1182,8 +1182,10 @@
  :page.validation/name-no-slash "页面名称不能包含 /。"
  :page.validation/parents-must-be-pages "页面的父级必须是页面。"
 
+ :pdf/annotation-create-error "无法创建 PDF 批注。"
  :pdf/annotations-page "批注页"
  :pdf/area-highlight-shortcut "区域高亮（{1}）"
+ :pdf/area-image-save-error "无法保存 PDF 区域高亮图片。"
  :pdf/auto-fit "自动适应"
  :pdf/auto-open-context-menu "为选中文本自动打开上下文菜单"
  :pdf/copy-ref "复制引用"

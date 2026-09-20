@@ -1182,8 +1182,10 @@
  :page.validation/name-no-slash "Page name can't include \"/\"."
  :page.validation/parents-must-be-pages "Cannot create this page unless all parents are pages."
 
+ :pdf/annotation-create-error "Could not create the PDF annotation."
  :pdf/annotations-page "Annotations page"
  :pdf/area-highlight-shortcut "Area highlight ({1})"
+ :pdf/area-image-save-error "Could not save the PDF area highlight image."
  :pdf/auto-fit "Auto fit"
  :pdf/auto-open-context-menu "Auto open context menu for selections"
  :pdf/copy-ref "Copy ref"
