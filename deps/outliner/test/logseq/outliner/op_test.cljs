@@ -4,6 +4,8 @@
             [datascript.core :as d]
             [logseq.common.util.page-ref :as page-ref]
             [logseq.db :as ldb]
+            [logseq.db.frontend.validate :as db-validate]
+            [logseq.db.sqlite.export :as sqlite-export]
             [logseq.db.test.helper :as db-test]
             [logseq.outliner.op :as outliner-op]
             [logseq.outliner.property :as outliner-property]))
@@ -249,3 +251,45 @@
                       conn
                       [[:set-block-property [block-uuid property-id true]]]
                       {})))))))
+
+(deftest batch-import-edn-validates-only-changed-entities-test
+  (testing "batch imports can write valid data when an existing property is invalid"
+    (let [conn (db-test/create-conn-with-blocks
+                {:properties {:legacy {:logseq.property/type :default}}
+                 :pages-and-blocks [{:page {:block/title "page1"}}]})
+          page (ldb/get-page @conn "page1")
+          property (d/entity @conn :user.property/legacy)
+          _ (d/transact! conn [{:db/id (:db/id property)
+                                :block/parent (:db/id page)}])
+          pre-existing-errors (:errors (db-validate/validate-local-db! @conn))
+          import-data {:pages-and-blocks
+                       [{:page {:block/title "page1"}
+                         :blocks [{:block/title "new block"}]}]}
+          txs (sqlite-export/build-import import-data @conn {})
+          result (outliner-op/apply-ops!
+                  conn
+                  [[:batch-import-edn [import-data
+                                       {:validate-changed-only? true}]]]
+                  {})]
+      (is (seq pre-existing-errors))
+      (is (seq (sqlite-export/import-tx-data txs)))
+      (is (nil? (:error result)))
+      (is (some? (db-test/find-block-by-content @conn "new block")))
+      (is (= (:db/id page)
+             (:db/id (:block/parent (d/entity @conn :user.property/legacy))))))))
+
+(deftest batch-import-edn-validates-invalid-imported-property-test
+  (testing "batch imports reject invalid changed properties without mutating the graph"
+    (let [conn (db-test/create-conn-with-blocks
+                [{:page {:block/title "page1"}}])
+          import-data {:properties
+                       {:invalid {:logseq.property/type :not-a-real-type}}}
+          txs (sqlite-export/build-import import-data @conn {})]
+      (is (seq (sqlite-export/import-tx-data txs)))
+      (is (thrown-with-msg? js/Error #"DB write failed with invalid data"
+                            (outliner-op/apply-ops!
+                             conn
+                             [[:batch-import-edn [import-data
+                                                  {:validate-changed-only? true}]]]
+                             {})))
+      (is (nil? (d/entity @conn :user.property/invalid))))))
