@@ -12,6 +12,7 @@
    [frontend.worker.plain-value :as worker-plain]
    [frontend.worker.state :as worker-state]
    [frontend.worker.sync.client-op :as client-op]
+   [lambdaisland.glogi :as log]
    [logseq.common.util :as common-util]
    [logseq.db :as ldb]
    [logseq.db.common.initial-data :as common-initial-data]
@@ -293,6 +294,12 @@
       :else (recur (eavt-scalar db eid :block/parent) (conj seen eid)))))
 
 (defn- membership-row
+  "One direct child of `parent-uuid` in render order.
+
+   A legacy child that has a UUID and a parent but no `:block/order`
+   (issue #5) must not fail the whole page render: it is emitted with
+   `:block/order nil` and sorts deterministically last. All other
+   invariant violations (missing/invalid UUID, missing parent) still fail fast."
   [db parent-uuid parent-recycled? {:keys [e]}]
   (let [attrs (membership-row-attr-map db e)]
     (when-not (or parent-recycled?
@@ -306,10 +313,11 @@
                              {:parent-uuid parent-uuid
                               :block-uuid child-uuid}))
         (when-not (string? order)
-          (fail-render-read! "Invalid direct-child order"
-                             {:parent-uuid parent-uuid
-                              :block-uuid child-uuid
-                              :block-order order}))
+          (log/warn :render/malformed-direct-child-order
+                    {:msg "Direct child lacks :block/order; rendering it last"
+                     :parent-uuid parent-uuid
+                     :block-uuid child-uuid
+                     :block-order order}))
         {:db/id e
          :block/uuid child-uuid
          :block/order order
@@ -323,6 +331,30 @@
                          {:parent-uuid parent-uuid}))
     parent-id))
 
+(defn- direct-child-render-cmp
+  "Order direct children for render: children with a real :block/order come
+   first in order-key sequence; children missing :block/order (legacy rows,
+   issue #5) sort deterministically last, tied by ascending UUID. The old
+   \"zzz-malformed-last\" sentinel was itself a valid order key (the domain
+   is base-62 fractional indexing — a real key such as \"z0\" sorts after
+   it) and was not injective, so it neither guaranteed missing-last nor
+   stabilized ties."
+  [a b]
+  (let [order-a (:block/order a)
+        order-b (:block/order b)]
+    (cond
+      (and order-a order-b)
+      (compare order-a order-b)
+
+      (and (not order-a) (not order-b))
+      (compare (str (:block/uuid a)) (str (:block/uuid b)))
+
+      (not order-a)
+      1
+
+      :else
+      -1)))
+
 (defn- parent-membership
   [db parent-uuid parent-id parent-recycled?]
   (let [parent-tx-id (block-revision db parent-id)]
@@ -333,7 +365,7 @@
     {:parent-tx-id parent-tx-id
      :rows (->> (d/datoms db :avet :block/parent parent-id)
                 (keep #(membership-row db parent-uuid parent-recycled? %))
-                (sort-by :block/order)
+                (sort direct-child-render-cmp)
                 vec)}))
 
 (defn direct-children-membership
