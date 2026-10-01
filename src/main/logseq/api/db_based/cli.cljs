@@ -7,6 +7,7 @@
             [frontend.state :as state]
             [logseq.api.db-based.util :as api-util]
             [logseq.common.config :as common-config]
+            [logseq.db.sqlite.export :as sqlite-export]
             [logseq.db.sqlite.util :as sqlite-util]
             [promesa.core :as p]))
 
@@ -45,10 +46,13 @@
   (p/let [ops (js->clj operations :keywordize-keys true)
           {:keys [dry-run] :as options} (js->clj options* :keywordize-keys true)
           edn-data (state/<invoke-db-worker :thread-api/api-build-upsert-nodes-edn (state/get-current-repo) ops)
+          ;; API upserts reuse the importer but have no post-import index rebuild.
+          import-opts {:validate-scope :tx
+                       :tx-meta {::sqlite-export/mcp-upsert? true}}
           {:keys [error]} (when-not dry-run
                             (ui-outliner-tx/transact!
                              {:outliner-op :batch-import-edn}
-                             (outliner-op/batch-import-edn! edn-data {:validate-scope :tx})))]
+                             (outliner-op/batch-import-edn! edn-data import-opts)))]
     (when error (throw (ex-info error {})))
     (ui-handler/re-render-root!)
     (api-util/summarize-upsert-operations ops options)))
