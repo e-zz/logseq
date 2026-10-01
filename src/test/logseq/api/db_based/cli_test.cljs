@@ -1,11 +1,16 @@
 (ns logseq.api.db-based.cli-test
   (:require [cljs.test :refer [async deftest is use-fixtures]]
+            [datascript.core :as d]
+            [frontend.db.conn :as conn]
             [frontend.state :as state]
             [frontend.test.helper :as test-helper]
+            [frontend.db.transact :as db-transact]
+            [frontend.handler.search :as search-handler]
             [logseq.api :as api]
             [logseq.api.db-based :as db-based-api]
             [logseq.api.db-based.cli :as cli-api]
             [logseq.api.test-helper :as api-test]
+            [logseq.db :as ldb]
             [logseq.db.frontend.validate :as db-validate]
             [promesa.core :as p]))
 
@@ -24,8 +29,8 @@
                     tags (cli-api/list-tags #js {:expand true})
                     properties (cli-api/list-properties #js {})
                     pages (cli-api/list-pages #js {})
-                    page-data (cli-api/get-page-data "Cli Page")
-                    missing (cli-api/get-page-data "Missing Page")
+                    page-data (cli-api/get-page-data "Cli Page" #js {})
+                    missing (cli-api/get-page-data "Missing Page" #js {})
                     tag-titles (set (keep :title (js->clj tags :keywordize-keys true)))
                     property-titles (set (keep :title (js->clj properties :keywordize-keys true)))
                     page-titles (set (keep :title (js->clj pages :keywordize-keys true)))]
@@ -38,6 +43,43 @@
         (p/catch (fn [error]
                    (is false (str error))))
         (p/finally done))))
+
+(deftest recycled-page-opt-in-plumbing
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Cli Recycled Page"}
+       :blocks [{:block/title "cli recycled block"}]}])
+    (let [page (ldb/get-page (conn/get-db) "Cli Recycled Page")
+         uuid (str (:block/uuid page))
+         listed-uuids (fn [resp]
+                        (set (map #(get % "uuid")
+                                  (js->clj resp :keywordize-keys false))))]
+     (conn/transact! nil [[:db/add (:db/id page) :logseq.property/deleted-at 1]])
+     (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [default-by-name (cli-api/get-page-data "Cli Recycled Page" #js {})
+                     default-by-uuid (cli-api/get-page-data uuid #js {})
+                     opt-in-by-uuid (cli-api/get-page-data uuid #js {:include-recycled? true})
+                     default-list (cli-api/list-pages #js {})
+                     opt-in-list (cli-api/list-pages #js {:include-recycled? true})]
+               (is (some? (aget default-by-name "error"))
+                   "Recycled page by name is not returned through the CLI option plumbing")
+               (is (some? (aget default-by-uuid "error"))
+                   "Recycled page by uuid is not returned through the CLI option plumbing")
+               (is (= "Cli Recycled Page" (api-test/api-title (aget opt-in-by-uuid "entity")))
+                   "includeRecycled plumbing reaches the worker for getPage")
+                (is (not (contains? (listed-uuids default-list) uuid)))
+                (is (contains? (listed-uuids opt-in-list) uuid)
+                    "includeRecycled plumbing reaches the worker for listPages")
+                (is (some (fn [p] (some? (get p "deleted-at")))
+                          (js->clj opt-in-list :keywordize-keys false))
+                    "Recycled list entries carry the marker through MCP/CLI JSON")
+               (is (some? (get-in (js->clj opt-in-by-uuid :keywordize-keys true)
+                                  [:entity :deleted-at]))
+                   "The recycled marker survives MCP/CLI JSON so callers can detect it"))))
+          (p/catch (fn [error]
+                     (is false (str error))))
+          (p/finally done)))))
 
 (deftest upsert-nodes-dry-run-summarizes-operations
   (async done
@@ -83,6 +125,241 @@
                    (is false (str error))))
         (p/finally done))))
 
+(deftest exported-get-page-data-accepts-single-argument
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Arity Page"}
+       :blocks [{:block/title "arity block"}]}])
+    (-> (api-test/with-plugin-api
+          (fn []
+            (p/let [page-data (js/logseq.api.get_page_data "Arity Page")]
+              (is (= "Arity Page" (api-test/api-title (aget page-data "entity"))))
+              (is (pos? (count (aget page-data "blocks")))))))
+        (p/catch (fn [error]
+                   (is false (str "One-argument public call rejected: " error))))
+        (p/finally done))))
+
+(deftest include-children-plumbing-reaches-worker
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Cli Nested Page"}
+       :blocks [{:block/title "cli top"
+                 :build/children [{:block/title "cli child"
+                                   :build/children [{:block/title "cli grandchild"}]}]}]}])
+    (-> (api-test/with-plugin-api
+          (fn []
+            (p/let [default (cli-api/get-page-data "Cli Nested Page" #js {})
+                    opt-in (cli-api/get-page-data "Cli Nested Page"
+                                                    #js {:include-children? true :max-blocks 3})
+                    under-budget (cli-api/get-page-data "Cli Nested Page"
+                                                         #js {:include-children? true :max-blocks 2})
+                    default-js (js->clj default :keywordize-keys false)
+                    opt-in-js (js->clj opt-in :keywordize-keys false)
+                    under-budget-js (js->clj under-budget :keywordize-keys false)
+                    nested (get-in opt-in-js ["blocks" 0 "children" 0])]
+              (is (true? (get-in default-js ["tree-has-more?"]))
+                  "include-children? default must tell the MCP caller the tree is partial")
+              (is (= 2 (get-in default-js ["tree-omitted-count"]))
+                  "The omitted count must cross the worker boundary")
+              (is (= "cli child" (get nested "title"))
+                  "include-children? must reach the worker and return nested blocks")
+              (is (= "cli grandchild" (get-in nested ["children" 0 "title"]))
+                  "Descendants deeper than one level must cross the worker boundary")
+              (is (string? (get nested "uuid"))
+                  "Nested uuids must be strings after JSON serialization")
+              (is (nil? (get-in opt-in-js ["tree-has-more?"]))
+                  "A full nested read must not report itself as partial")
+              (is (some? (get under-budget-js "error"))
+                  "The maxBlocks budget reaches the worker and rejects an incomplete tree")
+              (is (nil? (get under-budget-js "blocks"))
+                  "An insufficient budget must not return partial blocks"))))
+        (p/catch (fn [error]
+                   (is false (str error))))
+        (p/finally done))))
+
+(deftest get-page-data-nested-tree-is-json-serializable
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Cli Json Page"}
+       :blocks [{:block/title "json top"
+                 :build/children [{:block/title "json child"}]}]}])
+    (-> (api-test/with-plugin-api
+          (fn []
+            (p/let [opt-in (cli-api/get-page-data "Cli Json Page"
+                                                   #js {:include-children? true :max-blocks 2})
+                    json (js/JSON.stringify opt-in)]
+              (is (not (re-find #"cljs\$lang\$protocol_mask" json))
+                  "The MCP JSON payload must not contain leaked cljs protocol fields")
+              (is (re-find #"json child" json)
+                  "Nested block content must survive the MCP JSON payload"))))
+        (p/catch (fn [error]
+                   (is false (str error))))
+        (p/finally done))))
+
+(deftest upsert-nodes-returns-opt-in-verified-receipt
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Receipt Existing Page"}
+       :blocks [{:block/title "duplicate title"}
+                {:block/title "duplicate title"}]}])
+    (let [db (conn/get-db)
+          page (ldb/get-page db "Receipt Existing Page")
+          page-uuid (str (:block/uuid page))
+          edit-block (first (ldb/get-page-blocks db (:db/id page)))
+          edit-uuid (str (:block/uuid edit-block))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (p/let [receipt* (cli-api/upsert-nodes
+                                #js [#js {:operation "add"
+                                          :entityType "block"
+                                          :id "add-one"
+                                          :data #js {:title "duplicate title"
+                                                     :page-id page-uuid}}
+                                     #js {:operation "edit"
+                                          :entityType "block"
+                                          :id edit-uuid
+                                          :data #js {:title "edited duplicate"}}]
+                                #js {:receipt true})
+                      receipt (js->clj receipt* :keywordize-keys true)
+                      added-block (d/entity (conn/get-db)
+                                            [:block/uuid (uuid (get-in receipt [:operations 0 :uuid]))])
+                      stored-block (d/entity (conn/get-db)
+                                             [:block/uuid (uuid (get-in receipt [:operations 1 :uuid]))])]
+                (is (map? receipt) "Receipt mode returns a structured value")
+                (is (= "verified" (:mode receipt)))
+                (is (= 2 (count (:operations receipt))))
+                (is (= [0 1] (mapv :index (:operations receipt))))
+                (is (not (contains? receipt :db/id)))
+                (is (not (contains? (first (:operations receipt)) :db/id)))
+                (is (= "add-one" (get-in receipt [:operations 0 :op-id])))
+                (is (re-matches #"[0-9a-fA-F-]{36}" (get-in receipt [:operations 0 :uuid])))
+                (is (= page-uuid (get-in receipt [:operations 0 :page-uuid])))
+                (is (= "duplicate title" (:block/title added-block)))
+                (is (= edit-uuid (get-in receipt [:operations 1 :uuid])))
+                (is (= page-uuid (get-in receipt [:operations 1 :page-uuid]))
+                    "Edit receipt page identity is captured from the pre-mutation block")
+                (is (= "edited duplicate" (get-in receipt [:operations 1 :entity :title])))
+                (is (= "edited duplicate" (:block/title stored-block))))))
+          (p/catch (fn [error]
+                     (is false (str error))))
+          (p/finally done)))))
+
+(deftest upsert-nodes-receipt-dry-run-does-not-write
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Receipt Dry Run Page"}
+       :blocks [{:block/title "before"}]}])
+    (let [page (ldb/get-page (conn/get-db) "Receipt Dry Run Page")
+          before-count (count (ldb/get-page-blocks (conn/get-db) (:db/id page)))
+          page-uuid (str (:block/uuid page))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (p/let [result (cli-api/upsert-nodes
+                              #js [#js {:operation "add"
+                                        :entityType "block"
+                                        :data #js {:title "planned only"
+                                                   :page-id page-uuid}}]
+                              #js {:receipt true :dry-run true})
+                      receipt (js->clj result :keywordize-keys true)
+                      operation (first (:operations receipt))]
+                (is (= "dry-run" (:mode receipt)))
+                (is (= "dry-run" (:status operation)))
+                (is (re-matches #"[0-9a-fA-F-]{36}" (:planned-uuid operation)))
+                (is (= before-count
+                       (count (ldb/get-page-blocks (conn/get-db) (:db/id page)))))
+                (is (nil? (d/entity (conn/get-db) [:block/uuid (uuid (:planned-uuid operation))]))))))
+          (p/catch (fn [error]
+                     (is false (str error))))
+          (p/finally done)))))
+
+(deftest upsert-nodes-receipt-empty-input-is-explicit-no-op
+  (async done
+    (-> (api-test/with-plugin-api
+          (fn []
+            (p/let [result (cli-api/upsert-nodes #js [] #js {:receipt true})
+                    receipt (js->clj result :keywordize-keys true)]
+              (is (= "no-op" (:mode receipt)))
+              (is (= [] (:operations receipt))))))
+        (p/catch (fn [error]
+                   (is false (str error))))
+        (p/finally done))))
+
+(deftest upsert-nodes-receipt-rejects-mixed-operations-before-writing
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Receipt Mixed Page"}}])
+    (let [page (ldb/get-page (conn/get-db) "Receipt Mixed Page")
+          page-uuid (str (:block/uuid page))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (-> (cli-api/upsert-nodes
+                   #js [#js {:operation "add"
+                             :entityType "block"
+                             :data #js {:title "must not be partially added"
+                                        :page-id page-uuid}}
+                        #js {:operation "add"
+                             :entityType "page"
+                             :id "new-page"
+                             :data #js {:title "Unsupported Receipt Page"}}]
+                   #js {:receipt true})
+                  (p/then (fn [_]
+                            (is false "Mixed receipt operations must reject")))
+                  (p/catch (fn [error]
+                             (is (re-find #"only add/edit block operations" (str error))))))))
+          (p/finally
+           (fn []
+             (is (nil? (ldb/get-page (conn/get-db) "Unsupported Receipt Page")))
+             (is (not-any? #(= "must not be partially added" (:block/title %))
+                           (ldb/get-page-blocks (conn/get-db) (:db/id page))))
+             (done)))))))
+
+(deftest upsert-nodes-receipt-fails-when-post-transaction-readback-is-missing
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Receipt Missing Readback Page"}}])
+    (let [page (ldb/get-page (conn/get-db) "Receipt Missing Readback Page")
+          page-uuid (str (:block/uuid page))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (p/with-redefs [state/<invoke-db-worker
+                              (fn [api & args]
+                                (if (= api :thread-api/api-read-upsert-blocks)
+                                  (p/resolved [nil])
+                                  (apply api-test/<invoke-test-worker api args)))]
+                (-> (cli-api/upsert-nodes
+                     #js [#js {:operation "add"
+                               :entityType "block"
+                               :data #js {:title "readback missing"
+                                          :page-id page-uuid}}]
+                     #js {:receipt true})
+                    (p/then (fn [_]
+                              (is false "Missing readback must not produce success")))
+                    (p/catch (fn [error]
+                               (is (re-find #"readback failed" (str error)))))))))
+          (p/finally done)))))
+
+(deftest upsert-nodes-receipt-does-not-return-success-on-import-error
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Receipt Failed Import Page"}}])
+    (let [page (ldb/get-page (conn/get-db) "Receipt Failed Import Page")
+          page-uuid (str (:block/uuid page))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (p/with-redefs [db-transact/apply-outliner-ops
+                              (fn [& _] (p/resolved {:error "simulated import failure"}))]
+                (-> (cli-api/upsert-nodes
+                     #js [#js {:operation "add"
+                               :entityType "block"
+                               :data #js {:title "failed import"
+                                          :page-id page-uuid}}]
+                     #js {:receipt true})
+                    (p/then (fn [_]
+                              (is false "Import errors must not return a receipt")))
+                    (p/catch (fn [error]
+                               (is (re-find #"simulated import failure" (str error)))))))))
+          (p/finally done)))))
+
 (deftest upsert-nodes-imports-page
   (async done
     (-> (api-test/with-plugin-api
@@ -97,7 +374,7 @@
                                        :data #js {:title "Imported Cli Block"
                                                   :page-id "p1"}}]
                              #js {})
-                    page-data (cli-api/get-page-data "Imported Cli Page")
+                    page-data (cli-api/get-page-data "Imported Cli Page" #js {})
                     titles (set (keep :title (js->clj (aget page-data "blocks") :keywordize-keys true)))]
               (is (re-find #"Added" summary))
               (is (= "Imported Cli Page" (api-test/api-title (aget page-data "entity"))))
@@ -131,3 +408,44 @@
           (p/catch (fn [error]
                      (is false (str error))))
           (p/finally done)))))
+
+(deftest get-block-cli-endpoint-accepts-one-uuid
+  (async done
+    (test-helper/load-test-files
+     [{:page {:block/title "Get Block CLI Page"}
+       :blocks [{:block/title "CLI parent"
+                 :build/children [{:block/title "CLI target"}]}]}])
+    (let [db (conn/get-db)
+          block (d/entity db (:e (first (d/datoms db :avet :block/title "CLI target"))))
+          expected-parent (str (:block/uuid (:block/parent block)))
+          expected-page (str (:block/uuid (:block/page block)))]
+      (-> (api-test/with-plugin-api
+            (fn []
+              (p/let [result (js/logseq.api.get_block_by_uuid (str (:block/uuid block)))
+                      parsed (js->clj result :keywordize-keys true)]
+                (is (= "CLI target" (:title parsed)))
+                (is (= expected-parent (:parent parsed)))
+                (is (= expected-page (:page parsed)))
+                (is (not (contains? parsed :db/id))))))
+          (p/catch (fn [error]
+                     (is false (str error))))
+          (p/finally done)))))
+
+(deftest app-search-converts-page-uuid-and-limit-options
+  (async done
+    (let [captured-options (atom nil)
+          page-uuid "67e55044-10b1-426f-9247-bb680e5fe0c8"]
+      (-> (p/with-redefs [state/get-current-repo (constantly "repo")
+                          search-handler/search (fn [_repo _query options]
+                                                  (reset! captured-options options)
+                                                  (p/resolved {}))]
+            (api/search "needle" #js {"page-uuid" page-uuid
+                                      "limit" 7}))
+          (.then (fn [_]
+                   (is (= {:page-uuid page-uuid
+                           :limit 7}
+                          @captured-options))
+                   (done)))
+          (.catch (fn [error]
+                    (is false (str error))
+                    (done)))))))

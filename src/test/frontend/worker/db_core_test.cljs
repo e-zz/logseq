@@ -107,7 +107,8 @@
           :thread-api/ensure-local-graph-uuid
           :thread-api/cli-list-properties :thread-api/cli-list-tags :thread-api/cli-list-pages
           :thread-api/cli-list-tasks :thread-api/cli-list-nodes :thread-api/api-get-page-data :thread-api/api-list-properties
-          :thread-api/api-list-tags :thread-api/api-list-pages :thread-api/api-build-upsert-nodes-edn])))
+          :thread-api/api-list-tags :thread-api/api-list-pages :thread-api/api-build-upsert-nodes-edn
+          :thread-api/api-read-upsert-blocks])))
 
 (defn- get-thread-api
   [k]

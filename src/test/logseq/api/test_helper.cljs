@@ -345,12 +345,20 @@
       (api-tools/list-pages db options))
 
     :thread-api/api-get-page-data
-    (let [[_repo page-title] args]
-      (api-tools/get-page-data db page-title))
+    (let [[_repo page-title options] args]
+      (api-tools/get-page-data db page-title options))
+
+    :thread-api/api-get-block
+    (let [[_repo uuid-string options] args]
+      (api-tools/get-block db uuid-string options))
 
     :thread-api/api-build-upsert-nodes-edn
-    (let [[_repo ops] args]
-      (api-tools/build-upsert-nodes-edn db ops))
+    (let [[_repo ops options] args]
+      (api-tools/build-upsert-nodes-edn db ops options))
+
+    :thread-api/api-read-upsert-blocks
+    (let [[_repo expected-blocks] args]
+      (api-tools/read-upsert-blocks db expected-blocks))
 
     :thread-api/export-edn
     {:export-edn-error "Export EDN is not available in plugin API unit tests"}

@@ -236,6 +236,7 @@
 (def ^:export list_properties cli-based-api/list-properties)
 (def ^:export list_pages cli-based-api/list-pages)
 (def ^:export get_page_data cli-based-api/get-page-data)
+(def ^:export get_block_by_uuid cli-based-api/get-block)
 (def ^:export upsert_nodes cli-based-api/upsert-nodes)
 (def ^:export import_edn (ensure-db-graph cli-based-api/import-edn))
 (def ^:export export_edn (ensure-db-graph cli-based-api/export-edn))
