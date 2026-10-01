@@ -184,6 +184,7 @@
               * :title - A page/tag/property's name or a block's content
               * :page-id - A page string uuid of a block. Required when adding a block.
               * :parent-id - (blocks only, optional) Put this new block under an existing parent in the same call. Set it to either the unique temporary :id of another block add in this same batch, or the string uuid of an existing ordinary visible block on the same page. The parent and child must resolve to the same page; missing, duplicate, cross-page, hidden, recycled, tag/property, self-referential or cyclic parents are rejected before any write. Sibling order follows the batch order and appends after the parent's existing children.
+              * :properties - Blocks only: map of existing user number-property UUID strings to finite JSON numbers. Only single-valued number properties are supported. Property-only block edits preserve the title. Unknown/built-in/non-numeric/many/closed-value properties, null removal, lists and reference values are rejected before the batch writes. Property writes cannot be combined with receipt=true yet; dry-run validates without writing. Task status and list-format properties are not supported by this narrow contract.
               * :tags - A list of tags as string uuids
               * :property-type - A property's type
               * :property-cardinality - A property's cardinality. Must be :one or :many

@@ -353,6 +353,46 @@
 
 ;; upsert-nodes tool
 ;; =================
+(defn- resolve-numeric-properties
+  "Narrow contract: UUID-keyed existing single-valued user number properties.
+   Resolve and validate the whole batch before constructing the importer data."
+  [db operations receipt?]
+  (mapv
+   (fn [{:keys [operation entityType data id] :as op}]
+     (if-not (contains? data :properties)
+       op
+       (do
+         (when receipt?
+           (throw (ex-info "Property writes do not support receipt mode yet" {})))
+         (when-not (and (= "block" entityType) (contains? #{"add" "edit"} operation))
+           (throw (ex-info "Properties are supported only on add/edit blocks" {})))
+         (when (and (= "edit" operation) (:error (get-block db id {})))
+           (throw (ex-info "Property edit requires an ordinary visible block" {:id id})))
+         (assoc op ::numeric-properties
+                (into {}
+                      (map (fn [[key value]]
+                             (let [property-id (if (keyword? key)
+                                                 (when-not (namespace key) (name key))
+                                                 key)
+                                   prop (when (and (string? property-id)
+                                                   (common-util/uuid-string? property-id))
+                                          (d/entity db [:block/uuid (uuid property-id)]))
+                                   ident (:db/ident prop)]
+                               (when-not (and (entity-util/property? prop)
+                                              (= "user.property" (namespace ident))
+                                              (= :number (:logseq.property/type prop))
+                                              (= :db.cardinality/one (:db/cardinality prop))
+                                              (not (seq (:property/closed-values prop)))
+                                              (not (entity-util/hidden? prop)))
+                                 (throw (ex-info "Property must be an existing single-valued user number property UUID"
+                                                 {:property property-id})))
+                               (when-not (and (number? value) (js/Number.isFinite value))
+                                 (throw (ex-info "Numeric property value must be a finite JSON number"
+                                                 {:property property-id})))
+                               [ident value])))
+                      (:properties data))))))
+   operations))
+
 (defn- get-ident [idents title]
   (or (get idents title)
       (throw (ex-info (str "No ident found for " (pr-str title)) {}))))
@@ -426,6 +466,8 @@
                      (let [op (nth operations i)
                            data (:data op)]
                        (cond-> {:block/title (:title data)}
+                         (seq (::numeric-properties op))
+                         (assoc :build/properties (::numeric-properties op))
                          (::receipt-uuid op)
                          (assoc :block/uuid (::receipt-uuid op) :build/keep-uuid? true)
                          (:tags data)
@@ -461,8 +503,12 @@
             {:page {:block/uuid (uuid page-id)}
              :blocks (into (build-block-tree operations index->parent (get adds-by-page page-id) idents)
                            (map (fn [op]
-                                  {:block/uuid (uuid (:id op))
-                                   :block/title (get-in op [:data :title])})
+                                  (cond-> {:block/uuid (uuid (:id op))
+                                           :block/title (if (contains? (:data op) :title)
+                                                          (get-in op [:data :title])
+                                                          (:block/title (d/entity db [:block/uuid (uuid (:id op))])))}
+                                    (seq (::numeric-properties op))
+                                    (assoc :build/properties (::numeric-properties op))))
                                 (get edits-by-page page-id)))})
           page-ids)))
 
@@ -596,6 +642,7 @@
     [:entityType [:enum "block" "page" "tag" "property"]]
     [:id {:optional true} [:or :string :nil]]
     [:data [:map
+            [:properties {:optional true} [:map-of [:or :keyword :string] :any]]
             [:title {:optional true} :string]
             [:page-id {:optional true} :string]
             [:tags {:optional true} [:sequential uuid-string]]
@@ -609,6 +656,7 @@
     [["add" "block"] [:map
                       [:data [:map {:closed true}
                               [:tags {:optional true} [:sequential uuid-string]]
+                              [:properties {:optional true} [:map-of [:or :keyword :string] :any]]
                               [:title :string]
                               [:page-id :string]
                               ;; Optional parent reference (issue #6): a unique
@@ -622,7 +670,8 @@
                        [:id uuid-string]
                        ;; :tags not supported yet
                        [:data [:map {:closed true}
-                               [:title :string]]]]]
+                               [:title {:optional true} :string]
+                               [:properties {:optional true} [:map-of [:or :keyword :string] :any]]]]]]
     ;; other edit's
     [::m/default [:map [:id uuid-string]]]]])
 
@@ -742,6 +791,11 @@
          _ (when-let [errors (m/explain Upsert-nodes-operations-schema operations)]
              (throw (ex-info (str "Tool arguments are invalid:\n" (me/humanize errors))
                              {:errors errors})))
+         operations (resolve-numeric-properties db operations receipt?)
+         _ (doseq [op operations
+                   :when (and (= "edit" (:operation op)) (= "block" (:entityType op)))]
+             (when-not (or (contains? (:data op) :title) (seq (::numeric-properties op)))
+               (throw (ex-info "Block edit requires a title or non-empty properties" {}))))
          _ (when receipt?
              (validate-receipt-operations! db operations))
          _ (when (and receipt?
@@ -759,7 +813,11 @@
          idents (operations->idents db operations)
          pages-and-blocks (ops->pages-and-blocks db operations idents)
          classes (ops->classes operations idents)
-         properties (ops->properties operations idents)
+         properties (merge (ops->properties operations idents)
+                           (into {} (map (fn [ident]
+                                           [ident (select-keys (d/entity db ident)
+                                                               [:block/uuid :logseq.property/type :db/cardinality])]))
+                                 (mapcat #(keys (::numeric-properties %)) operations)))
          import-edn
          (cond-> {}
            (seq pages-and-blocks)
