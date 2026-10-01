@@ -174,7 +174,8 @@
                              (outliner-op/batch-import-edn!
                               edn-data
                               (cond-> {:validate-scope :tx}
-                                receipt? (assoc :build-existing-tx? true)))))]
+                                (or receipt? (some #(seq (get-in % [:data :properties])) ops))
+                                (assoc :build-existing-tx? true)))))]
     (when error (throw (ex-info error {})))
     (cond
       (and receipt? (empty? ops))
