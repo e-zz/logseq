@@ -5,6 +5,7 @@
             ["path" :as node-path]
             [borkdude.rewrite-edn :as rewrite]
             [clojure.string :as string]
+            [datascript.core :as d]
             [logseq.db :as ldb]
             [logseq.db.common.sqlite-cli :as sqlite-cli]
             [logseq.db.sqlite.build :as sqlite-build]
@@ -15,7 +16,7 @@
   (some (fn [dir]
           (let [f (node-path/join dir rel-path)]
             (when (fs/existsSync f) f)))
-        (string/split classpath #":")))
+        (string/split classpath (re-pattern (.-delimiter node-path)))))
 
 (defn- pretty-print-merge
   "Merge map into string while preversing whitespace"
@@ -44,16 +45,20 @@
                         "{}"))
           additional-config
           (pretty-print-merge additional-config))
-        git-sha (get-git-sha)]
+        git-sha (get-git-sha)
+        existing-file-paths (set (d/q '[:find [?path ...]
+                                        :where [_ :file/path ?path]]
+                                      @conn))]
     (ldb/transact! conn (sqlite-create-graph/build-db-initial-data config-content
-                                                                   (merge {:import-type import-type}
+                                                                   (merge {:import-type import-type
+                                                                           :existing-file-paths existing-file-paths}
                                                                           (when git-sha {:graph-git-sha git-sha}))))))
 
 (defn init-conn
   "Create sqlite DB, initialize datascript connection and sync listener and then
   transacts initial data. Takes the following options:
    * :additional-config - Additional config map to merge into repo config.edn
-   * :classpath - A java classpath string i.e. paths delimited by ':'. Used to find default config.edn
+   * :classpath - A classpath string using the platform's path delimiter. Used to find default config.edn
      that comes with Logseq"
   [& args*]
   (let [[args opts] (if (map? (last args*))
