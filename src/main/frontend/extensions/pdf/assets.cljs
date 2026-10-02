@@ -10,6 +10,7 @@
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.editor.assets :as editor-assets]
             [frontend.handler.notification :as notification]
+            [frontend.handler.page :as page-handler]
             [frontend.handler.property :as property-handler]
             [frontend.handler.route :as route-handler]
             [frontend.state :as state]
@@ -17,6 +18,7 @@
             [frontend.util :as util]
             [frontend.util.ref :as ref]
             [logseq.common.config :as common-config]
+            [logseq.common.util :as common-util]
             [logseq.graph-parser.exporter :as gp-exporter]
             [logseq.shui.hooks :as hooks]
             [promesa.core :as p]
@@ -44,7 +46,11 @@
               (assets-handler/normalize-asset-resource-url (fs/asset-path-normalize href))
 
               protocol-link?
-              href
+              (if (and (util/electron?)
+                       (string/starts-with? href "file://"))
+                ;; strip file:// then normalize (protects Windows drive: C: -> C/logseq__colon/)
+                (assets-handler/normalize-asset-resource-url (string/replace-first href "file://" ""))
+                href)
 
               :else
               (assets-handler/normalize-asset-resource-url original-path))
@@ -67,6 +73,136 @@
        :hls-file      (str "assets/" key ".edn")
        :original-path original-path})))
 
+(defn- zotero-linked-source
+  [source]
+  (let [config (get-in (state/get-config) [:zotero/settings-v2 "default"])
+        base-directory (:zotero-linked-attachment-base-directory config)
+        source (some-> source common-util/safe-decode-uri-component)
+        normalize-path (fn [path]
+                         (-> path
+                             (string/replace-first #"^assets:///([A-Za-z])/logseq__colon/" "$1:/")
+                             (string/replace-first #"^file:///([A-Za-z]):/" "$1:/")
+                             (string/replace-first #"^file://([A-Za-z]):/" "$1:/")
+                             (string/replace #"[\\]+" "/")))
+        source (some-> source normalize-path)
+        base-directory (some-> base-directory normalize-path)]
+    (when (and (string? source)
+               (string? base-directory)
+               (not (string/blank? base-directory)))
+      (let [base-directory (string/replace base-directory #"/+$" "")
+            prefix (str base-directory "/")]
+        (when (string/starts-with? source prefix)
+          (str "zotero-link://" (subs source (count prefix))))))))
+
+(defn- <find-zotero-asset-by-source
+  [repo source]
+  (when-let [canonical-source (zotero-linked-source source)]
+    (db-async/<q repo {:transact-db? false}
+                  '[:find (pull ?b [:block/uuid
+                                     :logseq.property.asset/external-file-name]) .
+                    :in $ ?source
+                    :where
+                    [?b :logseq.property.asset/external-file-name ?source]]
+                  canonical-source)))
+
+(defn- <save-or-reuse-asset!
+  [repo files option-pairs checksum-source]
+  (p/let [blocks (apply editor-assets/db-based-save-assets!
+                         repo files option-pairs)]
+    (if (seq blocks)
+      blocks
+      (when-let [checksum (assets-handler/get-file-checksum checksum-source)]
+        (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
+          [existing])))))
+
+(defn- asset-source-key
+  [source]
+  (or (zotero-linked-source source) source))
+
+(defonce ^:private *asset-creation-in-flight (atom {}))
+
+(defn- <create-db-asset!
+  [pdf-current source]
+  (p/let [repo (state/get-current-repo)
+          page (page-handler/<create!
+                (str "hls__" (:key pdf-current))
+                {:redirect? false
+                 :edit? false})
+          imported-block (<find-zotero-asset-by-source repo source)
+          checksum (assets-handler/get-file-checksum source)
+          existing-block (or imported-block
+                             (when checksum
+                               (db-async/<get-asset-with-checksum repo checksum)))
+          _ (when existing-block
+              (editor-handler/move-blocks! [existing-block] page
+                                            {:sibling? false :bottom? true}))
+          blocks (if existing-block
+                   [existing-block]
+                   (<save-or-reuse-asset!
+                    repo
+                    [{:title (:filename pdf-current)
+                      :src   source}]
+                    [:save-to-page page]
+                    source))
+          block (first blocks)]
+    (if block
+      (inflate-asset source
+                     :href (:url pdf-current)
+                     :block block)
+      (throw (ex-info "Unable to create PDF asset record"
+                      {:path source})))))
+
+(defn- <share-db-asset-creation!
+  [key create!]
+  (let [resolve-gate (atom nil)
+        reject-gate (atom nil)
+        gate (js/Promise.
+              (fn [resolve reject]
+                (reset! resolve-gate resolve)
+                (reset! reject-gate reject)))
+        in-flight @*asset-creation-in-flight]
+    (if-let [existing (get in-flight key)]
+      existing
+      (if (compare-and-set! *asset-creation-in-flight
+                            in-flight
+                            (assoc in-flight key gate))
+        (do
+          (let [creation (try
+                           (create!)
+                           (catch :default error
+                             (p/rejected error)))]
+            (-> creation
+                (p/then (fn [result]
+                          (@resolve-gate result)
+                          result))
+                (p/catch (fn [error]
+                           (@reject-gate error)
+                           (throw error)))
+                (p/finally #(swap! *asset-creation-in-flight dissoc key))))
+          gate)
+        (<share-db-asset-creation! key create!)))))
+
+(defn ensure-db-asset!
+  "Create the database Asset record needed for PDF annotations.
+
+  The PDF remains external: db-based-save-assets! receives a source string,
+  so new-asset-block stores it as external-url without copying the file."
+  [pdf-current]
+  (if (:block pdf-current)
+    (p/resolved pdf-current)
+    (let [source (or (:original-path pdf-current)
+                     (:url pdf-current))]
+      (if-not (string? source)
+        (p/rejected (ex-info "PDF asset has no source path"
+                             {:key (:key pdf-current)
+                              :original-path (:original-path pdf-current)
+                              :url (:url pdf-current)}))
+        (let [repo (state/get-current-repo)
+              key [repo (asset-source-key source)]]
+          (<share-db-asset-creation!
+           key
+           #(<create-db-asset! pdf-current source)))))))
+
 (defn <highlight-color-id
   [repo color]
   (when color
@@ -78,37 +214,54 @@
 
 (defn db-based-ensure-ref-block!
   [pdf-current {:keys [id content page properties] :as hl} insert-opts]
-  (when-let [pdf-block (:block pdf-current)]
-    (p/let [ref-block (db-async/<get-block (state/get-current-repo) id {:children? false})]
+  (let [repo (state/get-current-repo)
+        pdf-block (:block pdf-current)]
+    (when-not pdf-block
+      (throw (ex-info "PDF annotation has no Asset block"
+                      {:highlight-id id})))
+    (p/let [ref-block (db-async/<get-block repo id {:children? false})]
       (if (:block/title ref-block)
         (do
           (println "[existed ref block]" ref-block)
           ref-block)
         (p/let [ref-asset-id (:image content)
                 image? (not (nil? ref-asset-id))
-                text (if image? (i18n/locale-format-date (js/Date.))
-                         (:text content))
-                color-id (<highlight-color-id (state/get-current-repo) (:color properties))]
-          (when color-id
-            (let [properties (cond->
-                              {:block/tags #{:logseq.class/Pdf-annotation}
-                               :block/collapsed? image?
-                               :logseq.property/ls-type  :annotation
-                               :logseq.property.pdf/hl-color color-id
-                               :logseq.property/asset (:db/id pdf-block)
-                               :logseq.property.pdf/hl-page  page
-                               :logseq.property.pdf/hl-value hl}
+                text (if image?
+                       (i18n/locale-format-date (js/Date.))
+                       (:text content))
+                color-id (<highlight-color-id repo (:color properties))]
+          (when-not color-id
+            (throw (ex-info "PDF annotation color is not configured"
+                            {:color (:color properties)
+                             :highlight-id id})))
+          (when-not (string? text)
+            (throw (ex-info "PDF annotation has no text"
+                            {:highlight-id id})))
+          (let [properties (cond->
+                             {:block/tags #{:logseq.class/Pdf-annotation}
+                              :block/collapsed? image?
+                              :logseq.property/ls-type :annotation
+                              :logseq.property.pdf/hl-color color-id
+                              :logseq.property/asset (:db/id pdf-block)
+                              :logseq.property.pdf/hl-page page
+                              :logseq.property.pdf/hl-value hl}
 
-                               image?
-                               (assoc :logseq.property.pdf/hl-type :area
-                                      :logseq.property.pdf/hl-image ref-asset-id))]
-              (when (string? text)
-                (editor-handler/api-insert-new-block!
-                 text (merge {:block-uuid (:block/uuid pdf-block)
-                              :sibling? false
-                              :custom-uuid id
-                              :properties properties}
-                             (assoc insert-opts :edit-block? false)))))))))))
+                             image?
+                             (assoc :logseq.property.pdf/hl-type :area
+                                    :logseq.property.pdf/hl-image ref-asset-id))]
+            (p/let [_ (editor-handler/api-insert-new-block!
+                       text
+                       (merge {:block-uuid (:block/uuid pdf-block)
+                               :sibling? false
+                               :custom-uuid id
+                               :properties properties}
+                              (assoc insert-opts :edit-block? false)))
+                    created-block (db-async/<get-block repo id {:children? false})]
+              (if (:block/title created-block)
+                created-block
+                (throw (ex-info "PDF annotation transaction did not create a block"
+                                {:highlight-id id
+                                 :asset-id (:db/id pdf-block)}))))))))))
 
 (defn ensure-ref-block!
   [pdf-current hl insert-opts]
@@ -140,7 +293,7 @@
 (defn- db-based-persist-hl-area-image
   [repo png]
   (let [file (js/File. #js [png] "pdf area highlight.png")]
-    (editor-assets/db-based-save-assets! repo [file] {:pdf-area? true})))
+    (<save-or-reuse-asset! repo [file] [:pdf-area? true] file)))
 
 (defn- persist-hl-area-image
   [repo-url _repo-dir _current _new-hl _old-hl png]
@@ -150,7 +303,7 @@
 (defn persist-hl-area-image$
   "Save pdf highlight area image"
   [^js viewer current new-hl old-hl {:keys [top left width height]}]
-  (when-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
+  (if-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
     (let [^js doc     (.-ownerDocument canvas)
           ^js canvas' (.createElement doc "canvas")
           dpr         js/window.devicePixelRatio
@@ -162,22 +315,27 @@
       (set! (. canvas' -width) dw)
       (set! (. canvas' -height) dh)
 
-      (when-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
-        (set! (. ctx -imageSmoothingEnabled) false)
-        (.drawImage
-         ctx canvas
-         (* left dpr) (* top dpr) (* width dpr) (* height dpr)
-         0 0 dw dh)
+      (if-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
+        (do
+          (set! (. ctx -imageSmoothingEnabled) false)
+          (.drawImage
+           ctx canvas
+           (* left dpr) (* top dpr) (* width dpr) (* height dpr)
+           0 0 dw dh)
 
-        (js/Promise.
-         (fn [resolve reject]
-           (.toBlob canvas'
-                    (fn [^js png]
-                      (p/catch
-                       (resolve (persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
-                       (fn [err]
-                         (reject err)
-                         (js/console.error "[write area image Error]" err)))))))))))
+          (js/Promise.
+           (fn [resolve reject]
+             (.toBlob canvas'
+                      (fn [^js png]
+                        (if png
+                          (-> (persist-hl-area-image repo-url repo-dir current new-hl old-hl png)
+                              (p/then resolve)
+                              (p/catch reject))
+                          (reject (ex-info "PDF area highlight canvas produced no image" {}))))))))
+        (p/rejected (ex-info "PDF area highlight canvas has no 2D context" {}))))
+    (p/rejected (ex-info "PDF area highlight page canvas is unavailable"
+                        {:page (:page new-hl)
+                         :asset-key (:key current)}))))
 
 (defn update-hl-block!
   [highlight]
@@ -209,38 +367,71 @@
         (editor-handler/delete-block-aux! block)))))
 
 (defn copy-hl-ref!
-  [highlight ^js viewer]
-  (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
-    (when ref-block
-      (util/copy-to-clipboard!
-       (ref/->block-ref (:block/uuid ref-block))
-       :owner-window (pdf-windows/resolve-own-window viewer)))))
+  ([highlight ^js viewer]
+   (copy-hl-ref! highlight viewer (state/get-current-pdf)))
+  ([highlight ^js viewer pdf-current]
+   (-> (p/let [ref-block (ensure-ref-block! pdf-current highlight nil)]
+         (when ref-block
+           (util/copy-to-clipboard!
+            (ref/->block-ref (:block/uuid ref-block))
+            :owner-window (pdf-windows/resolve-own-window viewer))))
+       (p/catch (fn [error]
+                  (js/console.error "[PDF annotation creation]" error)
+                  (notification/show!
+                   (t :pdf/annotation-create-error)
+                   :error
+                   false))))))
+
+(defn zotero-protocol-url?
+  [url]
+  (and (string? url)
+       (or (string/starts-with? url "zotero://")
+           (string/starts-with? url "zotero-link://")
+           (string/starts-with? url "zotero-path://"))))
 
 (defn get-zotero-local-pdf-path
   [path & {:keys [id]}]
   (let [zotero-config (get-in (state/get-config) [:zotero/settings-v2 "default"])
         zotero-data-directory (:zotero-data-directory zotero-config)
         zotero-linked-attachment-base-directory (:zotero-linked-attachment-base-directory zotero-config)
-        relative-path (subs path 14)]
-    (cond
-      (string/starts-with? path "zotero-link://")
-      (str "file://" (util/node-path.join zotero-linked-attachment-base-directory relative-path))
+        relative-path (subs path 14)
+        local-path (cond
+                     (string/starts-with? path "zotero-link://")
+                     (util/node-path.join zotero-linked-attachment-base-directory relative-path)
 
-      (string/starts-with? path "zotero-path://")
-      (str "file://" (util/node-path.join zotero-data-directory "storage" relative-path))
+                     (string/starts-with? path "zotero-path://")
+                     (util/node-path.join zotero-data-directory "storage" relative-path)
 
-      :else ;; compatible with commit 33db791
-      (str "file://" (util/node-path.join zotero-data-directory "storage" id path)))))
+                     :else ;; compatible with commit 33db791
+                     (util/node-path.join zotero-data-directory "storage" id path))]
+    ;; normalize-asset-resource-url converts to assets:// on Electron,
+    ;; protecting Windows drive letters (C: -> C/logseq__colon/)
+    (if (util/electron?)
+      (assets-handler/normalize-asset-resource-url local-path)
+      (str "file://" local-path))))
+
+(defn resolve-external-pdf-url
+  [external-url external-file-name]
+  (let [source (or external-file-name
+                   (when (or (string/starts-with? external-url "zotero-link://")
+                             (string/starts-with? external-url "zotero-path://"))
+                     external-url))]
+    (if (and (zotero-protocol-url? external-url)
+             (string? source))
+      (get-zotero-local-pdf-path
+       source
+       :id (last (string/split external-url #"/")))
+      external-url)))
 
 (defn db-based-open-block-ref!
   [block]
   (let [hl-value (:logseq.property.pdf/hl-value block)
         asset (:logseq.property/asset block)
         external-url (:logseq.property.asset/external-url asset)
-        file-path (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
-        file-path (if (string/starts-with? file-path "zotero://")
-                    (get-zotero-local-pdf-path (:logseq.property.asset/external-file-name asset))
-                    file-path)]
+        external-file-name (:logseq.property.asset/external-file-name asset)
+        file-path (resolve-external-pdf-url
+                   (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
+                   external-file-name)]
     (if asset
       (->
        (p/let [href (assets-handler/<make-asset-url file-path)]
