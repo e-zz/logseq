@@ -50,6 +50,11 @@ on:
         type: boolean
         required: true
         default: false
+      windows-only:
+        description: 'Windows only: skip Linux/macOS/Android build jobs (for fork manual-test artifacts)'
+        type: boolean
+        required: true
+        default: false
   # schedule: # Every workday at the 2 P.M. (UTC) we run a scheduled nightly build
   #   - cron: '0 14 * * MON-FRI'
 
@@ -234,6 +239,7 @@ jobs:
           include-hidden-files: true
 
   build-linux-x64:
+    if: ${{ github.event.inputs.windows-only != 'true' }}
     runs-on: ubuntu-22.04
     needs: [ compile-cljs ]
     steps:
@@ -294,6 +300,7 @@ jobs:
           path: builds
 
   build-linux-arm64:
+    if: ${{ github.event.inputs.windows-only != 'true' }}
     runs-on: ubuntu-22.04
     needs: [ compile-cljs ]
     steps:
@@ -533,6 +540,7 @@ jobs:
           path: builds
 
   build-macos-x64:
+    if: ${{ github.event.inputs.windows-only != 'true' }}
     needs: [ compile-cljs ]
     runs-on: macos-15-intel
     steps:
@@ -619,6 +627,7 @@ jobs:
           path: builds
 
   build-macos-arm64:
+    if: ${{ github.event.inputs.windows-only != 'true' }}
     needs: [ compile-cljs ]
     runs-on: macos-14
     steps:
@@ -708,7 +717,7 @@ jobs:
   # reuse workflow via workflow_call
   build-android:
     uses: ./.github/workflows/build-android.yml
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.build-android == 'true' }}
+    if: ${{ github.event.inputs.windows-only != 'true' && (github.event_name == 'schedule' || github.event.inputs.build-android == 'true') }}
     with:
       build-target: "${{ github.event.inputs.build-target }}"
       # if scheduled, use production mode
