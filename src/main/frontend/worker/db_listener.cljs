@@ -175,7 +175,8 @@
   [tx-meta]
   (or (:from-disk? tx-meta)
       (:logseq.graph-parser.exporter/imported-data? tx-meta)
-      (:logseq.db.sqlite.export/imported-data? tx-meta)))
+      (and (:logseq.db.sqlite.export/imported-data? tx-meta)
+           (not (:logseq.outliner.op/runtime-write? tx-meta)))))
 
 (defmethod listen-db-changes :search
   [_ {:keys [repo]} {:keys [tx-meta] :as tx-report}]

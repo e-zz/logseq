@@ -4,7 +4,10 @@
             ["@modelcontextprotocol/sdk/server/streamableHttp.js" :refer [StreamableHTTPServerTransport]]
             ["@modelcontextprotocol/sdk/types.js" :refer [isInitializeRequest]]
             ["zod/v3" :as z] ;; zod 4 doesn't work w/ mcp - https://github.com/modelcontextprotocol/typescript-sdk/issues/925
+            [electron.mcp-search :as mcp-search]
+            [electron.mcp-recycle :as mcp-recycle]
             [electron.mcp-transport :as mcp-transport]
+            [electron.mcp-upsert :as mcp-upsert]
             [promesa.core :as p]))
 
 ;; Server util fns
@@ -98,11 +101,23 @@
 
 (defn- api-get-page
   [call-api-fn args]
-  (call-api-fn "logseq.cli.getPageData" [(aget args "pageName")]))
+  (call-api-fn "logseq.cli.getPageData"
+               [(aget args "pageName")
+                #js {:include-recycled? (aget args "includeRecycled")
+                     :include-children? (aget args "includeChildren")
+                     :max-blocks (aget args "maxBlocks")}]))
+
+(defn- api-get-block
+  [call-api-fn args]
+  (call-api-fn "logseq.cli.getBlockByUuid"
+               [(aget args "uuid")
+                #js {:include-recycled? (aget args "includeRecycled")}]))
 
 (defn- api-list-pages
   [call-api-fn args]
-  (call-api-fn "logseq.cli.listPages" [#js {:expand (aget args "expand")}]))
+  (call-api-fn "logseq.cli.listPages"
+               [#js {:expand (aget args "expand")
+                     :include-recycled? (aget args "includeRecycled")}]))
 
 (defn- api-list-tags
   [call-api-fn args]
@@ -114,78 +129,70 @@
 
 (defn- api-search-blocks
   [call-api-fn args]
-  (call-api-fn "logseq.app.search" [(aget args "searchTerm") #js {:enable-snippet? false}]))
-
-(defn- api-upsert-nodes
-  [call-api-fn args]
-  (call-api-fn "logseq.cli.upsertNodes" [(aget args "operations") #js {:dry-run (aget args "dry-run")}]))
+  (call-api-fn "logseq.app.search" (mcp-search/search-call-args args)))
 
 (def ^:large-vars/data-var api-tools
   "MCP Tools when calling API server"
-  {:listPages
+  {:getBlock
+   {:fn api-get-block
+    :config #js {:title "Get Block"
+                 :description
+                 "Get exactly one block by its stable UUID. Pages, tags, properties, and property-value pseudochildren are not blocks returned by this tool. Parent and page identities are UUID strings. Descendants are not returned. Blocks on recycled pages are excluded by default; pass includeRecycled=true to read one, with the page's deleted-at value included as a marker."
+                 :inputSchema #js {:uuid (-> (z/string) .uuid (.describe "The block's stable uuid string"))
+                                   :includeRecycled (-> (z/boolean) .optional (.describe "Read a block on a recycled page and include its deleted-at marker. Defaults to false"))}}}
+   :recycleBlock
+   {:fn mcp-recycle/api-recycle-block
+    :config #js {:title "Recycle Block"
+                 :description
+                 "Soft-delete exactly one ordinary block root and its subtree into the recycle bin. The root must be an ordinary block: pages, tags, properties, built-in blocks, hidden blocks, property-value pseudochildren, and any subtree containing a page are rejected before any write. Recycling an already-recycled root is an explicit no-op that keeps the existing deleted-at timestamp and original location. Returns the recycled root uuid, its page uuid, the affected subtree uuids root-first, the affected count, and the deleted-at timestamp."
+                 :inputSchema #js {:blockUuid (-> (z/string) .uuid (.describe "Stable uuid string of the ordinary block root to recycle"))}}}
+   :restoreBlock
+   {:fn mcp-recycle/api-restore-block
+    :config #js {:title "Restore Block"
+                 :description
+                 "Restore exactly one previously recycled ordinary block root and its retained subtree to its original parent and order. Restoring a block that is not recycled is an actionable error, never a silent no-op. Returns the restored root uuid, its page and parent uuids, the affected subtree uuids and count, and whether the original position and order were reused or regenerated."
+                 :inputSchema #js {:blockUuid (-> (z/string) .uuid (.describe "Stable uuid string of the recycled block root to restore"))}}}
+   :getRecycledBlock
+   {:fn mcp-recycle/api-get-recycled-block
+    :config #js {:title "Get Recycled Block"
+                 :description
+                 "Read exactly one recycled ordinary block root: its deleted-at timestamp, its stored original page/parent/order, and its retained subtree as a root-first, ordered list of stable block uuids. Pages, tags, properties, property-value pseudochildren, and blocks that are not recycled are rejected."
+                 :inputSchema #js {:blockUuid (-> (z/string) .uuid (.describe "Stable uuid string of the recycled block root to inspect"))}}}
+   :listPages
    {:fn api-list-pages
     :config #js {:title "List Pages"
-                 :description "List all pages in a graph"
+                 :description
+                 "List all pages in a graph. Pages in the recycle bin (trashed pages)
+                  are excluded by default; pass includeRecycled to list them, in which
+                  case each recycled page is marked with a deleted-at value"
                  :inputSchema
-                 #js {:expand (-> (z/boolean) .optional (.describe "Provide additional detail on each page"))}}}
+                 #js {:expand (-> (z/boolean) .optional (.describe "Provide additional detail on each page"))
+                      :includeRecycled (-> (z/boolean) .optional (.describe "Include pages in the recycle bin, each marked with a deleted-at value. Defaults to false"))}}}
    :getPage
    {:fn api-get-page
     :config #js {:title "Get Page"
-                 :description "Get a page's content including its blocks. A property and a tag are pages."
-                 :inputSchema #js {:pageName (-> (z/string) (.describe "The page's name or uuid"))}}}
+                 :description
+                 "Get a page's content including its blocks. A property and a tag are pages.
+                 A page in the recycle bin is not returned by default: looking one up by
+                 name or uuid reports an error instead. Pass includeRecycled to read a
+                 recycled page, which is then marked with a deleted-at value.
+                 When several pages share a name the active one wins; if that is still
+                 ambiguous the error lists the candidate uuids to disambiguate with.
+                 Blocks are returned top-level only by default, because a page can be
+                 arbitrarily deep. Such a response is marked tree-has-more? true with
+                 tree-omitted-count giving how many descendant blocks were left out, so a
+                 partial read is never mistaken for the whole page. Pass includeChildren
+                 to get every descendant nested under children, in order, with levels and
+                 string uuids; that read is complete and carries no omitted count. A full-tree read requires maxBlocks: a positive integer node budget. If omitted, invalid, or smaller than the page's block count, the tool returns an error without partial blocks; the error reports the required count. maxBlocks is a block-count bound, not a byte-size bound."
+                 :inputSchema #js {:pageName (-> (z/string) (.describe "The page's name or uuid"))
+                                   :includeRecycled (-> (z/boolean) .optional (.describe "Read a page that is in the recycle bin. Defaults to false"))
+                                   :includeChildren (-> (z/boolean) .optional (.describe "Return the full nested block tree with every descendant. Requires a positive integer maxBlocks at least as large as the complete tree; errors rather than returning partial content when missing or too small."))
+                                   :maxBlocks (-> (z/number) .int .positive .optional (.describe "Required when includeChildren=true. Caller-selected positive integer maximum number of blocks; must be at least the page's full block count. Bounds block count, not response bytes."))}}}
    :upsertNodes
-   {:fn api-upsert-nodes
+   {:fn mcp-upsert/api-upsert-nodes
     :config
     #js {:title "Upsert Nodes"
-         :description
-         "This tool must be called at most once per user request. Never re-call it unless explicitly asked.
-          It takes an object with field :operations, which is an array of operation objects.
-          Each operation creates or edits a page, block, tag or property. Each operation is a object
-          that must have :operation, :entityType and :data fields. More about fields in an operation object:
-            * :operation  - Either :add or :edit
-            * :entityType - What type of node, e.g. :block, :page, :tag or :property
-            * :id - For :edit, this _must_ be a string uuid. For :add, use a temporary unique string if the new page is referenced by later operations e.g. add blocks
-            * :data - A map of fields to set or update. This map can have the following keys:
-              * :title - A page/tag/property's name or a block's content
-              * :page-id - A page string uuid of a block. Required when adding a block.
-              * :tags - A list of tags as string uuids
-              * :property-type - A property's type
-              * :property-cardinality - A property's cardinality. Must be :one or :many
-              * :property-classes - A property's list of allowed tags, each being a uuid string or a tag's name
-              * :class-extends - List of parent tags, each being a uuid string or a tag's name
-              * :class-properties - A tag's list of properties, each eing a uuid string or a property's name
-
-         Example inputs with their prompt, description and data as clojure EDN:
-
-         Description: This input adds a new block to page with id '119268a6-704f-4e9e-8c34-36dfc6133729' and update the title of a page with uuid '119268a6-704f-4e9e-8c34-36dfc6133729':
-
-         {:operations
-          [{:operation :add
-            :entityType :block
-            :id nil
-            :data {:page-id \"119268a6-704f-4e9e-8c34-36dfc6133729\"
-                   :title \"New block text\"}}
-           {:operation :edit
-            :entity :page
-            :id \"119268a6-704f-4e9e-8c34-36dfc6133729\"
-            :data {:title \"Revised page title\"}}]}
-
-        Prompt: Add task 't1' to new page 'Inbox'
-        Description: This input creates a page 'Inbox' and adds a 't1' block with tag \"00000002-1282-1814-5700-000000000000\" (task) to it:
-
-        {:operations
-          [{:operation :add
-            :entityType :page
-            :id \"temp-Inbox\"
-            :data {:title \"Inbox\"}}
-           {:operation :add
-            :entityType :block
-            :data {:page-id \"temp-Inbox\"
-                   :title \"t1\"
-                   :tags [\"00000002-1282-1814-5700-000000000000\"]}}]}
-
-         Additional advice for building operations:
-         * Before creating any page, tag or property, check that it exists with getPage"
+         :description mcp-upsert/upsert-nodes-description
          :inputSchema
          #js {:operations
               (z/array
@@ -194,12 +201,16 @@
                      :entityType  (z/enum #js ["block" "page" "tag" "property"])
                      :id          (.optional (z/union #js [(z/string) (z/number) (z/null)]))
                      :data        (-> (z/object #js {}) (.passthrough))}))
-              :dry-run (-> (z/boolean) .optional (.describe "Pretend to do batch update. Does everything except actually commit change to db e.g. validation."))}}}
+              :dry-run (-> (z/boolean) .optional (.describe "Pretend to do batch update. Does everything except actually commit change to db e.g. validation."))
+              :receipt (-> (z/boolean) .optional (.describe "Return an opt-in per-operation (page or block) receipt verified by post-transaction worker DB readback, including requested typed property values. Does not claim SQLite crash durability."))}}}
    :searchBlocks
    {:fn api-search-blocks
     :config #js {:title "Search Blocks"
-                 :description "Search graph for blocks containing search term"
-                 :inputSchema #js {:searchTerm (z/string)}}}
+                 :description "Search graph for blocks containing search term. Optionally scope to an active page by stable page UUID or exactly one active block by stable block UUID; pageUuid and blockUuid must agree when both are set. Exact-block scope uses indexed text search and excludes descendants and semantic/vector results. Limit defaults to the API default and must be between 1 and 100."
+                 :inputSchema #js {:searchTerm (z/string)
+                                   :pageUuid (-> (z/string) .uuid .optional (.describe "Stable UUID of an existing active visible page. Invalid or recycled pages fail instead of triggering a global search."))
+                                   :blockUuid (-> (z/string) .uuid .optional (.describe "Stable UUID of exactly one active visible block. Its descendants are excluded. Invalid, hidden, recycled, pseudochild, cyclic, or broken-chain blocks fail visibly."))
+                                   :limit (-> (z/number) .int .positive (.max 100) .optional (.describe "Maximum number of results, from 1 through 100. Defaults to the existing search API default."))}}}
    :listTags
    {:fn api-list-tags
     :config #js {:title "List Tags"
@@ -209,7 +220,7 @@
    :listProperties
    {:fn api-list-properties
     :config #js {:title "List Properties"
-                 :description "List all properties in a graph"
+                 :description "List all properties in a graph. Pass expand=true to include each property's type, cardinality and, for closed-value properties such as status, the allowed choices with their display values, fully-qualified idents and stable uuids to write back with upsertNodes."
                  :inputSchema
                  #js {:expand (-> (z/boolean) .optional (.describe "Provide additional detail on each property e.g. property type, cardinality"))}}}})
 

@@ -94,6 +94,15 @@
          {:tx-meta tx-meta :tx-data [:tx]}))
       (is (zero? @calls) (str tx-meta)))))
 
+(deftest db-listener-search-syncs-runtime-import-write-test
+  (testing "An incremental runtime write is still indexed even though it uses the import op"
+    (is (false? (#'db-listener/skip-search-sync?
+                 {:logseq.db.sqlite.export/imported-data? true
+                  :logseq.outliner.op/runtime-write? true}))))
+  (testing "A bulk import without the runtime marker keeps skipping search"
+    (is (true? (#'db-listener/skip-search-sync?
+                {:logseq.db.sqlite.export/imported-data? true})))))
+
 (deftest db-listener-persists-local-tx-before-broadcasting-ui-refresh-test
   (let [conn (db-test/create-conn)
         calls (atom [])]

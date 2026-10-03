@@ -1,5 +1,6 @@
 (ns logseq.api.plugin-test
-  (:require [cljs.test :refer [async deftest is use-fixtures]]
+  (:require ["path" :as node-path]
+            [cljs.test :refer [async deftest is use-fixtures]]
             [clojure.string :as string]
             [electron.ipc :as ipc]
             [frontend.common.idb :as idb]
@@ -17,6 +18,11 @@
 
 (use-fixtures :each {:before api-test/start-plugin-api-db!
                      :after api-test/destroy-plugin-api-db!})
+
+;; Production path code calls `util/node-path` (host-native separators), so
+;; expected values must be built the same way to stay portable on Windows.
+(defn- join-path [& parts]
+  (apply node-path/join parts))
 
 (deftest caller-plugin-id-reads-window-global
   (let [previous (gobj/get js/window "$$callerPluginID")]
@@ -88,14 +94,14 @@
 
 (deftest storage-paths-stay-inside-plugin-root
   (let [root "/tmp/logseq/plugins"]
-    (is (true? (#'api-plugin/sub-path? root (str root "/storages/demo/notes.txt"))))
+    (is (true? (#'api-plugin/sub-path? root (join-path root "storages/demo/notes.txt"))))
     (is (false? (#'api-plugin/sub-path? root "/etc/passwd")))
-    (is (false? (#'api-plugin/sub-path? root (str root "/../secrets.txt"))))
+    (is (false? (#'api-plugin/sub-path? root (join-path root ".." "secrets.txt"))))
     (is (thrown-with-msg?
          js/Error
          #"write file denied"
          (#'api-plugin/assert-storage-path! root "/etc/passwd" "write")))
-    (is (= (str root "/notes.txt")
+    (is (= (join-path root "notes.txt")
            (#'api-plugin/storage-file-path root "notes.txt" "write")))))
 
 (deftest binary-content-detection-and-storage-root
@@ -103,9 +109,9 @@
   (is (true? (#'api-plugin/binary-content? (js/Uint8Array. 4))))
   (is (true? (#'api-plugin/binary-content? #js {:type "Buffer" :data #js [1 2 3]})))
   (is (false? (#'api-plugin/binary-content? "plain text")))
-  (is (= "storages/demo-plugin"
+  (is (= (join-path "storages" "demo-plugin")
          (#'api-plugin/plugin-storage-sub-root "demo-plugin")))
-  (is (= "storages/nested"
+  (is (= (join-path "storages" "nested")
          (#'api-plugin/plugin-storage-sub-root "/tmp/plugins/nested"))))
 
 (deftest install-plugin-requires-repo-and-id
@@ -149,8 +155,8 @@
                                     ([path]
                                      (p/resolved
                                       (or (contains? @files path)
-                                          (string/starts-with? path "/tmp/plugins")
-                                          (string/starts-with? path "/tmp/graph"))))
+                                          (string/starts-with? path (join-path "/tmp/plugins"))
+                                          (string/starts-with? path (join-path "/tmp/graph")))))
                                     ([_dir path]
                                      (p/resolved (contains? @files path))))
                   fs/mkdir-recur! (fn [_] (p/resolved true))
@@ -173,7 +179,7 @@
 
 (deftest plugin-storage-file-round-trip
   (async done
-    (let [files (atom {"/tmp/plugins/storages/test-plugin/notes.json" "stored"})]
+    (let [files (atom {(join-path "/tmp/plugins" "storages" "test-plugin" "notes.json") "stored"})]
       (-> (with-plugin-fs
             files
             (fn []
@@ -192,25 +198,26 @@
 
 (deftest plugin-package-and-dotdir-file-io
   (async done
-    (let [files (atom {"/tmp/plugins/demo/package.json" "{\"name\":\"demo\"}"
-                       "/tmp/plugins/demo/readme.md" "# Demo"})]
+    (let [demo-dir (join-path "/tmp/plugins" "demo")
+          files (atom {(join-path demo-dir "package.json") "{\"name\":\"demo\"}"
+                       (join-path demo-dir "readme.md") "# Demo"})]
       (-> (with-plugin-fs
             files
             (fn []
               (p/with-redefs [util/electron? (constantly true)]
-                (p/let [pkg (api-plugin/load_plugin_config "/tmp/plugins/demo")
-                        readme (api-plugin/load_plugin_readme "/tmp/plugins/demo")
-                        _ (api-plugin/save_plugin_package_json "/tmp/plugins/demo" #js {:name "demo" :version "2.0.0"})
-                        saved (get @files "/tmp/plugins/demo/package.json")
+                (p/let [pkg (api-plugin/load_plugin_config demo-dir)
+                        readme (api-plugin/load_plugin_readme demo-dir)
+                        _ (api-plugin/save_plugin_package_json demo-dir #js {:name "demo" :version "2.0.0"})
+                        saved (get @files (join-path demo-dir "package.json"))
                         tmp-path (api-plugin/write_user_tmp_file "scratch.txt" "tmp-content")
                         dotdir-path (api-plugin/write_dotdir_file "notes.txt" "dot" "docs")
                         assets-path (api-plugin/write_assetsdir_file "logo.txt" "asset" "brand")]
                   (is (= "{\"name\":\"demo\"}" pkg))
                   (is (= "# Demo" readme))
                   (is (re-find #"2.0.0" saved))
-                  (is (= "/tmp/plugins/tmp/scratch.txt" tmp-path))
-                  (is (= "/tmp/plugins/docs/notes.txt" dotdir-path))
-                  (is (= "/tmp/graph/assets/brand/logo.txt" assets-path))
+                  (is (= (join-path "/tmp/plugins" "tmp" "scratch.txt") tmp-path))
+                  (is (= (join-path "/tmp/plugins" "docs" "notes.txt") dotdir-path))
+                  (is (= (join-path "/tmp/graph/assets" "brand" "logo.txt") assets-path))
                   (is (= "tmp-content" (get @files tmp-path)))
                   (is (= "dot" (get @files dotdir-path)))
                   (is (= "asset" (get @files assets-path)))))))
@@ -224,8 +231,8 @@
 
 (deftest list-and-clear-plugin-storage-files
   (async done
-    (let [files (atom {"/tmp/plugins/storages/test-plugin/a.json" "a"
-                       "/tmp/plugins/storages/test-plugin/b.json" "b"})]
+    (let [files (atom {(join-path "/tmp/plugins" "storages" "test-plugin" "a.json") "a"
+                       (join-path "/tmp/plugins" "storages" "test-plugin" "b.json") "b"})]
       (-> (with-plugin-fs
             files
             (fn []
@@ -264,7 +271,7 @@
                     settings-after (api-plugin/load_plugin_user_settings "test-plugin")]
               (is (object? empty-prefs))
               (is (= "dark" (aget prefs "theme")))
-              (is (= "/tmp/plugins/settings/test-plugin.json" (first settings-before)))
+              (is (= (join-path "/tmp/plugins" "settings" "test-plugin.json") (first settings-before)))
               (is (true? (aget (second settings) "open")))
               (is (empty? (js->clj (second settings-after))))))
           (p/catch (fn [error]

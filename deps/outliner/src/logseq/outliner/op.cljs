@@ -16,7 +16,8 @@
             [logseq.outliner.op.construct :as op-construct]))
 
 (defkeywords
-  ::missing-parent-original {:doc "The linked-reference parent supplied to an outdent no longer exists."})
+  ::missing-parent-original {:doc "The linked-reference parent supplied to an outdent no longer exists."}
+  ::runtime-write? {:doc "Marks a :batch-import-edn operation as an incremental runtime write whose changes must still be indexed by search, unlike a bulk graph import."})
 
 (def ^:private ^:large-vars/data-var op-schema
   [:multi {:dispatch first}
@@ -143,6 +144,11 @@
     [:catn
      [:op :keyword]
      [:args [:tuple ::uuid]]]]
+
+   [:recycle-blocks
+    [:catn
+     [:op :keyword]
+     [:args [:tuple ::uuid ::option]]]]
 
    [:recycle-delete-permanently
     [:catn
@@ -413,6 +419,10 @@
     :restore-recycled
     (let [[root-uuid] args]
       (reset! *result (outliner-recycle/restore! conn root-uuid)))
+
+    :recycle-blocks
+    (let [[root-uuid opts] args]
+      (reset! *result (outliner-recycle/recycle! conn root-uuid (merge opts opts'))))
 
     :recycle-delete-permanently
     (let [[root-uuid] args]

@@ -9,7 +9,9 @@
    [frontend.worker.search :as search]
    [frontend.worker.state :as worker-state]
    [lambdaisland.glogi :as log]
+   [logseq.api.db-based.tools :as api-tools]
    [logseq.common.util :as common-util]
+   [logseq.db :as ldb]
    [promesa.core :as p]))
 
 (def search-db-version
@@ -135,6 +137,50 @@
       (p/resolved nil))
     (-> (worker-state/<invoke-main-thread :thread-api/search-index-build-progress repo payload)
         (p/catch (fn [_error] nil)))))
+
+(defn- resolve-active-visible-page-uuid
+  [db page-uuid]
+  (when-not (and (string? page-uuid)
+                 (common-util/uuid-string? page-uuid))
+    (throw (ex-info "pageUuid must be a valid page UUID string" {:page-uuid page-uuid})))
+  (if-let [page (d/entity db [:block/uuid (uuid page-uuid)])]
+    (cond
+      (not (ldb/page? page))
+      (throw (ex-info (str "UUID " page-uuid " does not identify a page")
+                      {:page-uuid page-uuid}))
+
+      (ldb/hidden? page)
+      (throw (ex-info (str "Page UUID " page-uuid " is not active and visible")
+                      {:page-uuid page-uuid}))
+
+      :else
+      (str (:block/uuid page)))
+    (throw (ex-info (str "Page UUID " page-uuid " not found")
+                    {:page-uuid page-uuid}))))
+
+(defn- resolve-active-visible-block
+  [db block-uuid]
+  (when-not (and (string? block-uuid)
+                 (common-util/uuid-string? block-uuid))
+    (throw (ex-info "blockUuid must be a valid block UUID string" {:block-uuid block-uuid})))
+  (let [result (api-tools/get-block db block-uuid {})]
+    (when-let [error (:error result)]
+      (throw (ex-info error {:block-uuid block-uuid})))
+    (let [page-uuid (resolve-active-visible-page-uuid db (:block/page result))]
+      {:block-uuid (:block/uuid result)
+       :page-uuid page-uuid})))
+
+(def-thread-api :thread-api/search-block-uuid
+  [repo block-uuid]
+  (resolve-active-visible-block
+   @(worker-state/get-datascript-conn repo)
+   block-uuid))
+
+(def-thread-api :thread-api/search-page-uuid
+  [repo page-uuid]
+  (resolve-active-visible-page-uuid
+   @(worker-state/get-datascript-conn repo)
+   page-uuid))
 
 (defn search-blocks
   [repo q option]
@@ -276,6 +322,7 @@
     (if (and vector-index
              (:feature/enable-semantic-search? option)
              (not (:page-only? option))
+             (not (:block option))
              (not (:query-embedding option))
              (not (string/blank? q)))
       (-> (p/let [embeddings (-> (platform/embed-texts (platform/current) [q])

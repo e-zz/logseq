@@ -31,9 +31,19 @@
     (cli-db-worker/list-nodes @conn options)))
 
 (def-thread-api :thread-api/api-get-page-data
-  [repo page-title]
+  [repo page-title options]
   (let [conn (worker-state/get-datascript-conn repo)]
-    (api-tools/get-page-data @conn page-title)))
+    (api-tools/get-page-data @conn page-title options)))
+
+(def-thread-api :thread-api/api-get-block
+  [repo uuid-string options]
+  (let [conn (worker-state/get-datascript-conn repo)]
+    (api-tools/get-block @conn uuid-string options)))
+
+(def-thread-api :thread-api/api-get-recycled-block
+  [repo uuid-string options]
+  (let [conn (worker-state/get-datascript-conn repo)]
+    (api-tools/get-recycled-block @conn uuid-string options)))
 
 (def-thread-api :thread-api/api-list-properties
   [repo options]
@@ -51,6 +61,11 @@
     (api-tools/list-pages @conn options)))
 
 (def-thread-api :thread-api/api-build-upsert-nodes-edn
-  [repo ops]
+  [repo ops options]
   (let [conn (worker-state/get-datascript-conn repo)]
-    (api-tools/build-upsert-nodes-edn @conn ops)))
+    (api-tools/build-upsert-nodes-edn @conn ops options)))
+
+(def-thread-api :thread-api/api-read-upsert-blocks
+  [repo expected-blocks]
+  (let [conn (worker-state/get-datascript-conn repo)]
+    (api-tools/read-upsert-blocks @conn expected-blocks)))

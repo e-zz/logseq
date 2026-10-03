@@ -667,10 +667,12 @@
     (ldb/register-transact-pipeline-fn! worker-pipeline/transact-pipeline)
     (try
       (outliner-page/delete! conn page-uuid {})
-      (is (true? (outliner-op/apply-ops!
-                  conn
-                  [[:restore-recycled [page-uuid]]]
-                  {})))
+      (let [restore-result (outliner-op/apply-ops!
+                            conn
+                            [[:restore-recycled [page-uuid]]]
+                            {})]
+        (is (= "restore" (:operation restore-result)))
+        (is (= "active" (:state restore-result))))
       (is (false? (ldb/recycled? (d/entity @conn [:block/uuid page-uuid]))))
       (outliner-page/delete! conn page-uuid {})
       (is (true? (outliner-op/apply-ops!

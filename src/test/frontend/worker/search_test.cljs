@@ -11,7 +11,13 @@
             [logseq.db :as ldb]
             [logseq.db.test.helper :as db-test]
             [logseq.outliner.page :as outliner-page]
+            [logseq.outliner.recycle :as recycle]
             [promesa.core :as p]))
+
+(defn- process-cpu-time-ms
+  []
+  (let [usage (.cpuUsage js/process)]
+    (/ (+ (.-user usage) (.-system usage)) 1000)))
 
 (defn- sql-placeholder-count
   [sql]
@@ -200,9 +206,9 @@
 
 (deftest search-indexes-hide-by-default-properties
   (let [conn (db-test/create-conn-with-blocks
-              {:properties {:keywords {:logseq.property/type :default
-                                       :logseq.property/hide? true}
-                            :author {:logseq.property/type :default}}
+              {:properties {:user.property/keywords {:logseq.property/type :default
+                                                     :logseq.property/hide? true}
+                            :user.property/author {:logseq.property/type :default}}
                :pages-and-blocks [{:page {:block/title "Hidden page"
                                           :build/properties {:logseq.property/hide? true}}}]})
         keywords (d/entity @conn :user.property/keywords)
@@ -1157,12 +1163,12 @@
 (deftest sync-search-indice-reindexes-holders-when-property-is-deleted
   (testing "pages and blocks that held a deleted property stay in the FTS add set"
     (let [conn (db-test/create-conn-with-blocks
-                {:properties {:foo {:logseq.property/type :default}}
+                {:properties {:user.property/foo {:logseq.property/type :default}}
                  :pages-and-blocks
                  [{:page {:block/title "Test Page"
-                          :build/properties {:foo "page value"}}
+                          :build/properties {:user.property/foo "page value"}}
                    :blocks [{:block/title "Holder block"
-                             :build/properties {:foo "block value"}}]}]})
+                             :build/properties {:user.property/foo "block value"}}]}]})
           property (d/entity @conn :user.property/foo)
           page (db-test/find-page-by-title @conn "Test Page")
           holder-block (db-test/find-block-by-content @conn "Holder block")
@@ -1753,6 +1759,431 @@
     (is (some? error))
     (is (re-find #"Search upsert-blocks wrong data"
                  (or (ex-message error) (str error))))))
+
+(deftest search-blocks-applies-page-and-block-scope-to-short-query-like-before-limit
+  (let [page-id (test-uuid-string 490)
+        other-page-id (test-uuid-string 491)
+        foreign-id (test-uuid-string 492)
+        target-id (test-uuid-string 493)
+        calls (atom [])
+        indexed-rows [[foreign-id page-id "ab foreign block"]
+                      [(test-uuid-string 494) other-page-id "ab other page"]
+                      [target-id page-id "ab target block"]]
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (if (string/includes? sql "title like ?")
+                            (let [page-scoped? (string/includes? sql "page = ?")
+                                  block-scoped? (string/includes? sql "id = ?")
+                                  page-bind (first bind)
+                                  block-bind (if page-scoped? (second bind) (first bind))
+                                  scoped-rows (filter (fn [[id row-page _title]]
+                                                        (and (or (not page-scoped?)
+                                                                 (= page-bind row-page))
+                                                             (or (not block-scoped?)
+                                                                 (= block-bind id))))
+                                                      indexed-rows)]
+                              (clj->js (take (last bind) scoped-rows)))
+                            #js [])))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (let [result (vec (search/search-blocks (atom :large-db)
+                                              db
+                                              "ab"
+                                              {:page page-id
+                                               :block target-id
+                                               :limit 1
+                                               :enable-snippet? false}))
+            like-call (some #(when (string/includes? (:sql %) "title like ?") %) @calls)]
+        (is (= [target-id] (mapv :id result)))
+        (is (string/includes? (:sql like-call) "page = ? and id = ?"))
+        (is (= [page-id target-id "%ab%" 1] (:bind like-call)))))))
+
+(deftest search-blocks-passes-page-scope-to-index-before-limit
+  (let [page-id (test-uuid-string 501)
+        foreign-page-id (test-uuid-string 504)
+        target-ids [(test-uuid-string 502) (test-uuid-string 503)]
+        indexed-rows (vec
+                      (concat
+                       (mapv (fn [idx]
+                               [(test-uuid-string (+ 510 idx))
+                                foreign-page-id
+                                "needle phrase"
+                                (- 100 idx)
+                                nil])
+                             (range 20))
+                       (mapv (fn [id]
+                               [id page-id "needle phrase" -1 nil])
+                             target-ids)))
+        calls (atom [])
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))
+                              page-scoped? (and (string/includes? sql "page = ? and title match ? limit ?")
+                                                (= page-id (first bind)))
+                              rows (if page-scoped?
+                                     (filter #(= page-id (second %)) indexed-rows)
+                                     indexed-rows)]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (clj->js (take (last bind) rows))))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (let [result (vec (search/search-blocks (atom :large-db)
+                                              db
+                                              "needle phrase"
+                                              {:page page-id
+                                               :limit 2
+                                               :enable-snippet? false}))]
+        (is (= target-ids (mapv :id result)))
+        (is (some #(and (= page-id (first (:bind %)))
+                        (string/includes? (:sql %) "page = ? and title match ? limit ?"))
+                    @calls))
+        (is (every? #(= page-id (:page %)) result))))))
+
+(deftest search-blocks-scopes-both-namespace-title-alternatives-before-limit
+  (let [page-id (test-uuid-string 601)
+        foreign-page-id (test-uuid-string 602)
+        target-id (test-uuid-string 603)
+        foreign-rows (mapv (fn [idx]
+                             [(test-uuid-string (+ 610 idx))
+                              foreign-page-id
+                              (str "foreign/lastpart " idx)
+                              (- 100 idx)
+                              nil])
+                           (range 20))
+        target-row [target-id page-id "prefix/lastpart" -1 nil]
+        indexed-rows (conj foreign-rows target-row)
+        calls (atom [])
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (if (string/includes? sql "title match ?")
+                            (let [[page-bind first-query second-query limit] bind
+                                  grouped? (string/includes? sql "and (title match ? or title match ?)")
+                                  matching-rows (filter (fn [[_id row-page title]]
+                                                          (let [first-hit? (string/includes? title
+                                                                                             (string/replace first-query #"[%*]" ""))
+                                                                second-hit? (string/includes? title
+                                                                                              (string/replace second-query #"[%*]" ""))]
+                                                            (if grouped?
+                                                              (and (= page-bind row-page)
+                                                                   (or first-hit? second-hit?))
+                                                              (or (and (= page-bind row-page) first-hit?)
+                                                                  second-hit?))))
+                                                        indexed-rows)]
+                              (clj->js (take limit matching-rows)))
+                            #js [])))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (let [result (vec (search/search-blocks (atom :large-db)
+                                              db
+                                              "prefix/lastpart"
+                                              {:page page-id
+                                               :limit 1
+                                               :enable-snippet? false}))
+            fts-call (some #(when (string/includes? (:sql %) "title match ?") %) @calls)]
+        (is (= [target-id] (mapv :id result)))
+        (is (= page-id (first (:bind fts-call))))
+        (is (= 1 (last (:bind fts-call))))
+        (is (every? #(= page-id (:page %)) result))))))
+
+(deftest search-blocks-rejects-stale-current-page-membership
+  (let [conn (db-test/create-conn-with-blocks
+              {:pages-and-blocks [{:page {:block/title "Scope A"}
+                                   :blocks [{:block/title "valid needle"}
+                                            {:block/title "moved needle"}]}
+                                  {:page {:block/title "Scope B"}}]})
+        page-a (db-test/find-page-by-title @conn "Scope A")
+        page-b (db-test/find-page-by-title @conn "Scope B")
+        valid (db-test/find-block-by-content @conn "valid needle")
+        moved (db-test/find-block-by-content @conn "moved needle")
+        _ (d/transact! conn [[:db/retract (:db/id moved) :block/page (:db/id page-a)]
+                             [:db/add (:db/id moved) :block/page (:db/id page-b)]])
+        page-a-id (str (:block/uuid page-a))
+        rows [[(str (:block/uuid page-a)) page-a-id "needle page" -1 nil]
+              [(str (:block/uuid valid)) page-a-id "valid needle" -2 nil]
+              [(str (:block/uuid moved)) page-a-id "moved needle" -3 nil]]
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")]
+                          (if (and (string/includes? sql "page = ?")
+                                   (string/includes? sql "title match ?"))
+                            (clj->js rows)
+                            #js [])))}
+        result (with-redefs [search/combine-results (fn [_db results] results)]
+                 (search/search-blocks conn db "needle"
+                                       {:page page-a-id
+                                        :limit 10
+                                        :include-matched-count? true
+                                        :enable-snippet? false}))]
+    (is (= #{(:block/uuid page-a) (:block/uuid valid)}
+           (set (map :block/uuid (:items result))))
+        "a stale index row must not return a block now assigned to another page")
+    (is (= 2 (:matched-count result))
+        "matched-count must exclude stale off-page candidates")
+    (is (= (:db/id page-b) (:db/id (:block/page (d/entity @conn (:db/id moved))))))))
+
+(deftest search-blocks-applies-block-only-scope-to-fuzzy-candidates
+  (let [target-id (test-uuid-string 703)
+        calls (atom [])
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (if (and (string/includes? sql "lower(title) like ?")
+                                   (string/includes? sql "id = ?")
+                                   (= target-id (first bind)))
+                            (clj->js [[target-id target-id "New Project"]])
+                            #js [])))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (let [result (vec (search/search-blocks (atom :large-db)
+                                              db
+                                              "nwp"
+                                              {:block target-id
+                                               :limit 1
+                                               :enable-snippet? false}))
+            fuzzy-call (some #(when (string/includes? (:sql %) "lower(title) like ?") %) @calls)]
+        (is (= [target-id] (mapv :id result)))
+        (is (string/includes? (:sql fuzzy-call) "where id = ?"))
+        (is (= [target-id "%n%w%p%" 40] (:bind fuzzy-call)))))))
+
+(deftest search-blocks-groups-namespace-alternatives-inside-exact-block-scope
+  (let [page-id (test-uuid-string 704)
+        target-id (test-uuid-string 705)
+        calls (atom [])
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (if (and (string/includes? sql "title match ?")
+                                   (string/includes? sql "id = ?")
+                                   (= [page-id target-id] (subvec bind 0 2)))
+                            (clj->js [[target-id page-id "prefix/lastpart" -1 nil]])
+                            #js [])))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (let [result (vec (search/search-blocks (atom :large-db)
+                                              db
+                                              "prefix/lastpart"
+                                              {:page page-id
+                                               :block target-id
+                                               :limit 1
+                                               :enable-snippet? false}))
+            fts-call (some #(when (string/includes? (:sql %) "title match ?") %) @calls)]
+        (is (= [target-id] (mapv :id result)))
+        (is (string/includes? (:sql fts-call)
+                              "page = ? and id = ? and (title match ? or title match ?) limit ?"))
+        (is (= page-id (first (:bind fts-call))))
+        (is (= target-id (second (:bind fts-call))))
+        (is (= 1 (last (:bind fts-call))))))))
+
+(deftest search-blocks-scopes-exact-block-before-every-candidate-limit
+  (let [page-id (test-uuid-string 701)
+        foreign-page-id (test-uuid-string 709)
+        target-id (test-uuid-string 702)
+        foreign-ids (mapv test-uuid-string (range 710 730))
+        calls (atom [])
+        indexed-rows (vec (concat (mapv (fn [id]
+                                         [id foreign-page-id "needle phrase" -1 nil])
+                                       foreign-ids)
+                                 [[target-id page-id "needle phrase" -1 nil]]))
+        db #js {:exec (fn [opts]
+                        (let [sql (aget opts "sql")
+                              bind (js->clj (aget opts "bind"))
+                              exact-block? (and (string/includes? sql "id = ?")
+                                                (some #{target-id} bind))
+                              rows (if exact-block?
+                                     (filter #(= target-id (first %)) indexed-rows)
+                                     indexed-rows)]
+                          (swap! calls conj {:sql sql :bind bind})
+                          (clj->js (take (last bind) rows))))}]
+    (with-redefs [search/combine-results (fn [_db results] results)
+                  search/search-result->block-result
+                  (fn [_conn _q _code-class _option result]
+                    (assoc result :block/uuid (uuid (:id result))))]
+      (doseq [[query expected-sql] [["needle phrase" "blocks_fts"]
+                                    ["needle" "title = ? COLLATE NOCASE"]
+                                    ["nwp" "lower(title) like ?"]]]
+        (let [_ (reset! calls [])
+              result (vec (search/search-blocks
+                           (atom :large-db)
+                           db
+                           query
+                           {:page page-id
+                            :block target-id
+                            :limit 1
+                            :enable-snippet? false
+                            :page-only? false}))
+              candidate-calls (filter #(string/includes? (:sql %) expected-sql) @calls)]
+          (is (= [target-id] (mapv :id result)) (str "query: " query))
+          (is (seq candidate-calls)
+              (str "expected candidate route: " expected-sql "; calls: " (pr-str @calls)))
+          (is (every? #(and (string/includes? (:sql %) "id = ?")
+                            (some #{target-id} (:bind %))) candidate-calls)
+              (str "block UUID must constrain candidate SQL before LIMIT: " query)))))))
+
+(deftest search-blocks-skips-vector-query-for-exact-block-scope
+  (let [vector-queries (atom 0)
+        vector-index {:query (fn [& _]
+                               (swap! vector-queries inc)
+                               [])}]
+    (is (empty? (search/search-blocks (atom :db)
+                                     (checking-db)
+                                     vector-index
+                                     "semantic query"
+                                     {:limit 1
+                                      :block (test-uuid-string 899)
+                                      :enable-snippet? false
+                                      :feature/enable-semantic-search? true
+                                      :query-embedding [0.1 0.2 0.3]})))
+        (is (zero? @vector-queries))))
+
+(defn- better-sqlite-exec
+  "Mirrors frontend.worker.platform.node/exec-sql over better-sqlite3: accepts
+  either a raw SQL string or a #js {:sql .. :bind .. :rowMode ..} options map."
+  [^js raw opts-or-sql]
+  (if (string? opts-or-sql)
+    (.exec raw opts-or-sql)
+    (let [sql (aget opts-or-sql "sql")
+          bind (aget opts-or-sql "bind")
+          row-mode (aget opts-or-sql "rowMode")
+          ^js stmt (.prepare raw sql)]
+      (if (= row-mode "array")
+        (do
+          (.raw stmt true)
+          (if (some? bind)
+            (.apply (.-all stmt) stmt bind)
+            (.all stmt)))
+        (if (some? bind)
+          (.apply (.-run stmt) stmt bind)
+          (.run stmt))))))
+
+(defn- create-search-sqlite!
+  "Real in-memory SQLite search index with the production FTS schema/triggers.
+  Wraps better-sqlite3 so .exec/.transaction behave like the production
+  frontend.worker.platform.node sqlite wrapper."
+  []
+  (let [Database (js/require "better-sqlite3")
+        raw (new Database ":memory:")
+        wrapper (js-obj)]
+    (set! (.-exec wrapper) (fn [opts-or-sql] (better-sqlite-exec raw opts-or-sql)))
+    (set! (.-transaction wrapper)
+          (fn [f]
+            (let [tx-fn (.transaction raw (fn [] (f wrapper)))]
+              (tx-fn))))
+    (set! (.-close wrapper) (fn [] (.close raw)))
+    (search/create-tables-and-triggers! wrapper)
+    wrapper))
+
+(defn- reindex-all!
+  [search-db conn]
+  (search/upsert-blocks! search-db (clj->js (vec (search/build-blocks-indice @conn)))))
+
+(defn- hit-titles
+  [conn search-db q option]
+  (set (map :block/title (search/search-blocks conn search-db q
+                                               (merge {:enable-snippet? false} option)))))
+
+(deftest recycled-subtree-excluded-from-global-page-and-block-search
+  (testing "real worker/search + FTS path hides a recycled ordinary subtree from
+            GLOBAL, page-scoped, and exact block-scoped search, then restores it"
+    (let [conn (db-test/create-conn-with-blocks
+                {:pages-and-blocks
+                 [{:page {:block/title "Search Home"}
+                   :blocks [{:block/title "visible haystack needle"}]}
+                  {:page {:block/title "Search Source"}
+                   :blocks [{:block/title "zqx recycle needle"
+                             :build/children [{:block/title "zqx child needle"}]}]}]})
+          search-db (create-search-sqlite!)
+          source-page (db-test/find-page-by-title @conn "Search Source")
+          source-page-uuid (str (:block/uuid source-page))
+          root (db-test/find-block-by-content @conn "zqx recycle needle")
+          child (db-test/find-block-by-content @conn "zqx child needle")
+          root-uuid (str (:block/uuid root))
+          child-uuid (str (:block/uuid child))
+          query "zqx"
+          global (fn [] (hit-titles conn search-db query {}))
+          page-scoped (fn [] (hit-titles conn search-db query {:page source-page-uuid}))
+          block-scoped (fn [] (hit-titles conn search-db query {:block root-uuid}))]
+      (reindex-all! search-db conn)
+      (is (contains? (global) "zqx recycle needle")
+          "block is searchable before recycle")
+      (is (contains? (page-scoped) "zqx recycle needle"))
+      (is (contains? (block-scoped) "zqx recycle needle"))
+
+      (let [reports (atom [])
+            _ (d/listen! conn ::recycle-capture (fn [report] (swap! reports conj report)))
+            result (recycle/recycle! conn (uuid root-uuid) {})
+            _ (d/unlisten! conn ::recycle-capture)
+            {:keys [blocks-to-remove-set]} (search/sync-search-indice (last @reports))]
+        (is (= "recycled" (:state result)))
+        (is (contains? blocks-to-remove-set root-uuid)
+            "recycle index metadata removes the recycled root")
+        (is (contains? blocks-to-remove-set child-uuid)
+            "recycle index metadata removes recycled descendants")
+        (search/delete-blocks! search-db blocks-to-remove-set))
+
+      (is (not (contains? (global) "zqx recycle needle"))
+          "GLOBAL search must not return the recycled root")
+      (is (not (contains? (global) "zqx child needle"))
+          "GLOBAL search must not return recycled descendants")
+      (is (empty? (page-scoped))
+          "page-scoped search must not return recycled content")
+      (is (empty? (block-scoped))
+          "exact block-scoped search must not return recycled content")
+
+      (let [reports (atom [])
+            _ (d/listen! conn ::restore-capture (fn [report] (swap! reports conj report)))
+            result (recycle/restore! conn (uuid root-uuid))
+            _ (d/unlisten! conn ::restore-capture)
+            {:keys [blocks-to-add]} (search/sync-search-indice (last @reports))]
+        (is (= "active" (:state result)))
+        (is (some #(= root-uuid (:id %)) blocks-to-add)
+            "restore index metadata re-adds the restored root")
+        (is (some #(= child-uuid (:id %)) blocks-to-add)
+            "restore index metadata re-adds restored descendants")
+        (search/upsert-blocks! search-db (clj->js (vec blocks-to-add))))
+
+      (is (contains? (global) "zqx recycle needle")
+          "restored root reappears in GLOBAL search")
+      (is (contains? (global) "zqx child needle")
+          "restored descendants reappear in GLOBAL search")
+      (is (contains? (page-scoped) "zqx recycle needle")
+          "restored root reappears in page-scoped search"))))
+
+(deftest recycled-blocks-are-absent-from-index-build-inputs
+  (testing "get-all-blocks/build-blocks-indice skip recycled nodes without a live FTS row"
+    (let [conn (db-test/create-conn-with-blocks
+                {:pages-and-blocks
+                 [{:page {:block/title "Index Home"}
+                   :blocks [{:block/title "indexed active block"}]}
+                  {:page {:block/title "Index Source"}
+                   :blocks [{:block/title "index removed root"
+                             :build/children [{:block/title "index removed child"}]}]}]})
+          root (db-test/find-block-by-content @conn "index removed root")
+          root-uuid (str (:block/uuid root))]
+      (is (contains? (set (map :block/title (search/get-all-blocks @conn)))
+                     "index removed root"))
+      (recycle/recycle! conn (uuid root-uuid) {})
+      (let [all (set (map :block/title (search/get-all-blocks @conn)))
+            built (set (map :title (search/build-blocks-indice @conn)))]
+        (is (contains? all "indexed active block"))
+        (is (not (contains? all "index removed root")))
+        (is (not (contains? all "index removed child")))
+        (is (not (contains? built "index removed root")))
+        (is (not (contains? built "index removed child")))))))
 
 (defn- <open-search-db
   []
