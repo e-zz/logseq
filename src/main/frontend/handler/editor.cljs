@@ -259,7 +259,8 @@
 
 (defn outliner-insert-block!
   [config current-block new-block {:keys [sibling? keep-uuid? ordered-list?
-                                          replace-empty-target? outliner-op]}]
+                                          replace-empty-target? outliner-op
+                                          skip-save-current-block?]}]
   (let [library? (:library? config)
         sibling? (insert-as-sibling? config current-block sibling?)
         new-block' (if library?
@@ -281,7 +282,10 @@
 
        (:editor/edit-block-fn config)
        (assoc :editor/edit-block-fn (:editor/edit-block-fn config)))
-     (save-current-block! {:current-block current-block})
+     ;; Auto view inserts must not ride a pending editor save. A refused
+     ;; page-title (e.g. "/") would fail the whole create-view transaction.
+     (when-not skip-save-current-block?
+       (save-current-block! {:current-block current-block}))
      (outliner-op/insert-blocks! [new-block'] current-block insert-opts))))
 
 (defn- block-self-alone-when-insert?
@@ -619,7 +623,7 @@
                    sibling? before? start? end?
                    properties
                    custom-uuid replace-empty-target? edit-block? ordered-list? other-attrs
-                   outliner-op]
+                   outliner-op skip-save-current-block?]
             :or {sibling? false
                  before? false
                  edit-block? true}
@@ -692,7 +696,8 @@
                                               :keep-uuid? true
                                               :ordered-list? ordered-list?
                                               :replace-empty-target? replace-empty-target?
-                                              :outliner-op outliner-op}))
+                                              :outliner-op outliner-op
+                                              :skip-save-current-block? skip-save-current-block?}))
                    (when edit-existing-block?
                      (edit-block! last-block :max))
                    (when-let [id (:block/uuid new-block)]
@@ -1644,28 +1649,35 @@
   (when @*auto-save-timeout
     (js/clearTimeout @*auto-save-timeout)))
 
+(defn- editor-input-value
+  [input-id]
+  (when-let [elem (and input-id (gdom/getElement input-id))]
+    (gobj/get elem "value")))
+
 (defn- current-editor-value
   [input-id current-block edit-block]
   (if (= (:block/uuid current-block) (:block/uuid edit-block))
     (:block/title current-block)
-    (when-let [elem (and input-id (gdom/getElement input-id))]
-      (gobj/get elem "value"))))
+    (editor-input-value input-id)))
 
 (defn save-current-block!
   ([]
    (save-current-block! {}))
-  ([{:keys [current-block] :as opts}]
+  ([{:keys [current-block flush-input?] :as opts}]
    (clear-block-auto-save-timeout!)
    ;; non English input method
    (when-not (or (state/editor-in-composition?)
-                 (state/get-editor-action))
+                 (and (not flush-input?)
+                      (state/get-editor-action)))
      (when (state/get-current-repo)
        (try
          (let [input-id (state/get-edit-input-id)
                block (state/get-edit-block)
-               value (current-editor-value input-id current-block block)]
+               value (if flush-input?
+                       (editor-input-value input-id)
+                       (current-editor-value input-id current-block block))]
            (when value
-             (save-block-aux! block value opts)))
+             (save-block-aux! block value (dissoc opts :flush-input?))))
          (catch :default error
            (js/console.error error)
            (log/error :save-block-failed error)))))))
@@ -1750,14 +1762,17 @@
   (or @*asset-uploading?
       (state/get-editor-action)))
 
-(defn in-shui-popup?
+(defn- focus-in-shui-popup?
   []
-  (or (some-> js/document.activeElement
-              (.closest ".ui__dropdown-menu-content, .ui__popover-content, .ui__context-menu-content")
-              (nil?)
-              (not))
-      (.querySelector js/document.body
-                      ".ui__dropdown-menu-content, .ui__popover-content, .ui__context-menu-content")))
+  (some-> js/document.activeElement
+          (.closest ".ui__dropdown-menu-content, .ui__popover-content, .ui__context-menu-content")))
+
+(defn- focus-in-shui-menu?
+  "True when Tab should leave a menu instead of indenting. The selection
+  action bar is a popover, so it is intentionally excluded."
+  []
+  (some-> js/document.activeElement
+          (.closest ".ui__dropdown-menu-content, .ui__dropdown-menu-sub-content, .ui__context-menu-content, .ui__context-menu-sub-content")))
 
 (defn get-current-input-char
   [input]
@@ -2484,11 +2499,7 @@
 
 (defn- node-contains?
   [parent child]
-  (boolean
-   (or (and (gobj/get parent "nodeType")
-            (gdom/contains parent child))
-       (when-let [contains-fn (gobj/get parent "contains")]
-         (contains-fn child)))))
+  (boolean (gdom/contains parent child)))
 
 (defn- block-node-outside-comments-area
   [comments-node direction]
@@ -2868,27 +2879,27 @@
 
 (defn keydown-delete-handler
   [_e]
-  (let [^js input (state/get-input)
-        current-pos (cursor/pos input)
-        value (gobj/get input "value")
-        end? (= current-pos (count value))
-        current-block (state/get-edit-block)
-        selected-start (util/get-selection-start input)
-        selected-end (util/get-selection-end input)]
-    (when current-block
-      (cond
-        (not= selected-start selected-end)
-        (delete-and-update input selected-start selected-end)
+  (when-let [^js input (state/get-input)]
+    (let [current-pos (cursor/pos input)
+          value (gobj/get input "value")
+          end? (= current-pos (count value))
+          current-block (state/get-edit-block)
+          selected-start (util/get-selection-start input)
+          selected-end (util/get-selection-end input)]
+      (when current-block
+        (cond
+          (not= selected-start selected-end)
+          (delete-and-update input selected-start selected-end)
 
-        (and end? current-block)
-        (let [editor-state (get-state)
-              custom-query? (get-in editor-state [:config :custom-query?])]
-          (when-not custom-query?
-            (delete-concat current-block)))
+          (and end? current-block)
+          (let [editor-state (get-state)
+                custom-query? (get-in editor-state [:config :custom-query?])]
+            (when-not custom-query?
+              (delete-concat current-block)))
 
-        :else
-        (delete-and-update
-         input current-pos (util/safe-inc-current-pos-from-start (.-value input) current-pos))))))
+          :else
+          (delete-and-update
+           input current-pos (util/safe-inc-current-pos-from-start (.-value input) current-pos)))))))
 
 (defn delete-block-when-zero-pos!
   [^js e]
@@ -3031,22 +3042,23 @@
 (defn keydown-tab-handler
   [direction]
   (fn [e]
-    (cond
-      (pending-new-block?)
-      (do
-        (util/stop e)
-        (queue-pending-new-block-tab! (not= :left direction)))
+    (when-not (focus-in-shui-menu?)
+      (cond
+        (pending-new-block?)
+        (do
+          (util/stop e)
+          (queue-pending-new-block-tab! (not= :left direction)))
 
-      (state/editing?)
-      (when-not (state/get-editor-action)
-        (util/stop e)
-        (indent-outdent (not (= :left direction))))
+        (state/editing?)
+        (when-not (state/get-editor-action)
+          (util/stop e)
+          (indent-outdent (not (= :left direction))))
 
-      (state/selection?)
-      (do
-        (util/stop e)
-        (state/pub-event! [:editor/hide-action-bar])
-        (on-tab direction)))
+        (state/selection?)
+        (do
+          (util/stop e)
+          (state/pub-event! [:editor/hide-action-bar])
+          (on-tab direction))))
     nil))
 
 (defn- double-chars-typed?
@@ -3482,7 +3494,7 @@
 
 (defn editor-delete
   [e]
-  (when (state/editing?)
+  (when (and (state/editing?) (state/get-input))
     (util/stop e)
     (keydown-delete-handler e)))
 
@@ -3502,7 +3514,7 @@
     (state/pub-event! [:editor/hide-action-bar])
     (when (and (not (auto-complete?))
                (or (in-page-preview?)
-                   (not (in-shui-popup?)))
+                   (not (focus-in-shui-popup?)))
                (not (state/get-timestamp-block)))
       (util/stop e)
       (cond
@@ -3920,7 +3932,7 @@
 
      (state/selection?)
      (do
-       (let [block-ids (map #(-> % (dom/attr "blockid") uuid) (get-selected-blocks))
+       (let [block-ids (distinct (keep util/selection-node-block-id (get-selected-blocks)))
              first-block-id (first block-ids)]
          (when first-block-id
            ;; If multiple blocks are selected, they may not have all the same collapsed state.
