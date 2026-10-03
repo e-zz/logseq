@@ -14,11 +14,6 @@
             [logseq.outliner.recycle :as recycle]
             [promesa.core :as p]))
 
-(defn- process-cpu-time-ms
-  []
-  (let [usage (.cpuUsage js/process)]
-    (/ (+ (.-user usage) (.-system usage)) 1000)))
-
 (defn- sql-placeholder-count
   [sql]
   (count (re-seq #"\?" sql)))
