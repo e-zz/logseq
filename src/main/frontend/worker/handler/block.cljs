@@ -196,7 +196,7 @@
                (let [{value-type :db/valueType
                       cardinality :db/cardinality} (render-attr-schema db a)
                      value (if (= :db.type/ref value-type)
-                             (block-breadcrumb/shallow-ref-identity db v)
+                             (block-breadcrumb/shallow-ref-identity db v a)
                              v)]
                  (if (= :db.cardinality/many cardinality)
                    (update result a (fnil conj []) value)
@@ -305,7 +305,11 @@
           (fail-render-read! "Invalid direct-child UUID"
                              {:parent-uuid parent-uuid
                               :block-uuid child-uuid}))
-        (when-not (string? order)
+        ;; :block/order is {:optional true} for pages in normal-page, so a
+        ;; parented page may legitimately have none. Sort those first,
+        ;; matching ldb/sort-by-order, rather than failing the whole
+        ;; membership read.
+        (when-not (or (nil? order) (string? order))
           (fail-render-read! "Invalid direct-child order"
                              {:parent-uuid parent-uuid
                               :block-uuid child-uuid
