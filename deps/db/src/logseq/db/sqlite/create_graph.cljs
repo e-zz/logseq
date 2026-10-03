@@ -231,8 +231,9 @@
 
 (defn build-db-initial-data
   "Builds tx of initial data for a new graph including key values, initial files,
-   built-in properties and built-in classes"
-  [config-content & {:keys [import-type graph-git-sha creating-remote-graph?]}]
+   built-in properties and built-in classes. `:existing-file-paths` preserves stored
+   files when initial data is also applied to an existing graph."
+  [config-content & {:keys [import-type graph-git-sha creating-remote-graph? existing-file-paths]}]
   (assert (string? config-content))
   (let [initial-data (cond->
                       [(sqlite-util/kv :logseq.kv/db-type "db")
@@ -251,7 +252,8 @@
                        true
                        (conj (sqlite-util/kv :logseq.kv/local-graph-uuid
                                              (uuid (str "00000000" (subs (str (common-uuid/gen-uuid)) 8))))))
-        initial-files (build-initial-files config-content)
+        initial-files (remove #(contains? existing-file-paths (:file/path %))
+                               (build-initial-files config-content))
         {properties-tx :tx :keys [properties]} (build-initial-properties)
         db-ident->properties (zipmap (map :db/ident properties) properties)
         default-classes (build-initial-classes db-ident->properties)
