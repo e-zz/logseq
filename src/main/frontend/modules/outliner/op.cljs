@@ -190,6 +190,13 @@
   (op-transact!
    [:restore-recycled [root-uuid]]))
 
+(defn recycle-blocks!
+  ([root-uuid]
+   (recycle-blocks! root-uuid {}))
+  ([root-uuid opts]
+   (op-transact!
+    [:recycle-blocks [root-uuid (current-user-delete-opts opts)]])))
+
 (defn recycle-delete-permanently!
   [root-uuid]
   (op-transact!

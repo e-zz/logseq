@@ -75,10 +75,21 @@
     :else nil))
 
 (defn- block-subtree
+  "Root-first depth-first subtree entities, siblings ordered by :block/order.
+   Includes property-value pseudochildren (via the full-children rules query)."
   [db block]
-  (let [ids (cons (:db/id block)
-                  (common-initial-data/get-block-full-children-ids db (:db/id block)))]
-    (keep #(d/entity db %) ids)))
+  (let [descendant-ids (common-initial-data/get-block-full-children-ids db (:db/id block))
+        children-by-parent (group-by #(:db/id (:block/parent %))
+                                     (keep #(d/entity db %) descendant-ids))
+        walk (fn walk [node]
+               (cons node (mapcat walk (ldb/sort-by-order
+                                        (get children-by-parent (:db/id node))))))]
+    (walk block)))
+
+(defn ^:api subtree-uuids
+  "Stable uuids of an entity and its ordered subtree, root first."
+  [db root]
+  (mapv (comp str :block/uuid) (block-subtree db root)))
 
 (defn- block-children
   [block]
@@ -179,36 +190,72 @@
                true
                (maybe-assoc :logseq.property.recycle/original-order (:block/order page)))])))
 
+(def ^:private order-key-re #"[0-9A-Za-z]+")
+
+(defn- valid-order-key?
+  "Whether `order` is a well-formed fractional-index key. Guards against
+   reusing a corrupted `:logseq.property.recycle/original-order`."
+  [order]
+  (boolean
+   (and (string? order)
+        (re-matches order-key-re order)
+        (try
+          (db-order/validate-order-key? order)
+          (catch :default _ false)))))
+
+(defn- order-occupied?
+  "Whether `order` already belongs to a live sibling under `parent`."
+  [parent order]
+  (and (some? parent)
+       (valid-order-key? order)
+       (some #(= order (:block/order %)) (block-children parent))))
+
 (defn- restore-order
-  [target-parent]
-  (next-child-order target-parent))
+  "Reuse the recycled root's original order only when it is a valid order key
+   and still free at the insertion point; otherwise generate a fresh sibling
+   key there. With no insertion parent (page-root restore) keep the valid
+   original order or nil rather than inventing an order."
+  [target-parent original-order]
+  (cond
+    (and (valid-order-key? original-order)
+         (not (order-occupied? target-parent original-order)))
+    original-order
+
+    (some? target-parent)
+    (next-child-order target-parent)
+
+    :else
+    nil))
 
 (defn- restore-target
   [db root]
   (let [original-parent (resolve-entity db (:logseq.property.recycle/original-parent root))
         original-page (resolve-entity db (:logseq.property.recycle/original-page root))
+        original-order (:logseq.property.recycle/original-order root)
         parent-valid? (and original-parent
                            (not (recycled? original-parent))
-                           (d/entity db (:db/id original-parent)))]
+                           (d/entity db (:db/id original-parent)))
+        original-page-valid? (and original-page
+                                  (d/entity db (:db/id original-page))
+                                  (not (recycled? original-page)))]
     (cond
       (ldb/page? root)
       {:parent (when parent-valid? original-parent)
        :page root
-       :order (or (:logseq.property.recycle/original-order root)
-                  (when parent-valid? (restore-order original-parent)))}
+       :position (if parent-valid? :original-parent :page-root)
+       :order (restore-order (when parent-valid? original-parent) original-order)}
 
       parent-valid?
       {:parent original-parent
        :page original-page
-       :order (or (:logseq.property.recycle/original-order root)
-                  (restore-order original-parent))}
+       :position :original-parent
+       :order (restore-order original-parent original-order)}
 
-      (and original-page
-           (d/entity db (:db/id original-page))
-           (not (recycled? original-page)))
+      original-page-valid?
       {:parent original-page
        :page original-page
-       :order (restore-order original-page)}
+       :position :original-page-fallback
+       :order (restore-order original-page original-order)}
 
       :else
       nil)))
@@ -241,12 +288,96 @@
                                  subtree))]
       (concat clear-structure [root-tx] subtree-page-tx (remove nil? clear-meta)))))
 
+(defn- restore-result
+  [db root target original-order]
+  (let [page? (ldb/page? root)
+        ids (if page?
+              (page-tree-ids db root)
+              (map :db/id (block-subtree db root)))
+        uuids (mapv #(some-> (d/entity db %) :block/uuid str) ids)
+        order (:order target)]
+    {:operation "restore"
+     :state "active"
+     :no-op false
+     :root-uuid (str (:block/uuid root))
+     :affected-uuids uuids
+     :affected-count (count uuids)
+     :page-uuid (some-> (:page target) :block/uuid str)
+     :parent-uuid (some-> (:parent target) :block/uuid str)
+     :position (case (:position target)
+                 :original-parent "original"
+                 :original-page-fallback "original-page-fallback"
+                 :page-root "page-root"
+                 (name (:position target)))
+     :order (if (and order (= order original-order)) "original" "regenerated")}))
+
 (defn ^:api restore!
   [conn root-uuid]
-  (when-let [root (d/entity @conn [:block/uuid root-uuid])]
-    (when-let [tx-data (seq (restore-tx-data @conn root))]
-      (ldb/transact! conn tx-data {:outliner-op :restore-recycled})
-      true)))
+  (if-let [root (d/entity @conn [:block/uuid root-uuid])]
+    (if-not (recycled? root)
+      {:error "Block is not recycled" :root-uuid (str root-uuid)}
+      (if-let [target (restore-target @conn root)]
+        (if-let [tx-data (seq (restore-tx-data @conn root))]
+          (let [original-order (:logseq.property.recycle/original-order root)]
+            (ldb/transact! conn tx-data {:outliner-op :restore-recycled})
+            (restore-result @conn (d/entity @conn [:block/uuid root-uuid]) target original-order))
+          {:error "No restore transaction data" :root-uuid (str root-uuid)})
+        {:error "No valid restore target for recycled block" :root-uuid (str root-uuid)}))
+    {:error (str "No block found for uuid " root-uuid)
+     :root-uuid (str root-uuid)}))
+
+(defn- ineligible-recycle-reason
+  [root]
+  (cond
+    (ldb/page? root) "Pages cannot be recycled by this API"
+    (ldb/class? root) "Tags/classes cannot be recycled by this API"
+    (ldb/property? root) "Properties cannot be recycled by this API"
+    (:logseq.property/built-in? root) "Built-in blocks cannot be recycled"
+    (:logseq.property/hide? root) "Hidden blocks cannot be recycled"
+    (:block/closed-value-property root) "Property value blocks cannot be recycled"
+    (:logseq.property/created-from-property root) "Property value blocks cannot be recycled"
+    :else nil))
+
+(defn- recycle-result
+  [db root no-op?]
+  (let [subtree (block-subtree db root)
+        recycle-page-entity (recycle-page db)]
+    (cond-> {:operation "recycle"
+             :state "recycled"
+             :no-op no-op?
+             :root-uuid (str (:block/uuid root))
+             :affected-uuids (mapv (comp str :block/uuid) subtree)
+             :affected-count (count subtree)
+             :deleted-at (:logseq.property/deleted-at root)
+             :page-uuid (some-> recycle-page-entity :block/uuid str)}
+      no-op?
+      (assoc :reason "already-recycled"))))
+
+(defn ^:api recycle!
+  "Soft delete an ordinary block root and its full subtree into the Recycle
+   page. Already-recycled roots are a no-op whose original location metadata is
+   left untouched. Non-ordinary roots and subtrees containing pages are rejected
+   before any write."
+  [conn root-uuid opts]
+  (if-let [root (d/entity @conn [:block/uuid root-uuid])]
+    (if-let [reason (ineligible-recycle-reason root)]
+      {:error reason :root-uuid (str root-uuid)}
+      (let [db @conn]
+        (cond
+          (recycled? root)
+          (recycle-result db root true)
+
+          (some #(ldb/page? %) (rest (block-subtree db root)))
+          {:error "Recycling a subtree that contains pages is not supported"
+           :root-uuid (str root-uuid)}
+
+          :else
+          (let [now-ms (or (:now-ms opts) (common-util/time-ms))
+                tx-data (recycle-blocks-tx-data db [root] (merge opts {:now-ms now-ms}))]
+            (ldb/transact! conn tx-data {:outliner-op :recycle-blocks})
+            (recycle-result @conn (d/entity @conn [:block/uuid root-uuid]) false)))))
+    {:error (str "No block found for uuid " root-uuid)
+     :root-uuid (str root-uuid)}))
 
 (defn ^:api permanently-delete-tx-data
   [db root]

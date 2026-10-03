@@ -159,6 +159,17 @@
          :compiler-options {:static-fns false}
          :main frontend.test.frontend-node-test-runner/main}
 
+  ;; Opt-in harness for the desktop MCP server. Not part of :test so the normal
+  ;; suite never loads the MCP SDK; run with NODE_PATH=<repo>/resources/node_modules.
+  :mcp-http-verify {:target :node-script
+                    :output-to "static/mcp-http-verify.js"
+                    :main electron.mcp-verify/-main
+                    :devtools {:enabled false}
+                    :closure-defines {frontend.util/NODETEST true
+                                      frontend.worker-common.util/NODETEST true
+                                      logseq.shui.util/NODETEST true}
+                    :compiler-options {:static-fns false}}
+
   :test-no-worker {:target :node-test
                    :output-to "static/tests-no-worker.js"
                    :build-hooks [(shadow.hooks/build-metadata-hook

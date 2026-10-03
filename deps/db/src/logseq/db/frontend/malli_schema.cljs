@@ -208,10 +208,11 @@
                 (into {})))))))
 
 (defn datoms->entities
-  "Returns a vec of entity maps given :eavt datoms"
-  [datoms]
+  "Returns a vec of entity maps given :eavt datoms. Optional keys:
+   * :entity-fn - Optional fn that given an entity id, returns entity"
+  [datoms & {:keys [entity-fn]}]
   (mapv (fn [[db-id m]] (assoc m :db/id db-id))
-        (datoms->entity-maps datoms)))
+        (datoms->entity-maps datoms {:entity-fn entity-fn})))
 
 (assert (every? #(re-find #"^(block|logseq\.)" (namespace %)) db-property/db-attribute-properties)
         "All db-attribute idents start with an internal namespace")

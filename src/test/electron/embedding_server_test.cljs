@@ -5,8 +5,26 @@
             [electron.embedding-server :as embedding-server]
             [promesa.core :as p]))
 
+;; Every fixture path is assembled with node:path/join so the expected values
+;; match the host-native output of the production `node-path/join` calls on all
+;; platforms (POSIX "/" vs Windows "\"). Base directories are relative on
+;; purpose: production only ever joins them, so their separators are what we
+;; assert, not their absoluteness.
+(def ^:private user-data-dir (node-path/join "users" "me" "logseq"))
+(def ^:private runtime-dir (node-path/join user-data-dir "embedding-server"))
+(def ^:private venv-dir (node-path/join runtime-dir ".venv"))
+(def ^:private venv-python (node-path/join venv-dir "bin" "python"))
+(def ^:private deps-stamp (node-path/join runtime-dir "deps-v2.ok"))
+(def ^:private old-deps-stamp (node-path/join runtime-dir "deps-v1.ok"))
+(def ^:private dirname (node-path/join "repo" "static"))
+(def ^:private resources-path (node-path/join "app" "Contents" "Resources"))
+(def ^:private sidecar-dir (node-path/join dirname ".." "sidecar"))
+(def ^:private script (node-path/join sidecar-dir "embedding_server.py"))
+(def ^:private packaged-sidecar-dir (node-path/join resources-path "sidecar"))
+(def ^:private packaged-script (node-path/join packaged-sidecar-dir "embedding_server.py"))
+
 (defn- fake-app
-  [user-data-dir packaged?]
+  [packaged?]
   #js {:isPackaged packaged?
        :getPath (fn [path-name]
                   (case path-name
@@ -28,8 +46,8 @@
                           true)}]
     {:runtime {:platform "darwin"
                :arch "x64"
-               :dirname "/repo/static"
-               :resources-path "/app/Contents/Resources"
+               :dirname dirname
+               :resources-path resources-path
                :python-command "python3"
                :exists? #(contains? @existing-paths* %)
                :ensure-dir! #(swap! ensured-dirs conj %)
@@ -91,7 +109,7 @@
 (deftest start-skips-unsupported-platforms
   (async done
     (let [{:keys [runtime commands spawns]} (fake-runtime {:existing-paths #{}})
-          app (fake-app "/users/me/logseq" false)]
+          app (fake-app false)]
       (-> (p/let [result (embedding-server/start! app (assoc runtime
                                                               :platform "linux"
                                                               :arch "x64"))]
@@ -125,12 +143,7 @@
     (embedding-server/stop!)
     (let [{:keys [runtime ensured-dirs commands writes spawns env killed?]} (fake-runtime {:existing-paths #{}
                                                                                            :allocated-port 56789})
-          app (fake-app "/users/me/logseq" false)
-          runtime-dir "/users/me/logseq/embedding-server"
-          venv-dir "/users/me/logseq/embedding-server/.venv"
-          venv-python "/users/me/logseq/embedding-server/.venv/bin/python"
-          deps-stamp "/users/me/logseq/embedding-server/deps-v2.ok"
-          script "/repo/sidecar/embedding_server.py"]
+          app (fake-app false)]
       (-> (p/let [result (embedding-server/start! app runtime)]
             (is (= :started result))
             (is (= [runtime-dir] @ensured-dirs))
@@ -150,7 +163,7 @@
             (is (= [{:runtime-dir runtime-dir
                      :venv-dir venv-dir
                      :venv-python venv-python
-                     :sidecar-dir "/repo/sidecar"
+                     :sidecar-dir sidecar-dir
                      :script-path script
                      :host "127.0.0.1"
                      :port 56789
@@ -167,10 +180,9 @@
 (deftest start-sets-embedding-env-after-server-is-ready
   (async done
     (embedding-server/stop!)
-    (let [{:keys [runtime events env]} (fake-runtime {:existing-paths #{"/users/me/logseq/embedding-server/.venv/bin/python"
-                                                                        "/users/me/logseq/embedding-server/deps-v2.ok"}
-                                                       :allocated-port 56789})
-          app (fake-app "/users/me/logseq" false)]
+    (let [{:keys [runtime events env]} (fake-runtime {:existing-paths #{venv-python deps-stamp}
+                                                      :allocated-port 56789})
+          app (fake-app false)]
       (-> (p/let [result (embedding-server/start! app runtime)]
             (is (= :started result))
             (is (= [[:spawn-server 56789]
@@ -191,7 +203,7 @@
                                                       :allocated-port 56789
                                                       :run-command! (fn [_cmd _args _opts]
                                                                       (p/rejected (js/Error. "venv failed")))})
-          app (fake-app "/users/me/logseq" false)]
+          app (fake-app false)]
       (-> (embedding-server/start! app runtime)
           (p/then (fn [_]
                     (is false "start should fail")))
@@ -203,13 +215,9 @@
 (deftest start-upgrades-existing-venv-when-dependency-stamp-is-stale
   (async done
     (embedding-server/stop!)
-    (let [runtime-dir "/users/me/logseq/embedding-server"
-          venv-python "/users/me/logseq/embedding-server/.venv/bin/python"
-          old-deps-stamp "/users/me/logseq/embedding-server/deps-v1.ok"
-          deps-stamp "/users/me/logseq/embedding-server/deps-v2.ok"
-          {:keys [runtime commands writes]} (fake-runtime {:existing-paths #{venv-python old-deps-stamp}
+    (let [{:keys [runtime commands writes]} (fake-runtime {:existing-paths #{venv-python old-deps-stamp}
                                                            :allocated-port 56789})
-          app (fake-app "/users/me/logseq" false)]
+          app (fake-app false)]
       (-> (p/let [result (embedding-server/start! app runtime)]
             (is (= :started result))
             (is (= [{:cmd venv-python
@@ -230,12 +238,9 @@
 (deftest start-reuses-existing-venv-and-installed-deps-with-allocated-port
   (async done
     (embedding-server/stop!)
-    (let [runtime-dir "/users/me/logseq/embedding-server"
-          venv-python "/users/me/logseq/embedding-server/.venv/bin/python"
-          deps-stamp "/users/me/logseq/embedding-server/deps-v2.ok"
-          {:keys [runtime commands spawns env]} (fake-runtime {:existing-paths #{venv-python deps-stamp}
+    (let [{:keys [runtime commands spawns env]} (fake-runtime {:existing-paths #{venv-python deps-stamp}
                                                                :allocated-port 45678})
-          app (fake-app "/users/me/logseq" true)]
+          app (fake-app true)]
       (-> (p/let [result (embedding-server/start! app runtime)]
             (is (= :started result))
             (is (= [{:cmd venv-python
@@ -243,10 +248,10 @@
                      :cwd runtime-dir}]
                    @commands))
             (is (= [{:runtime-dir runtime-dir
-                     :venv-dir "/users/me/logseq/embedding-server/.venv"
+                     :venv-dir venv-dir
                      :venv-python venv-python
-                     :sidecar-dir "/app/Contents/Resources/sidecar"
-                     :script-path "/app/Contents/Resources/sidecar/embedding_server.py"
+                     :sidecar-dir packaged-sidecar-dir
+                     :script-path packaged-script
                      :host "127.0.0.1"
                      :port 45678
                      :model-id "all-MiniLM-L6-v2"}]
@@ -261,11 +266,7 @@
 (deftest start-recreates-existing-venv-when-python-is-not-usable
   (async done
     (embedding-server/stop!)
-    (let [runtime-dir "/users/me/logseq/embedding-server"
-          venv-dir "/users/me/logseq/embedding-server/.venv"
-          venv-python "/users/me/logseq/embedding-server/.venv/bin/python"
-          deps-stamp "/users/me/logseq/embedding-server/deps-v2.ok"
-          validation-attempts (atom 0)
+    (let [validation-attempts (atom 0)
           {:keys [runtime commands removed-dirs writes spawns]} (fake-runtime
                                                                  {:existing-paths #{venv-python deps-stamp}
                                                                   :allocated-port 45678
@@ -274,7 +275,7 @@
                                                                                              (= args ["-c" "import sys"])
                                                                                              (= 1 (swap! validation-attempts inc)))
                                                                                     (p/rejected (js/Error. "stale venv python"))))})
-          app (fake-app "/users/me/logseq" true)]
+          app (fake-app true)]
       (-> (p/let [result (embedding-server/start! app runtime)]
             (is (= :started result))
             (is (= [venv-dir] @removed-dirs))
@@ -297,8 +298,8 @@
             (is (= [{:runtime-dir runtime-dir
                      :venv-dir venv-dir
                      :venv-python venv-python
-                     :sidecar-dir "/app/Contents/Resources/sidecar"
-                     :script-path "/app/Contents/Resources/sidecar/embedding_server.py"
+                     :sidecar-dir packaged-sidecar-dir
+                     :script-path packaged-script
                      :host "127.0.0.1"
                      :port 45678
                      :model-id "all-MiniLM-L6-v2"}]
@@ -311,11 +312,8 @@
 (deftest start-default-port-allocator-uses-node-net
   (async done
     (embedding-server/stop!)
-    (let [_runtime-dir "/users/me/logseq/embedding-server"
-          venv-python "/users/me/logseq/embedding-server/.venv/bin/python"
-          deps-stamp "/users/me/logseq/embedding-server/deps-v2.ok"
-          {:keys [runtime spawns env]} (fake-runtime {:existing-paths #{venv-python deps-stamp}})
-          app (fake-app "/users/me/logseq" true)
+    (let [{:keys [runtime spawns env]} (fake-runtime {:existing-paths #{venv-python deps-stamp}})
+          app (fake-app true)
           runtime (dissoc runtime :find-port!)]
       (-> (p/let [result (embedding-server/start! app runtime)
                   port (:port (first @spawns))]

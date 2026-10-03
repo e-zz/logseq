@@ -22,6 +22,7 @@
     :rename-page
     :delete-page
     :restore-recycled
+    :recycle-blocks
     :recycle-delete-permanently
     :upsert-property})
 
@@ -642,6 +643,10 @@
     :restore-recycled
     (let [[root-id] args]
       [:restore-recycled [(stable-block-uuid db root-id)]])
+
+    :recycle-blocks
+    (let [[root-id opts] args]
+      [:recycle-blocks [(stable-block-uuid db root-id) opts]])
 
     :recycle-delete-permanently
     (let [[root-id] args]
@@ -1356,6 +1361,10 @@
 
     :restore-recycled
     (let [[root-id] args]
+      (unresolved-numeric-entity-id? root-id))
+
+    :recycle-blocks
+    (let [[root-id _opts] args]
       (unresolved-numeric-entity-id? root-id))
 
     :apply-template

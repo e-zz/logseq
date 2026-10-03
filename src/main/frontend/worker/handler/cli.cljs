@@ -40,6 +40,11 @@
   (let [conn (worker-state/get-datascript-conn repo)]
     (api-tools/get-block @conn uuid-string options)))
 
+(def-thread-api :thread-api/api-get-recycled-block
+  [repo uuid-string options]
+  (let [conn (worker-state/get-datascript-conn repo)]
+    (api-tools/get-recycled-block @conn uuid-string options)))
+
 (def-thread-api :thread-api/api-list-properties
   [repo options]
   (let [conn (worker-state/get-datascript-conn repo)]

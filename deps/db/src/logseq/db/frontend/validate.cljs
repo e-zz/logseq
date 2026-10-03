@@ -135,7 +135,7 @@
   (let [datoms (if entity-ids
                  (entity-datoms db entity-ids)
                  (d/datoms db :eavt))
-        ent-maps* (db-malli-schema/datoms->entities datoms)
+        ent-maps* (db-malli-schema/datoms->entities datoms {:entity-fn #(d/entity db %)})
         _ (when verbose
             (println "Read graph" (str db-name " with counts: "
                                        (pr-str (assoc (graph-counts db ent-maps*)

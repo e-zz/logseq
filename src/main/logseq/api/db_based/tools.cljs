@@ -1,6 +1,7 @@
 (ns logseq.api.db-based.tools
   "Shared helpers for db-based API calls."
-  (:require [clojure.string :as string]
+  (:require [clojure.set :as set]
+            [clojure.string :as string]
             [datascript.core :as d]
             [logseq.api.db-based.util :as api-util]
             [logseq.common.util :as common-util]
@@ -8,14 +9,38 @@
             [logseq.db :as ldb]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.content :as db-content]
+            [logseq.db.frontend.db :as db-db]
             [logseq.db.frontend.entity-util :as entity-util]
             [logseq.db.frontend.property :as db-property]
             [logseq.db.frontend.property.type :as db-property-type]
             [logseq.db.frontend.schema :as db-schema]
+            [logseq.outliner.recycle :as outliner-recycle]
             [logseq.outliner.tree :as otree]
             [logseq.outliner.validate :as outliner-validate]
             [malli.core :as m]
             [malli.error :as me]))
+
+(defn- ->closed-value-info
+  "Stable, JSON-safe discovery info for one closed value. The uuid is the
+   canonical value an agent writes back; title/ident are for humans and prompts."
+  [cv]
+  (let [title (or (:block/title cv) (:logseq.property/value cv))]
+    (cond-> {:block/uuid (str (:block/uuid cv))}
+      (some? title) (assoc :block/title title)
+      (:db/ident cv) (assoc :db/ident (subs (str (:db/ident cv)) 1)))))
+
+(defn- allowed-closed-values
+  "The closed values an agent may read or write: dropped when recycled or hidden.
+   Shared by discovery and write resolution so both accept the same set."
+  [property]
+  (remove #(or (entity-util/recycled? %) (:logseq.property/hide? %))
+          (:property/closed-values property)))
+
+(defn- property-closed-values
+  "Allowed choices of a closed-value property. Exposed only for properties that
+   actually have closed values so hidden metadata stays out."
+  [property]
+  (mapv ->closed-value-info (allowed-closed-values property)))
 
 (defn list-properties
   "Main fn for ListProperties tool"
@@ -23,20 +48,29 @@
   (->> (d/datoms db :avet :block/tags :logseq.class/Property)
        (map #(d/entity db (:e %)))
        #_((fn [x] (prn :prop-keys (distinct (mapcat keys x))) x))
-       (map (fn [e]
-              (if expand
-                (cond-> (into {} e)
-                  true
-                  (dissoc :block/tags :block/order :block/refs :block/name :db/index
-                          :logseq.property/default-value)
-                  true
-                  (update :block/uuid str)
-                  (:logseq.property/classes e)
-                  (update :logseq.property/classes #(mapv :db/ident %))
-                  (:logseq.property/description e)
-                  (update :logseq.property/description db-property/property-value-content))
-                {:block/title (:block/title e)
-                 :block/uuid (str (:block/uuid e))})))))
+        (map (fn [e]
+               (if expand
+                 (let [closed-values (property-closed-values e)]
+                   (cond-> (into {} e)
+                     true
+                     ;; `:property/closed-values` is a virtual entity-plus
+                     ;; attribute (deps/db/.../entity_plus.cljc): never trust a
+                     ;; raw value from the realized map. Drop it and re-add only
+                     ;; the filtered choices below so hidden/recycled protected
+                     ;; metadata cannot surface when the allowed set is empty.
+                     (dissoc :block/tags :block/order :block/refs :block/name :db/index
+                             :property/closed-values
+                             :logseq.property/default-value)
+                     true
+                     (update :block/uuid str)
+                     (:logseq.property/classes e)
+                     (update :logseq.property/classes #(mapv :db/ident %))
+                     (:logseq.property/description e)
+                     (update :logseq.property/description db-property/property-value-content)
+                     (seq closed-values)
+                     (assoc :property/closed-values closed-values)))
+                 {:block/title (:block/title e)
+                  :block/uuid (str (:block/uuid e))})))))
 
 (defn list-tags
   "Main fn for ListTags tool"
@@ -75,6 +109,9 @@
     (cond-> {}
       (:block/title reference)
       (assoc :block/title (:block/title reference))
+
+      (some? (:logseq.property/value reference))
+      (assoc :logseq.property/value (:logseq.property/value reference))
 
       (:block/uuid reference)
       (assoc :block/uuid (str (:block/uuid reference)))
@@ -130,12 +167,25 @@
   (assoc (entity->serializable db block)
          :block/children (mapv #(block-tree->serializable db %) (:block/children block))))
 
+(defn- page-own-property-value-block?
+  "True for a property-value pseudochild that stores one of the page's own
+   property values (its parent is the page). Those are metadata, not page
+   content, so they are excluded even from the include-children tree. Property
+   value blocks owned by descendant blocks are content of those blocks and are
+   left untouched."
+  [page-id block]
+  (and (or (:block/closed-value-property block)
+           (:logseq.property/created-from-property block))
+       (= page-id (:db/id (:block/parent block)))))
+
 (defn- page-block-tree
-  "Raw tree of every block on the page, before any depth is dropped."
+  "Raw tree of every content block on the page, before any depth is dropped."
   [db page-id]
   (let [datoms (d/datoms db :avet :block/page page-id)
         block-eids (mapv :e datoms)
-        block-ents (map #(d/entity db %) block-eids)
+        block-ents (->> block-eids
+                        (map #(d/entity db %))
+                        (remove #(page-own-property-value-block? page-id %)))
         blocks (map #(assoc % :block/title (db-content/recur-replace-uuid-in-block-title %)) block-ents)]
     (otree/blocks->vec-tree db blocks page-id)))
 
@@ -258,11 +308,10 @@
                        " to return the complete tree.")}
 
           :else
-          (cond-> {:entity (if include-children?
+          (cond-> {                   :entity (if include-children?
                              (entity->serializable db page)
-                             (-> (remove-hidden-properties page)
-                                 (dissoc :block/tags :block/refs)
-                                 (update :block/uuid str)))
+                             (-> (entity->serializable db page)
+                                 (dissoc :block/tags :block/refs)))
                    :blocks (get-page-blocks db tree {:include-children? include-children?})}
             (pos? (or omitted 0))
             (assoc :block/tree-has-more? true :block/tree-omitted-count omitted)))))))
@@ -326,6 +375,52 @@
             (assoc :logseq.property/deleted-at recycled-at))))
       {:error (str "Block uuid " uuid-string " not found")})))
 
+(defn get-recycled-block
+  "Reads the retained subtree of an explicitly recycled ordinary block root,
+   including its stored original location. Property-value pseudochildren, pages,
+   tags and properties are rejected. `:subtree` is root-first and ordered and
+   `:page-uuid` is the current (Recycle) location page.
+
+   With `:classify?` an active ordinary block returns `{:state \"active\"}`
+   instead of an error so the recycle tool can distinguish no-op from invalid
+   before transacting."
+  [db uuid-string {:keys [classify?]}]
+  (cond
+    (not (and (string? uuid-string)
+              (common-util/uuid-string? uuid-string)))
+    {:error "Block uuid must be a valid uuid string"}
+
+    :else
+    (if-let [root (d/entity db [:block/uuid (uuid uuid-string)])]
+      (cond
+        (entity-util/page? root)
+        {:error (str "Entity uuid " uuid-string
+                     " is a page, tag, or property; getRecycledBlock reads recycled blocks only")}
+
+        (or (:block/closed-value-property root)
+            (:logseq.property/created-from-property root))
+        {:error (str "Block uuid " uuid-string
+                     " identifies a property-value pseudochild and is not returned by getRecycledBlock")}
+
+        (nil? (:logseq.property/deleted-at root))
+        (if classify?
+          {:state "active" :root-uuid (str (:block/uuid root))}
+          {:error (str "Block uuid " uuid-string " is not recycled")})
+
+        :else
+        (let [subtree (outliner-recycle/subtree-uuids db root)]
+          {:operation "get-recycled"
+           :state "recycled"
+           :root-uuid (str (:block/uuid root))
+           :deleted-at (:logseq.property/deleted-at root)
+           :page-uuid (some-> (:block/page root) :block/uuid str)
+           :original-page-uuid (some-> (:logseq.property.recycle/original-page root) :block/uuid str)
+           :original-parent-uuid (some-> (:logseq.property.recycle/original-parent root) :block/uuid str)
+           :original-order (:logseq.property.recycle/original-order root)
+           :subtree subtree
+           :subtree-count (count subtree)}))
+      {:error (str "Block uuid " uuid-string " not found")})))
+
 (defn list-pages
   "Main fn for ListPages tool. Recycled pages are excluded unless
    `include-recycled?` is true, in which case they are listed with their
@@ -353,44 +448,324 @@
 
 ;; upsert-nodes tool
 ;; =================
-(defn- resolve-numeric-properties
-  "Narrow contract: UUID-keyed existing single-valued user number properties.
-   Resolve and validate the whole batch before constructing the importer data."
-  [db operations receipt?]
+(defn- closed-value-title
+  "Display value of a closed-value entity (title for text types, :logseq.property/value otherwise)."
+  [ent]
+  (or (:block/title ent) (:logseq.property/value ent)))
+
+(def ^:private supported-typed-property-types
+  "User property types with a supported generic write path. Internal-only types
+   (map/json/string/entity/class/page/property/keyword/coll/any) are rejected."
+  #{:default :number :url :checkbox :datetime :date :node :asset})
+
+(defn- property-key->entity
+  "Resolves a property identifier to its existing property entity. Accepts only a
+   property UUID (the identity listProperties returns) or an exact qualified db
+   ident (e.g. `logseq.property/status`, `user.property/foo`). A bare title is
+   rejected so a name collision can never silently pick the wrong property."
+  [db key]
+  (let [id (cond
+             (keyword? key) (if (namespace key) key (name key))
+             (string? key) (if (string/includes? key "/") (keyword key) key)
+             :else nil)
+        ent (cond
+              (and (string? id) (common-util/uuid-string? id))
+              (d/entity db [:block/uuid (uuid id)])
+
+              (qualified-keyword? id)
+              (d/entity db id)
+
+              :else nil)]
+    (when-not (and ent (entity-util/property? ent))
+      (throw (ex-info
+              (str "Property " (pr-str key)
+                   " must be an existing property UUID or exact qualified ident "
+                   "(e.g. \"logseq.property/status\", \"user.property/foo\"); a bare title is not accepted")
+              {:property key})))
+    ent))
+
+(defn- assert-writable-property!
+  [prop property-id]
+  (when (:logseq.property/deleted-at prop)
+    (throw (ex-info (str "Property " (pr-str property-id) " is recycled and is not writable")
+                    {:property property-id})))
+  (when (and (entity-util/hidden? prop)
+             (not= (:db/ident prop) :logseq.property/order-list-type))
+    (throw (ex-info (str "Property " (pr-str property-id) " is hidden and is not writable")
+                    {:property property-id})))
+  (when (:logseq.property/created-from-property prop)
+    (throw (ex-info (str "Property " (pr-str property-id) " is a property-value entity and is not writable")
+                    {:property property-id}))))
+
+(defn- uuid-envelope->uuid
+  "A stable reference value is an unambiguous `{:uuid \"...\"}` envelope, never a
+   raw string guessed into a link."
+  [value]
+  (when (and (map? value)
+             (= #{:uuid} (set (keys value)))
+             (common-util/uuid-string? (:uuid value)))
+    (uuid (:uuid value))))
+
+(defn- ref-target
+  "Resolves and validates the target entity a `{:uuid \"...\"}` reference envelope
+   points at. Recycled targets, hidden targets and targets with a recycled or
+   hidden ancestor are rejected."
+  [db property-id value]
+  (let [id (uuid-envelope->uuid value)]
+    (when-not id
+      (throw (ex-info (str "Reference property " (pr-str property-id)
+                           " requires an unambiguous {\"uuid\" \"...\"} reference envelope")
+                      {:property property-id :value value})))
+    (let [target (d/entity db [:block/uuid id])]
+      (when-not target
+        (throw (ex-info (str "Reference property " (pr-str property-id)
+                             " points to unknown uuid " (pr-str (:uuid value)))
+                        {:property property-id :value value})))
+      (when (entity-util/recycled? target)
+        (throw (ex-info (str "Reference property " (pr-str property-id)
+                             " points to a recycled entity")
+                        {:property property-id :value value})))
+      (when (entity-util/hidden? target)
+        (throw (ex-info (str "Reference property " (pr-str property-id)
+                             " points to a hidden entity or one with a hidden or recycled ancestor")
+                        {:property property-id :value value})))
+      [id target])))
+
+(defn- class-label
+  [class]
+  (or (:db/ident class) (:block/title class) (some-> (:block/uuid class) str)))
+
+(defn- assert-allowed-target-class!
+  "Requires the target to be an instance of one of the property's allowed classes.
+   Uses the shared `class-instance?` identity/inheritance check so ident-less user
+   classes and class inheritance are honored instead of a private ident rule."
+  [prop property-id target]
+  (when-let [classes (seq (:logseq.property/classes prop))]
+    (when-not (some #(db-db/class-instance? % target) classes)
+      (throw (ex-info (str "Reference property " (pr-str property-id)
+                           " requires a target tagged with one of "
+                           (pr-str (mapv class-label classes)))
+                      {:property property-id
+                       :target-classes (mapv class-label (:block/tags target))})))))
+
+(defn- resolve-typed-scalar
+  "Validates and encodes one value for a non-closed property of a supported type."
+  [db prop property-id type value]
+  (case type
+    :default
+    (if (string? value)
+      value
+      (throw (ex-info (str "Text property " (pr-str property-id) " value must be a string")
+                      {:property property-id :value value})))
+
+    :number
+    (if (and (number? value) (js/Number.isFinite value))
+      value
+      (throw (ex-info (str "Numeric property " (pr-str property-id) " value must be a finite JSON number")
+                      {:property property-id :value value})))
+
+    :url
+    (if (and (string? value) (or (db-property-type/url? value) (db-property-type/macro-url? value)))
+      value
+      (throw (ex-info (str "URL property " (pr-str property-id) " value must be a URL string")
+                      {:property property-id :value value})))
+
+    :checkbox
+    (if (boolean? value)
+      value
+      (throw (ex-info (str "Checkbox property " (pr-str property-id) " value must be a boolean")
+                      {:property property-id :value value})))
+
+    :datetime
+    (if (and (number? value) (js/Number.isFinite value))
+      value
+      (throw (ex-info (str "Datetime property " (pr-str property-id) " value must be a finite epoch-milliseconds number")
+                      {:property property-id :value value})))
+
+    :date
+    (let [[id target] (ref-target db property-id value)]
+      (when-not (entity-util/journal? target)
+        (throw (ex-info (str "Date property " (pr-str property-id) " must reference a journal page uuid")
+                        {:property property-id :value value})))
+      [:block/uuid id])
+
+    :node
+    (let [[id target] (ref-target db property-id value)]
+      (when (or (nil? (:block/title target))
+                (:block/closed-value-property target)
+                (:logseq.property/created-from-property target))
+        (throw (ex-info (str "Node property " (pr-str property-id) " must reference a block-shaped node with a title")
+                        {:property property-id :value value})))
+      (assert-allowed-target-class! prop property-id target)
+      [:block/uuid id])
+
+    :asset
+    (let [[id target] (ref-target db property-id value)]
+      (when-not (and (:block/title target)
+                     (contains? (set (map :db/ident (:block/tags target))) :logseq.class/Asset))
+        (throw (ex-info (str "Asset property " (pr-str property-id) " must reference an uploaded Asset block")
+                        {:property property-id :value value})))
+      [:block/uuid id])
+
+    (throw (ex-info (str "Property " (pr-str property-id) " has unsupported type " (pr-str type))
+                    {:property property-id :type type}))))
+
+(defn- closed-choice-matches
+  "All allowed closed values `value` could mean. An exact stable uuid or keyword
+   identity is canonical; display-value strings also match the title and, when a
+   db ident exists, its short forms. The caller decides on zero/one/many matches,
+   so a duplicate display value fails visibly instead of silently picking one."
+  [choices value]
+  (let [ident-forms (fn [cv]
+                      (when-let [ident (:db/ident cv)]
+                        #{(name ident) (subs (str ident) 1)}))]
+    (cond
+      (keyword? value)
+      (filter #(= value (:db/ident %)) choices)
+
+      (number? value)
+      (filter #(= value (:logseq.property/value %)) choices)
+
+      (string? value)
+      (filter (fn [cv]
+                (or (= value (str (:block/uuid cv)))
+                    (= value (closed-value-title cv))
+                    (contains? (ident-forms cv) value)))
+              choices)
+
+      :else [])))
+
+(defn- resolve-closed-choice
+  "Selects a real allowed closed value by stable uuid, exact identity, or display
+   value, and returns its lookup ref. Membership in the allowed (non-hidden,
+   non-recycled) set is required; choices are never invented. An ident-less user
+   closed value is selectable by uuid or display value. A value that matches more
+   than one allowed choice fails as ambiguous rather than picking the first."
+  [prop property-id value]
+  (when-not (contains? db-property-type/closed-value-property-types (:logseq.property/type prop))
+    (throw (ex-info (str "Closed-value property " (pr-str property-id)
+                         " has unsupported type " (pr-str (:logseq.property/type prop)))
+                    {:property property-id})))
+  (let [choices (allowed-closed-values prop)
+        matches (closed-choice-matches choices value)]
+    (when (empty? matches)
+      (throw (ex-info (str (:block/title prop) " value must be an existing closed value: "
+                           "its stable uuid, its identity (e.g. \"logseq.property/status.done\"), "
+                           "or its display value (e.g. \"Done\")")
+                      {:property property-id :value value})))
+    (when (> (count matches) 1)
+      (throw (ex-info (str (:block/title prop) " value " (pr-str value)
+                           " is ambiguous: it matches " (count matches)
+                           " allowed closed values. Use the stable uuid instead.")
+                      {:property property-id :value value
+                       :candidate-uuids (mapv #(str (:block/uuid %)) matches)})))
+    (let [cv (first matches)]
+      (when-not (and (:block/closed-value-property cv) (:block/uuid cv))
+        (throw (ex-info (str (:block/title prop) " value must be an existing closed value: "
+                             "its stable uuid, its identity (e.g. \"logseq.property/status.done\"), "
+                             "or its display value (e.g. \"Done\")")
+                        {:property property-id :value value})))
+      [:block/uuid (:block/uuid cv)])))
+
+(defn- resolve-property-value
+  "Resolve and validate one property pair against the real property metadata.
+   Returns [ident encoded-value] for the importer, or throws. The value contract
+   is driven entirely by the property's existing type/cardinality/closed values;
+   the property type is never guessed from the key."
+  [db prop property-id value]
+  (let [type (:logseq.property/type prop)
+        ident (:db/ident prop)]
+    (cond
+      (= ident :logseq.property/order-list-type)
+      (do
+        (when-not (and (string? value) (= (string/lower-case value) "number"))
+          (throw (ex-info
+                  "List-type value must be the string \"number\" (a numbered/ordered list). \"bullet\" requires removal, which the import path does not support yet."
+                  {:property property-id :value value})))
+        [ident "number"])
+
+      (seq (:property/closed-values prop))
+      (do
+        (when (= :db.cardinality/many (:db/cardinality prop))
+          (throw (ex-info (str "Many-valued closed-value property " (pr-str property-id)
+                               " is not supported by this API")
+                          {:property property-id})))
+        (when (nil? value)
+          (throw (ex-info (str "Closed-value property " (pr-str property-id)
+                               " does not accept null; removal is not supported")
+                          {:property property-id})))
+        [ident (resolve-closed-choice prop property-id value)])
+
+      (= :db.cardinality/many (:db/cardinality prop))
+      (do
+        (when-not (contains? db-property-type/cardinality-property-types type)
+          (throw (ex-info (str "Property " (pr-str property-id) " of type " (pr-str type)
+                               " cannot be many-valued")
+                          {:property property-id :type type})))
+        (when-not (sequential? value)
+          (throw (ex-info (str "Many-valued property " (pr-str property-id) " requires a JSON array")
+                          {:property property-id :value value})))
+        (when (empty? value)
+          (throw (ex-info (str "Many-valued property " (pr-str property-id)
+                               " requires a non-empty JSON array; removal is not supported")
+                          {:property property-id :value value})))
+        (let [encoded (mapv #(resolve-typed-scalar db prop property-id type %) value)]
+          ;; The importer unions cardinality-many values on edit; return a set so
+          ;; the additive semantics are explicit rather than accidental.
+          [ident (set encoded)]))
+
+      :else
+      (do
+        (when (sequential? value)
+          (throw (ex-info (str "Single-valued property " (pr-str property-id) " does not accept an array")
+                          {:property property-id :value value})))
+        (when-not (contains? supported-typed-property-types type)
+          (throw (ex-info (str "Property " (pr-str property-id) " has unsupported type " (pr-str type)
+                               "; supported types are "
+                               (pr-str (vec (sort-by name supported-typed-property-types))))
+                          {:property property-id :type type})))
+        (when (nil? value)
+          (throw (ex-info (str "Property " (pr-str property-id)
+                               " does not accept null; removal is not supported")
+                          {:property property-id})))
+        [ident (resolve-typed-scalar db prop property-id type value)]))))
+
+(defn- visible-page
+  "Resolves an existing, non-recycled page by uuid for a property write."
+  [db id]
+  (let [page (when (common-util/uuid-string? id)
+               (d/entity db [:block/uuid (uuid id)]))]
+    (when-not (and (entity-util/page? page) (not (recycled-page? page)))
+      (throw (ex-info "Page property edit requires an existing ordinary page"
+                      {:id id})))
+    page))
+
+(defn- resolve-typed-properties
+  "Stage-1/2 widened contract: existing schema-driven typed properties on
+   add/edit blocks and pages. Every property in `data.properties` is located by
+   UUID or exact qualified ident and validated against its real metadata before
+   any write."
+  [db operations]
   (mapv
    (fn [{:keys [operation entityType data id] :as op}]
      (if-not (contains? data :properties)
        op
        (do
-         (when receipt?
-           (throw (ex-info "Property writes do not support receipt mode yet" {})))
-         (when-not (and (= "block" entityType) (contains? #{"add" "edit"} operation))
-           (throw (ex-info "Properties are supported only on add/edit blocks" {})))
-         (when (and (= "edit" operation) (:error (get-block db id {})))
+         (when-not (and (contains? #{"block" "page"} entityType)
+                        (contains? #{"add" "edit"} operation))
+           (throw (ex-info "Properties are supported only on add/edit blocks and pages" {})))
+         (when (and (= "page" entityType) (= "edit" operation))
+           (visible-page db id))
+         (when (and (= "block" entityType) (= "edit" operation)
+                    (:error (get-block db id {})))
            (throw (ex-info "Property edit requires an ordinary visible block" {:id id})))
-         (assoc op ::numeric-properties
+         (assoc op ::typed-properties
                 (into {}
                       (map (fn [[key value]]
-                             (let [property-id (if (keyword? key)
-                                                 (when-not (namespace key) (name key))
-                                                 key)
-                                   prop (when (and (string? property-id)
-                                                   (common-util/uuid-string? property-id))
-                                          (d/entity db [:block/uuid (uuid property-id)]))
-                                   ident (:db/ident prop)]
-                               (when-not (and (entity-util/property? prop)
-                                              (= "user.property" (namespace ident))
-                                              (= :number (:logseq.property/type prop))
-                                              (= :db.cardinality/one (:db/cardinality prop))
-                                              (not (seq (:property/closed-values prop)))
-                                              (not (entity-util/hidden? prop)))
-                                 (throw (ex-info "Property must be an existing single-valued user number property UUID"
-                                                 {:property property-id})))
-                               (when-not (and (number? value) (js/Number.isFinite value))
-                                 (throw (ex-info "Numeric property value must be a finite JSON number"
-                                                 {:property property-id})))
-                               [ident value])))
-                      (:properties data))))))
+                             (let [prop (property-key->entity db key)]
+                               (assert-writable-property! prop key)
+                               (resolve-property-value db prop key value)))
+                           (:properties data)))))))
    operations))
 
 (defn- get-ident [idents title]
@@ -466,8 +841,8 @@
                      (let [op (nth operations i)
                            data (:data op)]
                        (cond-> {:block/title (:title data)}
-                         (seq (::numeric-properties op))
-                         (assoc :build/properties (::numeric-properties op))
+                         (seq (::typed-properties op))
+                         (assoc :build/properties (::typed-properties op))
                          (::receipt-uuid op)
                          (assoc :block/uuid (::receipt-uuid op) :build/keep-uuid? true)
                          (:tags data)
@@ -487,7 +862,8 @@
        set))
 
 (defn- ops->existing-pages-and-blocks
-  "Groups existing-page adds and edits together, preserving nested add trees."
+  "Groups existing-page adds, block edits and page property edits together,
+   preserving nested add trees."
   [db operations idents index->parent adds-by-page]
   (let [new-page-ids (ops->new-page-ids operations)
         edits-by-page (->> operations
@@ -497,18 +873,24 @@
                                          (when-not (:block/page block)
                                            (throw (ex-info "Block edit operation requires a block to have a page." {})))
                                          (str (get-in block [:block/page :block/uuid]))))))
+        page-edits (->> operations
+                        (filter #(and (= "page" (:entityType %)) (= "edit" (:operation %)))))
+        page-edit-props (into {} (map (fn [op] [(:id op) (::typed-properties op)])) page-edits)
         page-ids (distinct (concat (remove new-page-ids (keys adds-by-page))
-                                   (keys edits-by-page)))]
+                                   (keys edits-by-page)
+                                   (keys page-edit-props)))]
     (mapv (fn [page-id]
-            {:page {:block/uuid (uuid page-id)}
+            {:page (cond-> {:block/uuid (uuid page-id)}
+                     (seq (get page-edit-props page-id))
+                     (assoc :build/properties (get page-edit-props page-id)))
              :blocks (into (build-block-tree operations index->parent (get adds-by-page page-id) idents)
                            (map (fn [op]
                                   (cond-> {:block/uuid (uuid (:id op))
                                            :block/title (if (contains? (:data op) :title)
                                                           (get-in op [:data :title])
                                                           (:block/title (d/entity db [:block/uuid (uuid (:id op))])))}
-                                    (seq (::numeric-properties op))
-                                    (assoc :build/properties (::numeric-properties op))))
+                                    (seq (::typed-properties op))
+                                    (assoc :build/properties (::typed-properties op))))
                                 (get edits-by-page page-id)))})
           page-ids)))
 
@@ -521,11 +903,15 @@
         new-pages (filter #(and (= "page" (:entityType %)) (= "add" (:operation %))) operations)
         index->parent (assert-parent-ids! db operations)]
     (into (mapv (fn [op]
-                  (cond-> {:page (if-let [journal-day (date-time-util/journal-title->int
-                                                       (get-in op [:data :title])
-                                                       (date-time-util/safe-journal-title-formatters nil))]
-                                   {:build/journal journal-day}
-                                   {:block/title (get-in op [:data :title])})}
+                  (cond-> {:page (cond-> (if-let [journal-day (date-time-util/journal-title->int
+                                                              (get-in op [:data :title])
+                                                              (date-time-util/safe-journal-title-formatters nil))]
+                                            {:build/journal journal-day}
+                                            {:block/title (get-in op [:data :title])})
+                                    (seq (::typed-properties op))
+                                    (assoc :build/properties (::typed-properties op))
+                                    (::receipt-uuid op)
+                                    (assoc :block/uuid (::receipt-uuid op) :build/keep-uuid? true))}
                     (seq (get adds-by-page (:id op)))
                     (assoc :blocks (build-block-tree operations index->parent
                                                      (get adds-by-page (:id op)) idents))))
@@ -672,6 +1058,11 @@
                        [:data [:map {:closed true}
                                [:title {:optional true} :string]
                                [:properties {:optional true} [:map-of [:or :keyword :string] :any]]]]]]
+    ;; Page edits carry properties only; title/tags/outline edits are out of scope.
+    [["edit" "page"] [:map
+                      [:id uuid-string]
+                      [:data [:map {:closed true}
+                              [:properties [:map-of [:or :keyword :string] :any]]]]]]
     ;; other edit's
     [::m/default [:map [:id uuid-string]]]]])
 
@@ -722,14 +1113,23 @@
 (defn- validate-receipt-operations!
   [db operations]
   (doseq [[index {:keys [operation entityType data id]}] (map-indexed vector operations)]
-    (when-not (and (= "block" entityType)
+    (when-not (and (contains? #{"block" "page"} entityType)
                    (contains? #{"add" "edit"} operation))
-      (throw (ex-info "Receipt mode supports only add/edit block operations on existing pages"
+      (throw (ex-info "Receipt mode supports only add/edit block and page operations"
                       {:operation-index index
                        :operation operation
                        :entity-type entityType})))
-    (case operation
-      "add"
+    (case [operation entityType]
+      ["add" "page"] nil
+
+      ["edit" "page"]
+      (let [page (when (common-util/uuid-string? id)
+                   (d/entity db [:block/uuid (uuid id)]))]
+        (when-not (and (entity-util/page? page) (not (recycled-page? page)))
+          (throw (ex-info "Receipt mode page edits require an existing page UUID"
+                          {:operation-index index :page-id id}))))
+
+      ["add" "block"]
       (let [page-id (:page-id data)
             page (when (common-util/uuid-string? page-id)
                    (d/entity db [:block/uuid (uuid page-id)]))]
@@ -737,50 +1137,142 @@
           (throw (ex-info "Receipt mode block adds require an existing page UUID"
                           {:operation-index index :page-id page-id}))))
 
-      "edit"
+      ["edit" "block"]
       (let [block (when (common-util/uuid-string? id)
                     (d/entity db [:block/uuid (uuid id)]))]
         (when-not (:block/page block)
           (throw (ex-info "Receipt mode block edits require an existing block UUID"
                           {:operation-index index :block-id id})))))))
 
+(def ^:private ref-property-types
+  "Types stored as a direct `[:block/uuid ..]` ref (node/date/asset). Properties
+   with closed values are refs too and are detected separately."
+  #{:date :node :asset})
+
+(defn- canonical-expected-property
+  "Canonical comparison form for a requested property value. Reuses the write
+   resolver so the receipt measures exactly what the importer stores: ref values
+   become uuid strings and many values stay sets."
+  [db key value]
+  (let [prop (property-key->entity db key)
+        _ (assert-writable-property! prop key)
+        [_ encoded] (resolve-property-value db prop key value)
+        canonical (fn canonical [v]
+                    (cond
+                      (and (vector? v) (= :block/uuid (first v))) (str (second v))
+                      (set? v) (set (map canonical v))
+                      :else v))]
+    (canonical encoded)))
+
+(defn- observed-property-values
+  "Canonical observed value(s) for one property on an entity, matching the shape
+   produced by `canonical-expected-property`."
+  [db entity prop]
+  (let [ident (:db/ident prop)
+        type (:logseq.property/type prop)
+        ref? (or (contains? ref-property-types type)
+                 (boolean (seq (:property/closed-values prop))))
+        value-ref? (and (not ref?) (contains? db-property-type/value-ref-property-types type))
+        one (fn [v]
+              (let [e (if (and (map? v) (:db/id v)) (d/entity db (:db/id v)) v)]
+                (cond
+                  (nil? e) nil
+                  ref? (str (:block/uuid e))
+                  value-ref? (if (contains? e :logseq.property/value)
+                               (:logseq.property/value e)
+                               (:block/title e))
+                  :else e)))]
+    (if (= :db.cardinality/many (:db/cardinality prop))
+      (set (map one (get entity ident)))
+      (one (get entity ident)))))
+
+(defn- verify-requested-properties
+  "Compares each requested property value against observed post-write state.
+   Single values must match exactly; many values are additive, so the requested
+   values must be a subset of the observed set. Returns `{:values {ident observed}}`
+   or `{:error ..}` with the expected/observed pair."
+  [db entity properties]
+  (reduce-kv
+   (fn [acc key value]
+     (if (:error acc)
+       acc
+       (let [prop (property-key->entity db key)
+             expected (canonical-expected-property db key value)
+             observed (observed-property-values db entity prop)
+             many? (= :db.cardinality/many (:db/cardinality prop))
+             ok? (if many? (set/subset? expected observed) (= expected observed))]
+         (if ok?
+           (update acc :values assoc (:db/ident prop) observed)
+           (cond-> {:error (str "Receipt property " (pr-str key)
+                                " does not match the observed value")}
+             true (assoc :property key :expected expected :observed observed))))))
+   {:values {}}
+   (or properties {})))
+
 (defn read-upsert-blocks
-  "Reads and validates receipt blocks by UUID, preserving request order. Each
-  expectation may include `:page-uuid`, `:title` and `:parent-uuid`; only
-  ordinary visible blocks on active pages are eligible. `:parent-uuid` checks
-  the block's :block/parent so a wrong parent cannot claim a verified
-  hierarchy. Returns errors in-place and never exposes EIDs."
+  "Reads and validates receipt entities by UUID, preserving request order. Each
+  expectation may include `:entity-type` (\"block\" default), `:page-uuid`,
+  `:parent-uuid`, `:title` and `:properties` (the requested raw property map).
+  Ordinary visible blocks and existing pages are eligible. `:parent-uuid` checks
+  the block's :block/parent so a wrong parent cannot claim a verified hierarchy.
+  Requested property values are compared against observed post-write state; the
+  response carries the observed values. Returns errors in-place and never exposes
+  EIDs."
   [db expected-blocks]
-  (mapv (fn [{:keys [uuid page-uuid parent-uuid] :as expected}]
-          (let [block (get-block db uuid {})]
+  (mapv (fn [{:keys [page-uuid parent-uuid entity-type properties] :as expected}]
+          (let [uuid-str (:uuid expected)
+                page? (= "page" entity-type)
+                entity (d/entity db [:block/uuid (uuid uuid-str)])]
             (cond
-              (:error block)
-              block
+              (nil? entity)
+              {:error (str (if page? "Receipt page " "Receipt block ") uuid-str " not found")}
 
-              (and page-uuid (not= page-uuid (:block/page block)))
-              {:error (str "Receipt block " uuid " belongs to a different page")}
-
-              (and parent-uuid (not= parent-uuid (:block/parent block)))
-              {:error (str "Receipt block " uuid " does not have the requested parent " parent-uuid)}
-
-              (and (contains? expected :title)
-                   (not= (:title expected) (:block/title block)))
-              {:error (str "Receipt block " uuid " title does not match the requested title")}
+              page?
+              (if-not (entity-util/page? entity)
+                {:error (str "Receipt page " uuid-str " is not a page")}
+                (let [prop-result (verify-requested-properties db entity properties)]
+                  (cond
+                    (:error prop-result) prop-result
+                    (and (contains? expected :title)
+                         (not= (:title expected) (:block/title entity)))
+                    {:error (str "Receipt page " uuid-str " title does not match the requested title")}
+                    :else
+                    (cond-> {:block/uuid (str uuid-str) :block/title (:block/title entity)}
+                      (contains? expected :properties)
+                      (assoc :properties (:values prop-result))))))
 
               :else
-              (select-keys block [:block/uuid :block/page :block/parent :block/title]))))
+              (let [block (get-block db uuid-str {})]
+                (cond
+                  (:error block) block
+                  (and page-uuid (not= page-uuid (:block/page block)))
+                  {:error (str "Receipt block " uuid-str " belongs to a different page")}
+                  (and parent-uuid (not= parent-uuid (:block/parent block)))
+                  {:error (str "Receipt block " uuid-str " does not have the requested parent " parent-uuid)}
+                  (and (contains? expected :title)
+                       (not= (:title expected) (:block/title block)))
+                  {:error (str "Receipt block " uuid-str " title does not match the requested title")}
+                  :else
+                  (let [prop-result (verify-requested-properties db entity properties)]
+                    (if (:error prop-result)
+                      prop-result
+                      (cond-> (select-keys block [:block/uuid :block/page :block/parent :block/title])
+                        (contains? expected :properties)
+                        (assoc :properties (:values prop-result))))))))))
         expected-blocks))
 
 (defn ^:api build-upsert-nodes-edn
   "Given llm generated operations, builds the import EDN, validates it and returns it. It fails
    fast on anything invalid. Receipt options are internal: `:receipt?` restricts operations to
-   existing-page block writes, and `:receipt-uuids` supplies UUIDs for add correlation."
+   add/edit block and page writes, and `:receipt-uuids` supplies UUIDs for add correlation."
   ([db operations*]
    (build-upsert-nodes-edn db operations* {}))
   ([db operations* {:keys [receipt? receipt-uuids]}]
-   ;; Only support these operations with appropriate outliner validations
-   (when (seq (filter #(and (= "page" (:entityType %)) (= "edit" (:operation %))) operations*))
-     (throw (ex-info "Editing a page, tag or property isn't supported yet" {})))
+   ;; Tag/property edits and non-property page edits remain unsupported.
+   (when (seq (filter #(and (contains? #{"tag" "property"} (:entityType %))
+                            (= "edit" (:operation %)))
+                      operations*))
+     (throw (ex-info "Editing a tag or property isn't supported yet" {})))
    (let [operations
          (->> operations*
               ;; normalize classes as they sometimes have titles in :name
@@ -791,24 +1283,28 @@
          _ (when-let [errors (m/explain Upsert-nodes-operations-schema operations)]
              (throw (ex-info (str "Tool arguments are invalid:\n" (me/humanize errors))
                              {:errors errors})))
-         operations (resolve-numeric-properties db operations receipt?)
+         operations (resolve-typed-properties db operations)
          _ (doseq [op operations
                    :when (and (= "edit" (:operation op)) (= "block" (:entityType op)))]
-             (when-not (or (contains? (:data op) :title) (seq (::numeric-properties op)))
+             (when-not (or (contains? (:data op) :title) (seq (::typed-properties op)))
                (throw (ex-info "Block edit requires a title or non-empty properties" {}))))
+         _ (doseq [op operations
+                   :when (and (= "edit" (:operation op)) (= "page" (:entityType op)))]
+             (when-not (seq (::typed-properties op))
+               (throw (ex-info "Page property edit requires non-empty properties" {}))))
          _ (when receipt?
              (validate-receipt-operations! db operations))
          _ (when (and receipt?
                       (not= (count operations) (count receipt-uuids)))
              (throw (ex-info "Receipt UUID mapping must match operation count" {})))
          operations (if receipt?
-                      (map-indexed (fn [index op]
-                                     (cond-> op
-                                       (and (= "add" (:operation op))
-                                            (= "block" (:entityType op)))
-                                       (assoc ::receipt-uuid (nth receipt-uuids index))))
-                                   operations)
-                      operations)
+                       (map-indexed (fn [index op]
+                                      (cond-> op
+                                        (and (= "add" (:operation op))
+                                             (contains? #{"block" "page"} (:entityType op)))
+                                        (assoc ::receipt-uuid (nth receipt-uuids index))))
+                                    operations)
+                       operations)
          _ (assert-add-block-page-ids! db operations)
          idents (operations->idents db operations)
          pages-and-blocks (ops->pages-and-blocks db operations idents)
@@ -817,7 +1313,13 @@
                            (into {} (map (fn [ident]
                                            [ident (select-keys (d/entity db ident)
                                                                [:block/uuid :logseq.property/type :db/cardinality])]))
-                                 (mapcat #(keys (::numeric-properties %)) operations)))
+                                 ;; Built-in properties (e.g. :logseq.property/status,
+                                 ;; :logseq.property/order-list-type) already exist in the
+                                 ;; graph and must NOT be passed to the importer, which
+                                 ;; would try to create them and fail on the internal
+                                 ;; namespace. Only user property idents need a config entry.
+                                 (filter #(= "user.property" (namespace %))
+                                         (mapcat #(keys (::typed-properties %)) operations))))
          import-edn
          (cond-> {}
            (seq pages-and-blocks)

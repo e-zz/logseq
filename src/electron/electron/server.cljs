@@ -4,9 +4,9 @@
             ["fastify" :as Fastify]
             ["fs-extra" :as fs-extra]
             ["path" :as node-path]
-            [camel-snake-kebab.core :as csk]
             [cljs-bean.core :as bean]
             [clojure.string :as string]
+            [electron.api-method :as api-method]
             [electron.configs :as cfgs]
             [electron.logger :as logger]
             [electron.mcp-server :as desktop-mcp-server]
@@ -66,20 +66,6 @@
   (add-watch *state ::ws #(load-state-to-renderer! %4))
   #(remove-watch *state ::ws))
 
-(defn type-proxy-api? [s]
-  (when (string? s)
-    (string/starts-with? s "logseq.")))
-
-(defn resolve-real-api-method
-  [s]
-  (when-not (string/blank? s)
-    (if (type-proxy-api? s)
-      (let [s' (string/split (string/trim s) ".")
-            ns (some-> (second s') str (string/lower-case))
-            method (some-> (last s') str)]
-        (csk/->snake_case (str ns "@" method)))
-      (string/trim s))))
-
 (defn- validate-auth-token
   [token]
   (let [token (string/replace token "Bearer " "")]
@@ -115,7 +101,7 @@
 (defn- api-handler!
   [^js req ^js rep]
   (if-let [^js body (.-body req)]
-    (if-let [method (resolve-real-api-method (.-method body))]
+    (if-let [method (api-method/resolve-real-api-method (.-method body))]
       (-> (invoke-logseq-api! method (.-args body))
           (p/then #(do
                      ;; Responses with an :error key are unexpected failures from electron.listener
@@ -143,7 +129,7 @@
 
 (defn- initialize-mcp-routes [^js server]
   (let [api-fn (fn api-fn [meth args]
-                 (if-let [meth' (resolve-real-api-method meth)]
+                 (if-let [meth' (api-method/resolve-real-api-method meth)]
                    (invoke-logseq-api! meth' args)
                    #js {:error (str "No method found for " (pr-str meth))}))]
     (logger/debug "[server] MCP routes initialized")

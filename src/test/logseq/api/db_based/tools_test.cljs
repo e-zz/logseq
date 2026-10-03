@@ -7,8 +7,9 @@
             [logseq.api.test-helper :as api-test]
             [logseq.db :as ldb]
             [logseq.db.frontend.entity-util :as entity-util]
-            [logseq.db.frontend.property.build :as property-build]
-            [logseq.db.sqlite.build :as sqlite-build]))
+            [logseq.db.frontend.property.build :as db-property-build]
+            [logseq.db.sqlite.build :as sqlite-build]
+            [logseq.outliner.recycle :as recycle]))
 
 (use-fixtures :each {:before api-test/start-plugin-api-db!
                      :after api-test/destroy-plugin-api-db!})
@@ -19,6 +20,10 @@
   (let [page (ldb/get-page (conn/get-db) title)]
     (conn/transact! nil [[:db/add (:db/id page) :logseq.property/deleted-at 1]])
     (:block/uuid page)))
+
+(defn- entity-by-title
+  [db title]
+  (d/entity db (:e (first (d/datoms db :avet :block/title title)))))
 
 (deftest get-page-data-hides-recycled-page-by-uuid
   (test-helper/load-test-files
@@ -240,7 +245,7 @@
         [{:operation "add" :entityType "block" :data {:title "no page"}}])))
   (is (thrown-with-msg?
        js/Error
-       #"isn't supported yet"
+       #"Tool arguments are invalid"
        (api-tools/build-upsert-nodes-edn
         (conn/get-db)
         [{:operation "edit"
@@ -430,7 +435,7 @@
     (is (some? alias-property) "Fixture includes the built-in alias property entity")
     (conn/transact! nil [[:db/add (:db/id source) :block/link (:db/id target)]
                          [:db/add (:db/id source) :block/alias (:db/id target)]
-                         (property-build/build-property-value-block
+                         (db-property-build/build-property-value-block
                           source alias-property "Alias"
                           :properties {:block/closed-value-property #{(:db/id alias-property)}})])
     (let [result (api-tools/get-page-data (conn/get-db) "Reference Source Page"
@@ -531,37 +536,37 @@
         property-ident (some #(when (= "user.property" (namespace (:a %))) (:a %))
                              (d/datoms db :eavt (:db/id source)))
         property-key (name property-ident)
-        target (ldb/get-page db "Dynamic Property Target")]
-    (let [result (api-tools/get-page-data db "Dynamic Property Source"
-                                          {:include-children? true :max-blocks 2})
-          json (js/JSON.stringify (clj->js result))
-          parsed (js->clj (js/JSON.parse json))
-          contains-db-id? (fn contains-db-id? [value]
-                            (cond
-                              (map? value) (or (contains? value "db/id")
-                                               (some contains-db-id? (vals value)))
-                              (coll? value) (some contains-db-id? value)
-                              :else false))]
-      (is (= :db.type/ref (:db/valueType (d/entity db property-ident)))
-          "The fixture's real user property is schema-declared as a ref")
-      (is (= :node (:logseq.property/type (d/entity db property-ident)))
-          "The fixture's real user property uses the node property type")
-      (is (= :db.cardinality/one (:db/cardinality (d/entity db property-ident)))
-          "The fixture's real user property has single cardinality")
-      (is (= (:db/id target) (:db/id (get source property-ident)))
-          "The page stores a real DataScript entity under its dynamic property")
-      (is (not (re-find #"cljs\\$lang\\$protocol_mask" json))
-          "The complete JSON payload must not contain leaked DataScript entity protocols")
-      (is (not (contains-db-id? parsed))
-          "The complete JSON payload must not contain DataScript ids")
-      (is (= {"title" "Dynamic Property Target"
-              "uuid" (str (:block/uuid target))}
-             (get-in parsed ["entity" property-key]))
-          "Page node-property refs retain stable target title and uuid")
-      (is (= {"title" "Dynamic Property Target"
-              "uuid" (str (:block/uuid target))}
-             (get-in parsed ["blocks" 0 "children" 0 property-key]))
-          "Nested-block node-property refs retain stable target title and uuid"))))
+        target (ldb/get-page db "Dynamic Property Target")
+        result (api-tools/get-page-data db "Dynamic Property Source"
+                                        {:include-children? true :max-blocks 2})
+        json (js/JSON.stringify (clj->js result))
+        parsed (js->clj (js/JSON.parse json))
+        contains-db-id? (fn contains-db-id? [value]
+                          (cond
+                            (map? value) (or (contains? value "db/id")
+                                             (some contains-db-id? (vals value)))
+                            (coll? value) (some contains-db-id? value)
+                            :else false))]
+    (is (= :db.type/ref (:db/valueType (d/entity db property-ident)))
+        "The fixture's real user property is schema-declared as a ref")
+    (is (= :node (:logseq.property/type (d/entity db property-ident)))
+        "The fixture's real user property uses the node property type")
+    (is (= :db.cardinality/one (:db/cardinality (d/entity db property-ident)))
+        "The fixture's real user property has single cardinality")
+    (is (= (:db/id target) (:db/id (get source property-ident)))
+        "The page stores a real DataScript entity under its dynamic property")
+    (is (not (re-find #"cljs\\$lang\\$protocol_mask" json))
+        "The complete JSON payload must not contain leaked DataScript entity protocols")
+    (is (not (contains-db-id? parsed))
+        "The complete JSON payload must not contain DataScript ids")
+    (is (= {"title" "Dynamic Property Target"
+            "uuid" (str (:block/uuid target))}
+           (get-in parsed ["entity" property-key]))
+        "Page node-property refs retain stable target title and uuid")
+    (is (= {"title" "Dynamic Property Target"
+            "uuid" (str (:block/uuid target))}
+           (get-in parsed ["blocks" 0 "children" 0 property-key]))
+        "Nested-block node-property refs retain stable target title and uuid")))
 
 (deftest get-page-data-include-children-requires-valid-block-budget
   (test-helper/load-test-files nested-page-fixture)
@@ -753,7 +758,7 @@
   (let [db (conn/get-db)
         block (d/entity db (:e (first (d/datoms db :avet :block/title "ordinary block"))))
         property (d/entity db :block/alias)
-        pseudochild (property-build/build-property-value-block
+        pseudochild (db-property-build/build-property-value-block
                      block property "alias value")]
     (conn/transact! nil [pseudochild])
     (let [db (conn/get-db)
@@ -818,6 +823,25 @@
     (is (some? (:error wrong-page))
         "A page identity mismatch is not accepted as a verified receipt")))
 
+(deftest read-upsert-blocks-verifies-observed-property-values
+  (sqlite-build/create-blocks
+   (conn/get-db nil false)
+   {:properties {:user.property/score {:block/title "Score" :logseq.property/type :number}}
+    :pages-and-blocks [{:page {:block/title "Receipt Property Page"}
+                        :blocks [{:block/title "scored block"
+                                  :build/properties {:user.property/score 12.5}}]}]})
+  (let [db (conn/get-db)
+        block (entity-by-title db "scored block")
+        uuid (str (:block/uuid block))
+        [matched] (api-tools/read-upsert-blocks
+                   db [{:uuid uuid :properties {:user.property/score 12.5}}])
+        [mismatched] (api-tools/read-upsert-blocks
+                      db [{:uuid uuid :properties {:user.property/score 99}}])]
+    (is (= {:user.property/score 12.5} (:properties matched))
+        "A matched property readback returns the observed value")
+    (is (re-find #"does not match" (:error mismatched))
+        "A property mismatch is not accepted as a verified receipt")))
+
 (deftest read-upsert-blocks-rejects-ineligible-blocks
   (test-helper/load-test-files
    [{:page {:block/title "Receipt Eligibility Page"}
@@ -826,7 +850,7 @@
         page (ldb/get-page db "Receipt Eligibility Page")
         block (first (ldb/get-page-blocks db (:db/id page)))
         property (d/entity db :block/alias)
-        pseudochild (property-build/build-property-value-block block property "value")
+        pseudochild (db-property-build/build-property-value-block block property "value")
         _ (conn/transact! nil [pseudochild])
         db-after-pseudochild (conn/get-db)
         pseudochild (d/entity db-after-pseudochild [:block/uuid (:block/uuid pseudochild)])
@@ -839,3 +863,27 @@
                              (conn/get-db) [{:uuid (str (:block/uuid block))}])]
       (is (re-find #"recycled page" (:error recycled-result))
           "Blocks on recycled pages cannot be accepted as verified receipts"))))
+
+(deftest get-recycled-block-distinguishes-retained-and-collected
+  (test-helper/load-test-files
+   [{:page {:block/title "GC Read Page"}
+     :blocks [{:block/title "gc root"
+               :build/children [{:block/title "gc child"}]}]}])
+  (let [dconn (conn/get-db false)
+        db @dconn
+        root (entity-by-title db "gc root")
+        child (entity-by-title db "gc child")
+        root-uuid (str (:block/uuid root))
+        child-uuid (str (:block/uuid child))
+        _ (recycle/recycle! dconn (:block/uuid root) {:now-ms 0})
+        retained (api-tools/get-recycled-block @dconn root-uuid {})]
+    (is (= "get-recycled" (:operation retained)))
+    (is (= "recycled" (:state retained)))
+    (is (= 2 (:subtree-count retained)))
+    (is (= #{root-uuid child-uuid} (set (:subtree retained)))
+        "A retained recycled root is readable with its ordered subtree")
+    (is (true? (recycle/gc! dconn {:now-ms (* 30 24 3600 1000)})))
+    (let [collected (api-tools/get-recycled-block @dconn root-uuid {})]
+      (is (some? (:error collected))
+          "After retention GC the recycled root is no longer readable")
+      (is (re-find #"not found" (:error collected))))))

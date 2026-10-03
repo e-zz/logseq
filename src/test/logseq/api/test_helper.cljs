@@ -352,6 +352,10 @@
     (let [[_repo uuid-string options] args]
       (api-tools/get-block db uuid-string options))
 
+    :thread-api/api-get-recycled-block
+    (let [[_repo uuid-string options] args]
+      (api-tools/get-recycled-block db uuid-string options))
+
     :thread-api/api-build-upsert-nodes-edn
     (let [[_repo ops options] args]
       (api-tools/build-upsert-nodes-edn db ops options))
