@@ -1,6 +1,7 @@
 (ns electron.window
-  (:require ["electron" :refer [BrowserWindow app session shell dialog] :as electron]
+  (:require ["electron" :refer [BrowserWindow app session dialog] :as electron]
             ["electron-window-state" :as windowStateKeeper]
+            ["./js/external-protocols" :refer [ALLOWED_EXTERNAL_PROTOCOLS]]
             ["path" :as node-path]
             ["url" :as URL]
             [cljs-bean.core :as bean]
@@ -15,6 +16,9 @@
             [electron.utils :refer [mac? win32? linux? dev? open] :as utils]))
 
 (defonce *quitting? (atom false))
+
+(def ^:private allowed-external-protocols
+  (vec ALLOWED_EXTERNAL_PROTOCOLS))
 
 (def MAIN_WINDOW_ENTRY (if dev?
                          ;; Use index.html to test plugins on development mode
@@ -136,8 +140,11 @@
   (let [URL (.-URL URL)
         parsed-url (try (URL. url) (catch :default _ nil))]
     (when parsed-url
-      (if (contains? #{"https:" "http:" "mailto:"} (.-protocol parsed-url))
-        (.openExternal shell url)
+      ;; `js/external-protocols.js` is the single source of truth for the
+      ;; protocols that open without a confirmation dialog.
+      (if (contains? (set allowed-external-protocols)
+                     (string/lower-case (.-protocol parsed-url)))
+        (open url)
         (when-let [^js res (and (fn? default-open)
                                 (.showMessageBoxSync dialog
                                                      #js {:type "warning"
