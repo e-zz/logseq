@@ -1708,8 +1708,25 @@
         remote-url? (remote-http-url? link-url)
         file-url (when (and (string? link-url) (string/starts-with? link-url "file://"))
                    link-url)
-        zotero-path-data (when (map? path*)
-                           (get-zotero-local-pdf-path user-config link-map))
+        zotero-path-data (cond
+                           ;; Standard zotero://select/... link
+                           (and (map? path*) (= "zotero" (:protocol path*)))
+                           (get-zotero-local-pdf-path user-config link-map)
+
+                           ;; Standalone {{zotero-linked-file "..."}} macro without a
+                           ;; matching zotero:// link. Resolve against the configured
+                           ;; linked attachment base directory so that assets (and
+                           ;; their pdf annotations) are still built for such
+                           ;; references.
+                           (and (map? link-map)
+                                (= "zotero-linked-file" (:protocol path*))
+                                (string? (:link path*))
+                                (string? linked-base-dir)
+                                (not (string/blank? linked-base-dir)))
+                           (let [relative-path (:link path*)]
+                             {:link (str "zotero-link://" relative-path)
+                              :path (node-path/join linked-base-dir relative-path)
+                              :base (node-path/basename relative-path)}))
         zotero-asset? (some? zotero-path-data)
         linked-relative (when (and linked-files zotero-asset? (seq @linked-files))
                           (let [value (first @linked-files)]
@@ -1831,7 +1848,19 @@
   [block {:keys [asset-links zotero-imported-files zotero-linked-files]} {:keys [assets ignored-assets pdf-annotation-pages]} {:keys [notify-user <get-file-stat user-config] :as opts}]
   (let [linked-files (when (seq zotero-linked-files) (atom zotero-linked-files))
         linked-base-dir (when linked-files
-                          (get-in user-config [:zotero/settings-v2 "default" :zotero-linked-attachment-base-directory]))]
+                          (get-in user-config [:zotero/settings-v2 "default" :zotero-linked-attachment-base-directory]))
+        ;; A standalone {{zotero-linked-file "..."}} macro (i.e. without a matching
+        ;; zotero://select/... link in the same block) still references a real pdf.
+        ;; Synthesize asset links for these so that the asset block (and its pdf
+        ;; annotations) gets built. Blocks that already have asset links keep the
+        ;; original pairing behavior (zotero:// link + linked file path).
+        asset-links (if (and (empty? asset-links) (seq zotero-linked-files))
+                      (mapv (fn [linked-path]
+                              ["Link" {:url ["url" {:protocol "zotero-linked-file"
+                                                    :link linked-path}]
+                                       :label [["text" (node-path/basename linked-path)]]}])
+                            zotero-linked-files)
+                      asset-links)]
     (if (seq asset-links)
       (p/let [asset-maps* (p/all (map
                                   (fn [asset-link]
@@ -2216,7 +2245,11 @@
 (defn- <build-block-tx
   [db block* pre-blocks per-file-state walked-ast-blocks options]
   (let [core (build-block-tx-core db block* pre-blocks per-file-state walked-ast-blocks options)]
-    (if (seq (:asset-links walked-ast-blocks))
+    (if (or (seq (:asset-links walked-ast-blocks))
+            ;; A standalone {{zotero-linked-file "..."}} macro (no asset links in the
+            ;; same block) still references a real pdf; <handle-assets-in-block
+            ;; synthesizes asset links for it, so run the asset pass here too.
+            (seq (:zotero-linked-files walked-ast-blocks)))
       (p/let [{block-after-assets :block :keys [asset-blocks-tx]}
               (<handle-assets-in-block (:block-after-built-in-props core)
                                       walked-ast-blocks
@@ -2309,7 +2342,13 @@
 
 (defn- block-has-asset-links?
   [walked-by-uuid block]
-  (seq (:asset-links (get walked-by-uuid (:block/uuid block)))))
+  (let [walked (get walked-by-uuid (:block/uuid block))]
+    (or (seq (:asset-links walked))
+        ;; A standalone {{zotero-linked-file "..."}} macro (no asset links in the
+        ;; same block) still references a real pdf; <handle-assets-in-block
+        ;; synthesizes asset links for it, so route such blocks through the async
+        ;; asset-building path too.
+        (seq (:zotero-linked-files walked)))))
 
 (defn- block-uuid-ref?
   [ref]
