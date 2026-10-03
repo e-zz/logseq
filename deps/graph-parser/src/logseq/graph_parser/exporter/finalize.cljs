@@ -26,6 +26,17 @@
   (and (:block/uuid entity)
        (nil? (:block/title entity))))
 
+(defn- orphaned-placeholder?
+  "A true orphaned placeholder: an entity whose ONLY attribute is :block/uuid
+  (no :block/title and no other attrs). Stricter than placeholder-block-ref?
+  because property-value blocks for :node/:date types legitimately have a
+  :block/uuid but no :block/title while still carrying other attrs
+  (:logseq.property/value etc.) — those must be left alone."
+  [entity]
+  (and (:block/uuid entity)
+       (nil? (:block/title entity))
+       (empty? (dissoc entity :block/uuid :db/id :block/tx-id))))
+
 (defn- missing-placeholder-ref-datoms
   [db attr candidate-ref-uuids]
   (if (seq candidate-ref-uuids)
@@ -70,11 +81,19 @@
                      [:db/add source-id :block/title title'])))
                refs-by-source-id)
          retract-placeholder-tx
-         (->> (concat missing-ref-datoms missing-link-datoms)
-              (map (juxt :ref-id :ref-uuid))
-              distinct
-              (map (fn [[ref-id ref-uuid]]
-                     [:db/retract ref-id :block/uuid ref-uuid])))]
+         ;; Retract :block/uuid from ALL orphaned placeholder entities, not just
+         ;; those referenced by :block/refs or :block/link. Placeholders can also
+         ;; be left behind when a property's type changes and the old value is
+         ;; retracted but the placeholder entity it pointed at survives (orphaned).
+         ;; An orphaned placeholder has ONLY a :block/uuid; typed property-value
+         ;; blocks (:node/:date) also lack :block/title but carry other attrs, so
+         ;; the stricter orphaned-placeholder? predicate excludes them. Note:
+         ;; d/entity returns a Datascript entity object (no -dissoc protocol), so
+         ;; convert to a plain map first.
+         (->> (d/datoms db :aevt :block/uuid)
+              (keep (fn [datom]
+                      (when (orphaned-placeholder? (into {} (d/entity db (:e datom))))
+                        [:db/retract (:e datom) :block/uuid (:v datom)]))))]
      (concat retract-ref-tx retract-link-tx update-title-tx retract-placeholder-tx))))
 
 (defn set-finishing-import-ui!
