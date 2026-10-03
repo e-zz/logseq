@@ -104,3 +104,8 @@ _build/
 /cli/_opam
 /cli/compile_commands.json
 /cli/.eglot-root
+
+# Agent orchestration scratch: run artifacts, not source
+/.hermes/
+/docs/superpowers/
+/.agents/plans/
