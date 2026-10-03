@@ -45,16 +45,12 @@ Ported functionality (from source commits 711f373c47, f4414bdfdd, 2b15c6623c,
 
 ## Dependency completion (second commit)
 
-- `frontend.handler.assets/normalize-asset-resource-url` `file://` normalization
-  (merge-all-fixes 3c02c34c4b "canonicalize external asset resolution"):
-  ported with adaptation. The source's port recursed into the relative branch
-  for Windows drive paths, producing `assets:///C%3A/...` (encoded colon, not
-  protected) and crashing on `file://C:/...` (nil `get-repo-dir`). The adapted
-  port detects the Windows drive path after stripping and protects the colon
-  directly via `protect-windows-drive-in-assets-path`, producing the correct
-  `assets:///C/logseq__colon/...` form for both `file:///C:/...` and
-  `file://C:/...`. POSIX `file:///tmp/...` recurses into the normal
-  absolute-path branch.
+- `frontend.handler.assets/normalize-asset-resource-url` now handles Electron
+  `file://` URIs. Parent acceptance simplified the implementation to strip the
+  protocol and a leading slash before a Windows drive, then call the existing
+  normalizer. `priv` already recognizes raw drive paths and protects their colon;
+  the worker's explanation that raw `C:/...` would take the relative branch was
+  incorrect for this baseline. No source-branch bug is claimed from that explanation.
 - `inflate-asset` `file://` branch: adapted to pass the whole `file://` URI
   to `normalize-asset-resource-url` (the normalizer now handles the strip +
   drive protection), instead of pre-stripping `file://` and recursing.
@@ -218,11 +214,13 @@ reproduction window, and the running build hash matches
 
 ## Gaps
 
-- `normalize-asset-resource-url` `file://` normalization is now ported
-  (dependency completion, 2nd commit) with adaptation for Windows drive
-  protection. The source's port had a bug: it recursed into the relative
-  branch for Windows drives, producing `assets:///C%3A/...` (encoded colon,
-  not protected) and crashing on `file://C:/...`. The adapted port fixes this.
+- Shared `file://` normalization dependency is ported and tested. Parent
+  acceptance retained existing drive-path handling instead of duplicating it.
+- Parent rebuilt with `pnpm cljs:test`: db-worker-node and test builds reported
+  zero compile warnings. Parent then ran PDF assets/core, asset handler, and
+  editor tests together: **142 tests, 372 assertions, 0 failures, 0 errors**.
+- Active-edit override is preserved intentionally in this port. The probe proves
+  caller target selection, not the production incident's original caller.
 - Full-suite `bb dev:lint-and-test` not green end-to-end due to pre-existing
   unrelated node-test failures (DOM/path-separator), so lint coverage for the
   changed files is limited to shadow-cljs compile warnings (0) + the targeted
