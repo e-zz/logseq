@@ -106,7 +106,15 @@
                             (common-config/protocol-path? path))]
     (cond
       protocol-link?
-      path
+      (if (and (util/electron?)
+               (string/starts-with? path "file://"))
+        ;; Remove the URI prefix and the empty-host slash before a Windows
+        ;; drive, then reuse the existing absolute-path normalization.
+        (let [file-path (-> path
+                            (string/replace-first "file://" "")
+                            (string/replace-first #"^/(?=[A-Za-z]:[\\/])" ""))]
+          (normalize-asset-resource-url file-path))
+        path)
 
       ;; BUG: avoid double encoding from PDF assets
       (or (path/absolute? path)
@@ -219,27 +227,26 @@
      (let [repo (state/get-current-repo)
            repo-dir (config/get-repo-dir repo)
            local-asset? (common-config/local-relative-asset? path)
-           ;; Hack for "../assets" path calculation
-           rpath (string/replace path #"^(\.\.)?/" "./")
+           ;; Hack for path calculation
+           path (string/replace path #"^(\.\.)?/" "./")
            js-url? (not (nil? js-url))]
        (cond
          js-url?
          path                                               ;; just return the original
 
          (and (alias-enabled?)
-              (check-alias-path? rpath))
-         (resolve-asset-real-path-url (state/get-current-repo) rpath)
+              (check-alias-path? path))
+         (resolve-asset-real-path-url (state/get-current-repo) path)
 
           (util/electron?)
           (let [full-path (if local-asset?
-                            (path/path-join repo-dir rpath)
-                            (local-file-path->absolute-path path repo-dir))]
+                            (path/path-join repo-dir path) path)]
             ;; fullpath will be encoded
             (path/prepend-protocol "assets:" (protect-windows-drive-in-assets-path full-path)))
 
          :else
-         (p/let [binary (fs/read-file-raw repo-dir rpath {})
-                 svg? (string/ends-with? rpath ".svg")
+         (p/let [binary (fs/read-file-raw repo-dir path {})
+                 svg? (string/ends-with? path ".svg")
                  type (if svg? "image/svg+xml" "image")
                  blob (js/Blob. (array binary) (clj->js {:type type}))]
            (when blob (js/URL.createObjectURL blob))))))))
