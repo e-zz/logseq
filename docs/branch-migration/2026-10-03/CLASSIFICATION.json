@@ -1,0 +1,334 @@
+{
+  "base_main": "b51731181321b708500c902eeb880cfad8e4139a",
+  "source_branch": "merge-all-fixes",
+  "sources": [
+    {
+      "source_sha": "3b28c1513f2449480d2d72fa6f08700393a1baf4",
+      "subject": "fix: convert file:// to assets:// on Electron for PDF/image loading",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "18d3c74516",
+      "evidence": "handler/assets.cljs normalize-asset-resource-url file:// -> assets:// branch; pdf/assets.cljs inflate-asset protocol-link? file:// branch; handler/assets_test.cljs file-URI tests. Source file identical to priv e9045eac8b (modulo the retained upstream fn, see gaps).",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "7652011b2f1e78c16472e306acaa5a96d99cf375",
+      "subject": "fix(pdf): protect Windows drive letters in zotero PDF paths",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "18d3c74516",
+      "evidence": "protect-windows-drive-in-assets-path reused in the file:// -> assets:// conversion (assets:///C/logseq__colon/...); covered by handler/assets_test normalize-asset-resource-url-electron-file-uri-windows-test.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "c948a97c5c6954d648cfce8237d58558d532a1c6",
+      "subject": "fix(pdf): properly convert file:// URLs and zotero paths for Windows drives",
+      "verdict": "ported (partial: zotero.cljs hunk already upstream)",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "18d3c74516 (url portion) + 76d1f44aa7 (zotero-path resolution via get-zotero-local-pdf-path)",
+      "evidence": "The handler/assets + pdf/assets url-conversion effect is in 18d3c74516. The zotero.pdf/assets get-zotero-local-pdf-path assets:// conversion is in 76d1f44aa7. The original commit's zotero.cljs hunk is NOT re-applied: main b517311813:src/main/frontend/extensions/zotero.cljs is byte-identical to priv's (git diff main priv -- zotero.cljs is empty), i.e. that hunk is already in upstream main.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "3c02c34c4b0242defec3661a438f5bee6ab03bb8",
+      "subject": "fix(pdf): canonicalize external asset resolution",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "18d3c74516 (normalize-asset-resource-url canonicalization) + 76d1f44aa7 (resolve-external-pdf-url)",
+      "evidence": "Single normalizer reused for file:// and drive paths (handler/assets.cljs); resolve-external-pdf-url centralizes external-url + external-file-name resolution (pdf/assets.cljs). assets_test resolve-external-pdf-url-centralizes-zotero-protocols.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "54b90672a2e45feef544a1fbbec054f26b4abbb8",
+      "subject": "refactor: centralize external PDF asset resolution",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "resolve-external-pdf-url introduced in pdf/assets.cljs and consumed by db-based-open-block-ref!; block.cljs call-site refactor from this source commit is NOT needed because main's block.cljs uses a different (upstream) structure.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "d78dd0b542e61de8691ff43dbb71f63a4e6912d5",
+      "subject": "fix: resolve zotero-link PDF references",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "zotero-linked-source + resolve-external-pdf-url handle zotero-link:// references with and without external-file-name.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "1336937d3e8ee6b1f566793b092b648f5662e3d4",
+      "subject": "fix: resolve zotero-link URLs without metadata",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "zotero-linked-source derives zotero-link:// from base-directory even when external-file-name metadata is absent; assets_test zotero-linked-source-uses-configured-relative-path + find-zotero-asset-by-source-uses-exact-query.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "711f373c473c9d84a8d162628139df56b81f683e",
+      "subject": "fix: create external PDF asset before annotating",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "ensure-db-asset! creates the per-PDF hls__ page + external Asset record before annotation; assets_test ensure-db-asset-creates-record-for-external-pdf.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "60938ca9eea740c9a020d37485a67474afc78e50",
+      "subject": "fix: reuse existing external PDF assets",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "ensure-db-asset! reuses a record found by checksum; assets_test ensure-db-asset-reuses-existing-record.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "886afe501c3aed653d90cdc2fe47cf8464f25e3d",
+      "subject": "fix: reuse imported Zotero PDF assets",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "<find-zotero-asset-by-source queries :logseq.property.asset/external-file-name to reuse an imported Zotero Asset; assets_test ensure-db-asset-prefers-imported-zotero-record.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "aadf4ed287a924ba1a57026870423f9a26eb1c35",
+      "subject": "fix: prefer imported PDF assets over checksum duplicates",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "<create-db-asset! resolves existing-block as (or imported-block checksum-hit) so the imported Zotero record wins; assets_test ensure-db-asset-prefers-imported-zotero-record asserts db-based-save-assets! is not called.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "2db9460f2d41019d384325567911331111a637a7",
+      "subject": "fix: reuse duplicate area highlight assets",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "db-based-persist-hl-area-image uses <save-or-reuse-asset! (checksum reuse); assets_test persist-area-image-reuses-existing-asset.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "47425177f636da306701e006e737fc5e619c7e83",
+      "subject": "fix: store external PDF assets on annotation pages",
+      "verdict": "ported (known target-override caveat preserved)",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "ensure-db-asset! passes [:save-to-page hls__-page]; the known-issue probe test known-issue-active-edit-block-overrides-save-to-page documents that an active edit-block can override the target (preserved as-is, not fixed).",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "2b15c6623c5efaf35ee66cb16306ceb2252153bf",
+      "subject": "refactor: unify PDF asset reuse and URL resolution",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7",
+      "evidence": "asset-source-key + <save-or-reuse-asset! unify the reuse/resolution paths.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "a02aaa2de68ff2a19729fd7cccedbb47544dcf9e",
+      "subject": "fix: attach created asset to active PDF state",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "76d1f44aa7 (inflate-asset :block) + f62be743a0 (complete-asset-creation-for-current-pdf! attaches via set-current-pdf!/add-highlight!)",
+      "evidence": "ensure-db-asset! returns the inflate-asset with :block; the state attach is gated by the identity guard in core.cljs.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "91da2bfad24a8c624b6cfaa6d6ab2b4bf9da7cdb",
+      "subject": "fix: preserve PDF state during annotation creation",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "f62be743a0",
+      "evidence": "complete-asset-creation-for-current-pdf! only writes :pdf/current + adds highlight when (:identity pdf-current) still equals the current PDF, so an import outliving the viewer does not reactivate a stale PDF.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "d99d517760fc5b516dce9f8006d88aebac48686c",
+      "subject": "fix: verify PDF annotation block creation",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "f62be743a0",
+      "evidence": "db-based-ensure-ref-block! re-fetches the inserted block by :custom-uuid and throws when the transaction did not create it.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "194b676a604aba79af07205a85ede386f949cdc9",
+      "subject": "fix(pdf): handle annotation creation failures",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "f62be743a0",
+      "evidence": "copy-hl-ref! catches and notification/show!s :pdf/annotation-create-error; core.cljs color/no-text/no-asset throws surface the same key. en.edn :pdf/annotation-create-error added.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "f8346e71abe7cd03c948c0ad0bc3e5f1a55ebbbe",
+      "subject": "fix: surface PDF area highlight persistence failures",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "f62be743a0",
+      "evidence": "<persist-new-area-highlight! / <persist-resized-area-highlight! validate :db/id, restore state on failure, notify :pdf/area-image-save-error; persist-hl-area-image$ rejects on missing canvas/ctx. en.edn :pdf/area-image-save-error added.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "78411bd4c38c08c6df61940704d231758466053e",
+      "subject": "fix: remove PDF highlight continuation arity warning",
+      "verdict": "ported",
+      "canonical_branch": "fix/pdf-annotation-error-handling-v2",
+      "canonical_commit": "f62be743a0",
+      "evidence": "add-hl! takes an optional [current] arity (fn [hl & [current]]) so the highlight continuation no longer triggers a clj-kondo arity warning.",
+      "epistemic_status": "source inspected; child test results pending parent combined run"
+    },
+    {
+      "source_sha": "548ee5a3fe5d68636fcbe5b3e5320e30ff795bb4",
+      "source_subject": "chore: ignore agent orchestration scratch directories",
+      "behavior": "chore/gitignore: ignore agent run artifacts (.hermes/, docs/superpowers/, .agents/plans/) while keeping .agents/guides/ tracked",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 .gitignore ends at /cli/.eglot-root and has none of the 5 new ignore entries; .agents/plans, .hermes, docs/superpowers all untracked-but-not-ignored on main",
+      "canonical_branch": "chore/agent-orchestration-gitignore-v2",
+      "canonical_commit": "452185f0a7",
+      "base": "b517311813",
+      "files": [
+        ".gitignore"
+      ],
+      "test": "none (chore); git apply verified 5 lines appended after /cli/.eglot-root, no unrelated .agents docs staged",
+      "gaps": []
+    },
+    {
+      "source_sha": "377967058641851a0d016a4800a39f814e4a1d89",
+      "source_subject": "docs: record PR candidates for the fork's own commits",
+      "behavior": "docs: two fork-specific engineering guides (.agents/guides/mcp-tree-read-issues.md + pr-candidates-2026-09-28.md)",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 has NO .agents/guides/ directory (only .agents/skills/); both files absent upstream and are fork-specific (document the fork's 32-commit merge-all-fixes state, candidate SHAs, open questions). Kept BOTH together as the explicitly-chosen guide docs (brief: 'docs source branch only explicitly chosen guide docs (not entire directory)'); no .agents/plans or .hermes artifacts staged",
+      "canonical_branch": "docs/fork-pr-candidates-guide-v2",
+      "canonical_commit": "fe19d83254",
+      "base": "b517311813",
+      "files": [
+        ".agents/guides/mcp-tree-read-issues.md",
+        ".agents/guides/pr-candidates-2026-09-28.md"
+      ],
+      "test": "none (docs); both files present in commit, no scratch artifacts",
+      "gaps": [
+        "These docs describe the OLD merge-all-fixes state (32 fork commits); they remain valid as historical engineering notes but do not describe the -v2 rebuild itself."
+      ]
+    },
+    {
+      "source_sha": "b37e94ca0e5aaa781ccd1ded4697ca832bd76e2b",
+      "source_subject": "fix(import): skip query-sort-by of unregistered properties",
+      "behavior": "fix: wrap query-sort-by ident resolution in try/catch (skip + console.error on unknown ident) and guard query-sort-desc with (contains? m :logseq.property.table/sorting)",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 exporter.cljs update-built-in-property-values:896-930 still calls (get-ident @all-idents (keyword prop-value)) OUTSIDE any try/catch for :query-sort-by, and the query-sort-desc cond-> guard is (and (contains? props :query-sort-desc) (:query-sort-by props)) with no :logseq.property.table/sorting contains? check — byte-for-byte the pre-fix form. The asymmetry that translate-query-properties is try/catch-wrapped but query-sort-by is not, still exists upstream",
+      "canonical_branch": "fix/import-query-sort-by-unregistered-v2",
+      "canonical_commit": "eb3ceac3db",
+      "base": "b517311813",
+      "files": [
+        "deps/graph-parser/src/logseq/graph_parser/exporter.cljs",
+        "deps/graph-parser/test/logseq/graph_parser/exporter_test.cljs"
+      ],
+      "test": "cherry-pick -n applied cleanly (auto-merge, no conflict). deps/graph-parser nbb-logseq exporter-test: 71 tests / 1282 assertions; my new test import-query-sort-by-unregistered-property PASSES (the 'Translating query sort-by failed with: No ident found for :journal-abbreviation' console line is the fix working as designed). Only 1 pre-existing failure on first run: export-docs-graph-with-convert-all-tags 'Importing large graph takes less than 25s' (took 32s on this Windows host) — a flaky timing assertion, present on main, untouched by this port (0 occurrences of the test name in my diff)",
+      "gaps": [
+        "clj-kondo lint not run (network blocked for jar download; bb -M:clj-kondo alias invocation also failed on Windows). Syntax verified by nbb compile+run instead."
+      ]
+    },
+    {
+      "source_sha": "889e91d64412999e3f4f5158540176a05423eb93",
+      "source_subject": "fix(import): cleanup orphaned placeholder blocks from property type changes",
+      "behavior": "fix: retract :block/uuid from ALL orphaned placeholder entities (full (d/datoms db :aevt :block/uuid) scan), not just those referenced by :block/refs/:block/link, using a stricter orphaned-placeholder? predicate that protects typed property-value nodes (:node/:date) which have :block/uuid but no :block/title yet other attrs",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 MOVED the fn from graph_parser/exporter.cljs to graph_parser/exporter/finalize.cljs (ns logseq.graph-parser.exporter.finalize). finalize.cljs cleanup-missing-block-refs-tx still has the pre-fix retract-placeholder-tx (->> (concat missing-ref-datoms missing-link-datoms) (map (juxt :ref-id :ref-uuid)) distinct (map [:db/retract ...])) and only the weak placeholder-block-ref? (uuid + nil title) predicate. No orphaned-placeholder? anywhere. ADAPTED: port targets finalize.cljs (per brief), and the regression test calls the public cleanup-missing-block-refs! (which dispatches to the tx fn) instead of the private gp-exporter/cleanup-missing-block-refs! the source test used (private in exporter.cljs; the finalize version is public and takes an optional import-state arg that defaults to nil)",
+      "canonical_branch": "fix/import-orphaned-placeholder-cleanup-v2",
+      "canonical_commit": "e69933f3c2",
+      "base": "b517311813",
+      "files": [
+        "deps/graph-parser/src/logseq/graph_parser/exporter/finalize.cljs",
+        "deps/graph-parser/test/logseq/graph_parser/exporter_test.cljs"
+      ],
+      "test": "deps/graph-parser nbb-logseq exporter-test: 71 tests / 1281 assertions; my new test cleanup-orphaned-placeholder-blocks PASSES including the key assertion 'Typed property-value nodes keep their :block/uuid (not over-retracted)' — confirms the typed-node protection works. Same 1 pre-existing timing failure (export-docs-graph-with-convert-all-tags) as the query-sort-by run. The nbb gotcha from the source reference (d/entity returns a Datascript entity object, no -dissoc protocol) is handled: the port converts with (into {} (d/entity db (:e datom))) before the check, verified by the passing test",
+      "gaps": [
+        "clj-kondo lint not run (same network/Windows limitation). Syntax verified by nbb compile+run."
+      ]
+    },
+    {
+      "source_sha": "79ef274d77f2e5ec5d0fdf8f541e05231a763231",
+      "source_subject": "fix(import): build assets for standalone zotero-linked-file macros",
+      "behavior": "fix: synthesize asset links for standalone {{zotero-linked-file \"...\"}} macros (no matching zotero://select/ link) and resolve them against the configured zotero linked-attachment base dir so the Asset block + its pdf annotations are built during import",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 exporter.cljs: <handle-assets-in-block (line 1847) still has the original (let [linked-files ... linked-base-dir ...]) with NO asset-links synthesis; resolve-asset-data (line 1699) has the original (when (map? path*) (get-zotero-local-pdf-path ...)) with no zotero-linked-file branch. NOT upstream. ADAPTED: (1) resolve-asset-data standalone-macro resolution reworked as an additional cond branch to coexist with the file-url branch upstream added; (2) <handle-assets-in-block asset-links synthesis re-inserted after the reshaped let binding; (3) CRITICAL: main added TWO asset-link gates the source-era import path lacked — <build-block-tx (line 2248) and block-has-asset-links? (line 2347, the gate in the main <build-blocks-tx import path at line 2955) — a macro-only block (asset-links empty, only zotero-linked-files) would otherwise take the sync no-asset path. Widened BOTH gates with (or (seq :asset-links) (seq :zotero-linked-files)). Without gate (3) the fix is dead code (verified empirically: first port attempt created no Asset, assets atom empty, nothing ignored)",
+      "canonical_branch": "fix/import-standalone-zotero-linked-file-v2",
+      "canonical_commit": "5a5e19e8c7",
+      "base": "b517311813",
+      "files": [
+        "deps/graph-parser/src/logseq/graph_parser/exporter.cljs",
+        "deps/graph-parser/test/logseq/graph_parser/exporter_test.cljs"
+      ],
+      "test": "deps/graph-parser nbb-logseq exporter-test FINAL: 71 tests / 1282 assertions, 0 failures (NBB_EXIT=0) — fully green including the pre-existing timing test. My new test import-standalone-zotero-linked-file-pdf-annotations PASSES all 4 assertions: (1) macro-only reference imports the pdf as an Asset, (2) Asset keeps zotero-linked-file path as external-url zotero-link://qn/Sample Linked Paper.pdf, (3) annotations from the EDN file imported with hl-page 2, (4) no ignored assets. All existing zotero/PDF asset tests still pass (no regression). The test's Clojure fixture strings were initially mangled by the heredoc (multiline literals broke the doseq map -> 'Map literal contains duplicate key' parse error); fixed by splicing the exact source test text from git show 79ef274d77 (lines 1093-1151) so every string literal is one physical line with \\n escapes. An intermediate fix attempt also deleted an existing test (import-linked-pdf-annotations-with-missing-attributes-without-log-fn) due to an off-by-one; that test was restored verbatim from main (final test diff vs main: +61 lines, 0 removed non-blank lines, both zotero tests present)",
+      "gaps": [
+        "clj-kondo lint not run (same network/Windows limitation). Syntax verified by nbb compile+run (full suite green)."
+      ]
+    },
+    {
+      "source_sha": "3bbdfdefda4e1961fac6de001751c01ac3bec73f",
+      "source_subject": "fix: speed up MCP node writes",
+      "behavior": "fix: add :validate-changed-only? option to import-edn-data so batch imports skip full-graph validation (use import-tx-data directly) when only changed entities need checking; upsert-nodes passes {:validate-changed-only? true}",
+      "classification": "already_upstream",
+      "upstream_evidence": "main b517311813 IMPLEMENTED A SUPERSET of this behavior with a different, more general API: op.cljs import-edn-data (line 213) destructures {:keys [tx-meta validate-scope]} and passes (cond-> {:edn-label \"Imported EDN\"} validate-scope (assoc :validate-scope validate-scope)) to validate-import-txs; cli.cljs upsert-nodes (line 51) calls (outliner-op/batch-import-edn! edn-data {:validate-scope :tx}). The validate-import-txs docstring (deps/db/src/logseq/db/sqlite/export.cljs line 1396) explicitly states ':tx validates only entities touched by the import tx. Use :tx for incremental API/MCP writes; keep :graph for file and graph imports.' The :tx scope is a strict superset of :validate-changed-only? (which only toggled whether to call validate-import-txs at all) — it still runs validation but scoped to the tx's touched entities, which is SAFER (the spec said 'don't skip safe validation'). The source-era 'MCP skip vs validate-scope' spec is satisfied by the upstream :validate-scope :tx path. NO empty commit created; NO port (porting the obsolete :validate-changed-only? API would conflict with and be inferior to the upstream :validate-scope API). The source-era op_test.cljs tests (batch-import-edn-validates-only-changed-entities-test, batch-import-edn-validates-invalid-imported-property-test) test the :validate-changed-only? option which does not exist on main; main's equivalent coverage would go through :validate-scope :tx (not added here — out of scope, and main already ships the behavior)",
+      "canonical_branch": null,
+      "canonical_commit": null,
+      "base": null,
+      "files": [],
+      "test": "not ported (already upstream); no test run needed. Verified by reading main's final functions: op.cljs:213-228, cli.cljs:42-55, export.cljs:1330-1410 (validate-import-txs + import-tx-data)",
+      "gaps": []
+    },
+    {
+      "source_sha": "31ca35056a0fdec1084df8c31d45d42eb28feaa3",
+      "source_subject": "fix(ci): fork-friendly desktop release workflow",
+      "behavior": "chore(ci): guard OCaml CLI build + Sentry sourcemap upload to upstream-only (github.repository == 'logseq/logseq'), stub logseq-cli.js on forks, skip Azure code signing without secrets (split 'Write Windows signing config (upstream only)' step + conditional electron-builder)",
+      "classification": "port",
+      "upstream_evidence": "main b517311813 .github/workflows/build-desktop-release.yml is UNMODIFIED: 'Set up OCaml' / 'Fetch OCaml deps' / 'Fetch CLI pnpm deps' / 'Verify bundled CLI' have no if-guards; 'Upload Sentry Sourcemaps (beta only)' if is commented out; Windows 'Build/Release Electron app' writes sign config unconditionally. The source diff (31ca35056a) APPLIES CLEANLY to main via cherry-pick -n (auto-merge, no conflict) because main's workflow matches the source base except for one added line the diff does not touch: the graph-lifecycle runtime check in 'Cache Static File' (deps/graph-lifecycle, line 232) is PRESERVED verbatim",
+      "canonical_branch": "chore/ci-fork-friendly-desktop-release-v2",
+      "canonical_commit": "c0238a404a",
+      "base": "b517311813",
+      "files": [
+        ".github/workflows/build-desktop-release.yml"
+      ],
+      "test": "YAML validated structurally with python yaml.safe_load (top-level keys name/True/env/jobs, 12 jobs parsed). Real workflow diff audited step-by-step against main: compile-cljs job — Set up OCaml / Fetch OCaml deps / Fetch CLI pnpm deps / Verify bundled CLI all now if=upstream-only; Upload Sentry Sourcemaps re-activated its upstream-only beta guard; build-windows-x64 + build-windows-arm64 — 'Write Windows signing config (upstream only)' split off as its own upstream-only step, Build/Release Electron app now conditionally uses electron-builder.sign-win.json (Test-Path) or builds unsigned. graph-lifecycle check confirmed present in both main and ported (compile-cljs 'Cache Static File' step). OCaml CLI policy: legacy source stubs logseq-cli.js on forks (a node script that errors), while main supports the REAL OCaml CLI — this divergence is REPORTED here; the fork build path is the stub, the upstream build path is the real CLI. Main has NO private release workflow, so the priv build uses this build-desktop-release.yml workflow_dispatch (non-release) path; NOT dispatched from here",
+      "gaps": [
+        "No actual GitHub Actions run (would require a push/dispatch, which is out of scope). Structural YAML validation + step-level diff audit only."
+      ]
+    },
+    {
+      "source_sha": "13be83e2a80d4d6bfcba686861442ab7976cc1ff",
+      "subject": "fix(electron): stop confirming external links for known protocols",
+      "classification": "ported",
+      "canonical_branch": "fix/electron-external-protocol-allowlist-v2",
+      "canonical_commit": "d67bbdabac",
+      "epistemic_status": "source verified",
+      "evidence": "Parent read git show d67bbdabac. Narrow JS protocol allowlist + electron.window call-site. Existing private effect preserved, merge made no content changes."
+    }
+  ],
+  "counts": {
+    "source_commits": 28,
+    "topic_commits": 10,
+    "upstream_equivalent_only": 1
+  },
+  "pdf_dependencies": [
+    "fix/pdf-file-uri-normalization-v2",
+    "feat/pdf-asset-annotation-pages-v2",
+    "fix/pdf-annotation-error-handling-v2"
+  ],
+  "parent_verification": {
+    "frontend": "147 tests / 385 assertions / 0 failures / 0 errors, pnpm cljs:test + selected four namespaces",
+    "exporter": "73 tests / 1289 assertions / 0 failures / 0 errors, NBB explicit local common/db/outliner src classpath",
+    "protocol_allowlist": "9 Node assert checks passed",
+    "independent_review": "no blocking defects; known area persistence unhandled rejection remains",
+    "ci": "not yet dispatched"
+  },
+  "notes": [
+    "Seven nonPDF branches directly based on main; three PDF branches dependent chain.",
+    "Historical retry branches archived, never merged.",
+    "CI fork CLI stub is legacy authorized behavior; not a functional bundled CLI."
+  ]
+}
