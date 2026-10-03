@@ -138,12 +138,31 @@
                        "C:/Users/charlie/sicp.pdf"
                        {:href "assets:///C:/Users/charlie/sicp.pdf"}))))))
 
-;; NOTE: merge-all-fixes also normalized "file://" protocol hrefs inside
-;; normalize-asset-resource-url (frontend.handler.assets). That change is NOT
-;; part of this port: priv's normalize-asset-resource-url leaves
-;; protocol-link? paths unchanged, so inflate-asset's file:// strip branch
-;; (ported verbatim from merge-all-fixes) is currently a no-op on Electron.
-;; See the port report / runtime reproduction plan for the follow-up.
+(deftest normalize-asset-resource-url-normalizes-file-protocols
+  (with-redefs [util/electron? (constantly true)]
+    (are [input expected]
+         (= expected (assets-handler/normalize-asset-resource-url input))
+      "file:///C:/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "file://C:/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "file:///tmp/paper.pdf"
+      "assets:///tmp/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf"
+      "assets:///C/logseq__colon/library/paper.pdf")))
+
+(deftest inflate-asset-normalizes-file-uri-on-windows
+  (with-redefs [util/electron? (constantly true)]
+    (testing "file:///C:/ — leading slash is the URI's empty host, dropped by the normalizer"
+      (test/is (= "assets:///C/logseq__colon/library/paper.pdf"
+                  (:url (pdf-assets/inflate-asset
+                         "paper.pdf"
+                         {:href "file:///C:/library/paper.pdf"})))))
+    (testing "file://C:/ — no leading slash; the normalizer leaves it and still protects the drive"
+      (test/is (= "assets:///C/logseq__colon/library/paper.pdf"
+                  (:url (pdf-assets/inflate-asset
+                         "paper.pdf"
+                         {:href "file://C:/library/paper.pdf"})))))))
 
 (deftest ensure-db-asset-creates-record-for-external-pdf
   (async done
@@ -317,10 +336,12 @@
 ;; target-block > active edit-block > save-to-page > today. Whenever a block
 ;; is actively being edited at highlight time (state/get-edit-block returns
 ;; that block), the asset is instead appended to (or inlined into) that
-;; block, and the hls page only receives it on a later ensure-ref-block!
-;; move (or not at all if the move fails). This probe demonstrates that
-;; preserved behavior with the real db-based-save-assets! target-resolution
-;; path exercised; it is recorded as a known issue, not an acceptance gate.
+;; block. No later step relocates the PDF Asset block to the hls page —
+;; ensure-ref-block!'s move-blocks! only moves the area image asset (the PNG
+;; block under :logseq.property.pdf/hl-image), not the external PDF Asset.
+;; This probe demonstrates that preserved behavior with the real
+;; db-based-save-assets! target-resolution path exercised; it is recorded as
+;; a known issue, not an acceptance gate.
 ;; ============================================================================
 (deftest known-issue-active-edit-block-overrides-save-to-page
   (async done

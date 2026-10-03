@@ -106,7 +106,47 @@
                             (common-config/protocol-path? path))]
     (cond
       protocol-link?
-      path
+      (if (and (util/electron?)
+               (string/starts-with? path "file://"))
+        ;; Convert a file:// URI to a filesystem path, then re-normalize so
+        ;; the Windows drive colon is protected (C: -> C/logseq__colon/).
+        ;;
+        ;; The leading slash after file:// is the URI's empty host - not part
+        ;; of the Windows path. Dropping it is required for file:///C:/... but
+        ;; is a no-op for file://C:/... (no slash present).
+        ;;
+        ;; After stripping, a Windows drive path (C:/...) would fall into the
+        ;; :else (relative) branch in the cond and lose the drive prefix.
+        ;; We detect the Windows drive path and recurse with the drive prefix
+        ;; stripped (C:/... -> /...) so the recursion hits the absolute-path
+        ;; branch. The drive letter is re-added after normalization to
+        ;; restore the protected form (assets:///C/logseq__colon/...).
+        ;;
+        ;; The source's merge-all-fixes port recursed with the drive path
+        ;; intact, hitting the relative branch and producing
+        ;; assets:///C%3A/... (encoded colon, not protected).
+        (let [after-protocol (string/replace-first path "file://" "")]
+          (cond
+            ;; Windows drive with leading slash: file:///C:/... -> /C:/...
+            ;; Strip the leading slash (URI's empty host) to get C:/...
+            (re-find #"^/[A-Za-z]:[\\/]" after-protocol)
+            (let [win-path (string/replace-first after-protocol #"/" "")
+                  protected (protect-windows-drive-in-assets-path win-path)]
+              (if (boolean (re-find #"(?i)%[0-9a-f]{2}" protected))
+                (path/path-join "assets://" (common-util/safe-decode-uri-component protected))
+                (path/path-join "assets://" protected)))
+
+            ;; Windows drive without leading slash: file://C:/... -> C:/...
+            (windows-drive-absolute-path? after-protocol)
+            (let [protected (protect-windows-drive-in-assets-path after-protocol)]
+              (if (boolean (re-find #"(?i)%[0-9a-f]{2}" protected))
+                (path/path-join "assets://" (common-util/safe-decode-uri-component protected))
+                (path/path-join "assets://" protected)))
+
+            ;; POSIX: file:///tmp/... -> /tmp/... — recurse with the stripped path.
+            :else
+            (normalize-asset-resource-url after-protocol)))
+        path)
 
       ;; BUG: avoid double encoding from PDF assets
       (or (path/absolute? path)

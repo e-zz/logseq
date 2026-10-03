@@ -102,6 +102,31 @@
     (is (= "assets:///C/logseq__colon/Users/charlie/graph/assets/test.png"
            (assets/normalize-asset-resource-url "C:/Users/charlie/graph/assets/test.png")))))
 
+(deftest normalize-asset-resource-url-electron-file-uri-windows-test
+  "file:// URIs are converted to assets:// URLs with the Windows drive colon
+  protected. file:///C:/… has a leading slash (the URI's empty host) that is
+  dropped; file://C:/… has no slash and is left as-is. Both produce the
+  protected form assets:///C/logseq__colon/… (same as a raw drive path)."
+  (with-redefs [util/electron? (constantly true)]
+    (is (= "assets:///C/logseq__colon/Users/charlie/graph/assets/test.png"
+           (assets/normalize-asset-resource-url
+            "file:///C:/Users/charlie/graph/assets/test.png")))
+    (is (= "assets:///C/logseq__colon/Users/charlie/graph/assets/test.png"
+           (assets/normalize-asset-resource-url
+            "file://C:/Users/charlie/graph/assets/test.png")))
+    ;; Raw Windows drive path (no file://) gets the same protection via the
+    ;; absolute-path branch.
+    (is (= "assets:///C/logseq__colon/Users/charlie/graph/assets/test.png"
+           (assets/normalize-asset-resource-url
+            "C:/Users/charlie/graph/assets/test.png")))))
+
+(deftest normalize-asset-resource-url-electron-file-uri-posix-test
+  "file:// URIs on POSIX are converted to assets:// URLs with the leading
+  slash preserved."
+  (with-redefs [util/electron? (constantly true)]
+    (is (= "assets:///tmp/paper.pdf"
+           (assets/normalize-asset-resource-url "file:///tmp/paper.pdf")))))
+
 (deftest make-asset-url-electron-test
   (async done
     (with-redefs [util/electron? (constantly true)

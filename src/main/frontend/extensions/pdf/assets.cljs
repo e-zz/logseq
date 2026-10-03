@@ -48,8 +48,10 @@
               protocol-link?
               (if (and (util/electron?)
                        (string/starts-with? href "file://"))
-                ;; strip file:// then normalize (protects Windows drive: C: -> C/logseq__colon/)
-                (assets-handler/normalize-asset-resource-url (string/replace-first href "file://" ""))
+                ;; Pass the whole file:// URI to the normalizer, which strips
+                ;; the protocol, drops the URI's empty-host slash (for
+                ;; file:///C:/…), and protects the Windows drive colon.
+                (assets-handler/normalize-asset-resource-url href)
                 href)
 
               :else

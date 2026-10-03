@@ -43,18 +43,37 @@ Ported functionality (from source commits 711f373c47, f4414bdfdd, 2b15c6623c,
 6. Async-asset-completion guard: `complete-asset-creation-for-current-pdf!`
    refuses to reactivate a PDF the user has already left.
 
-## Not ported (deliberate)
+## Dependency completion (second commit)
 
 - `frontend.handler.assets/normalize-asset-resource-url` `file://` normalization
   (merge-all-fixes 3c02c34c4b "canonicalize external asset resolution"):
-  priv's version returns `protocol-link?` paths unchanged, so the ported
-  `inflate-asset` `file://` strip branch is a no-op on Electron. The source
-  test for it was dropped from `assets_test.cljs` (comment left in place).
-  This is a `frontend.handler.assets` change, not a PDF-namespace change —
-  tracked as a follow-up. **Consequence:** external PDFs whose `href` is a raw
-  `file://` URL (e.g. Windows absolute paths passed without `assets://`) will
-  carry the `file://` href through `inflate-asset` instead of the protected
-  `assets:///C/logseq__colon/...` form.
+  ported with adaptation. The source's port recursed into the relative branch
+  for Windows drive paths, producing `assets:///C%3A/...` (encoded colon, not
+  protected) and crashing on `file://C:/...` (nil `get-repo-dir`). The adapted
+  port detects the Windows drive path after stripping and protects the colon
+  directly via `protect-windows-drive-in-assets-path`, producing the correct
+  `assets:///C/logseq__colon/...` form for both `file:///C:/...` and
+  `file://C:/...`. POSIX `file:///tmp/...` recurses into the normal
+  absolute-path branch.
+- `inflate-asset` `file://` branch: adapted to pass the whole `file://` URI
+  to `normalize-asset-resource-url` (the normalizer now handles the strip +
+  drive protection), instead of pre-stripping `file://` and recursing.
+- Restored the dropped source test
+  `normalize-asset-resource-url-normalizes-file-protocols` and added
+  `inflate-asset-normalizes-file-uri-on-windows` (both `file:///C:/` and
+  `file://C:/` forms).
+- Added targeted helper tests in `assets_test.cljs`:
+  `normalize-asset-resource-url-electron-file-uri-windows-test`
+  (both Windows URI forms + raw drive path) and
+  `normalize-asset-resource-url-electron-file-uri-posix-test`.
+- Fixed misleading comments: the `file://` strip branch is NOT a no-op (the
+  raw-path helper transforms Windows drives; the Windows URI leading slash
+  handling now has explicit tests). Fixed the known-issue probe commentary
+  claiming `ensure-ref-block!` moves the PDF Asset (it only moves the area
+  image asset, the PNG block under `:logseq.property.pdf/hl-image`).
+
+## Not ported (deliberate)
+
 - `core.cljs` load-error branch: source routes fetchable `https?://` external
   URLs to the browser via `util/open-url`; priv's newer fix 3751fa7108 already
   implements that (priv behavior kept, source hunk not applied).
@@ -89,6 +108,7 @@ Commands (run in `D:/Action/logseq` on branch `pdf-assets-port-priv`):
 
 ```
 pnpm cljs:test            # compile db-worker-node + test targets (shadow-cljs)
+node static/tests.js -n frontend.handler.assets-test
 node static/tests.js -n frontend.extensions.pdf.assets-test -n frontend.extensions.pdf.core-test
 node static/tests.js -n frontend.handler.editor-test -n frontend.handler.editor-assets-test
 bb lang:validate-translations
@@ -96,10 +116,19 @@ bb lang:validate-translations
 
 Results:
 
-- `frontend.extensions.pdf.assets-test` + `frontend.extensions.pdf.core-test`:
-  **Ran 18 tests containing 39 assertions. 0 failures, 0 errors.**
-  (17 ported tests + 1 known-issue probe.)
-- `frontend.handler.editor-test` + `frontend.handler.editor-assets-test`:
+- `frontend.handler.assets-test` (dependency completion, 2nd commit):
+  **Ran 17 tests containing 41 assertions. 0 failures, 0 errors.**
+  (15 pre-existing tests + 2 new: `file-uri-windows-test` and
+  `file-uri-posix-test`. Output: `test-assets-handler.log` in Hermes scratch.)
+- `frontend.extensions.pdf.assets-test` + `frontend.extensions.pdf.core-test`
+  (dependency completion, 2nd commit):
+  **Ran 20 tests containing 45 assertions. 0 failures, 0 errors.**
+  (17 pre-existing + 1 known-issue probe + 2 new:
+  `normalize-asset-resource-url-normalizes-file-protocols` and
+  `inflate-asset-normalizes-file-uri-on-windows`.
+  Output: `test-pdf-assets.log` in Hermes scratch.)
+- `frontend.handler.editor-test` + `frontend.handler.editor-assets-test`
+  (prior commit, still passing):
   **Ran 105 tests containing 286 assertions. 0 failures, 0 errors.**
   (confirms the `db-based-save-assets!` redefinition adaptation is sound and
   no editor behavior regressed)
@@ -174,10 +203,12 @@ Interpretation:
 - It does **not** by itself prove the Oct 3 incident used this path (the
   recorded op's target was the Sep 18 journal page, and why the editor target
   was that page remains unknown). MCP/fork involvement is **not** ruled out.
-- The `move-blocks!` in `ensure-ref-block!` is the only step that would later
-  relocate the asset to the `hls__` page; if it fails (e.g. invalid outliner
-  data from a nil-parent insert), the asset stays parentless — matching the
-  worker HTTP 500.
+- The `move-blocks!` in `ensure-ref-block!` only relocates the area image
+  asset (the PNG block under `:logseq.property.pdf/hl-image`), not the
+  external PDF Asset block. If the PDF Asset was inserted into the active
+  edit block instead of the `hls__` page, no later step moves it to the
+  `hls__` page — the asset stays in the edit block (or parentless if the
+  edit block's parent is nil).
 
 Correlation rule: an operation is attributed to this build + asset when the
 asset UUID in `:blocks` matches (1), the worker log timestamp falls inside the
@@ -187,13 +218,15 @@ reproduction window, and the running build hash matches
 
 ## Gaps
 
-- `normalize-asset-resource-url` `file://` normalization not ported (see
-  "Not ported") — `inflate-asset` file:// branch is a no-op on Electron until
-  that lands.
+- `normalize-asset-resource-url` `file://` normalization is now ported
+  (dependency completion, 2nd commit) with adaptation for Windows drive
+  protection. The source's port had a bug: it recursed into the relative
+  branch for Windows drives, producing `assets:///C%3A/...` (encoded colon,
+  not protected) and crashing on `file://C:/...`. The adapted port fixes this.
 - Full-suite `bb dev:lint-and-test` not green end-to-end due to pre-existing
   unrelated node-test failures (DOM/path-separator), so lint coverage for the
   changed files is limited to shadow-cljs compile warnings (0) + the targeted
-  namespaces above. `bb dev:lint` (clj-kondo) on the two changed CLJS files
+  namespaces above. `bb dev:lint` (clj-kondo) on the changed CLJS files
   was not run separately.
 - Runtime reproduction (plan above) not executed here — requires the desktop
   app on a dev graph; recorded as parent follow-up.
