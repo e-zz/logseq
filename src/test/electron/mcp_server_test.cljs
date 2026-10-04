@@ -13,6 +13,7 @@
         [query options] (mcp-search/search-call-args args)]
     (is (= "needle" query))
     (is (= {:enable-snippet? false
+            :publish-result? false
             :page-uuid "67e55044-10b1-426f-9247-bb680e5fe0c8"
             :block-uuid "67e55044-10b1-426f-9247-bb680e5fe0c9"
             :limit 7}
@@ -25,6 +26,7 @@
         [query options] (mcp-search/search-call-args args)]
     (is (= "needle" query))
     (is (= {:enable-snippet? false
+            :publish-result? false
             :page-uuid "67e55044-10b1-426f-9247-bb680e5fe0c8"
             :limit 7}
            (js->clj options :keywordize-keys true)))))

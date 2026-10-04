@@ -2158,6 +2158,55 @@
       (is (contains? (page-scoped) "zqx recycle needle")
           "restored root reappears in page-scoped search"))))
 
+(deftest recycled-exclusion-is-identical-for-gui-and-mcp-option-sets
+  (testing "caller-specific option sets (GUI cmdk vs MCP) share one recycled
+            exclusion, exclude a stale recycled index row, and never let the
+            excluded entry crowd out an eligible active match under :limit"
+    (let [conn (db-test/create-conn-with-blocks
+                {:pages-and-blocks
+                 [{:page {:block/title "Differential Home"}
+                   :blocks [{:block/title "delta active needle"}]}
+                  {:page {:block/title "Differential Source"}
+                   :blocks [{:block/title "delta needle"
+                             :build/children [{:block/title "delta child needle"}]}]}]})
+          search-db (create-search-sqlite!)
+          root (db-test/find-block-by-content @conn "delta needle")
+          root-uuid (str (:block/uuid root))
+          gui-opts {:enable-snippet? false
+                    :built-in? true
+                    :include-matched-count? true}
+          mcp-opts {:enable-snippet? false}
+          titles (fn [opts]
+                   (let [result (search/search-blocks conn search-db "delta"
+                                                      (merge opts {:limit 5}))]
+                     (set (map :block/title (if (map? result)
+                                              (:items result)
+                                              result)))))
+          limited-titles (fn [opts]
+                           (let [result (search/search-blocks conn search-db "delta"
+                                                              (merge opts {:limit 1}))]
+                             (set (map :block/title (if (map? result)
+                                                      (:items result)
+                                                      result)))))]
+      (reindex-all! search-db conn)
+      (is (contains? (titles gui-opts) "delta active needle"))
+      (is (contains? (titles mcp-opts) "delta active needle"))
+
+      ;; Recycle without refreshing the FTS table: the recycled row stays in the
+      ;; index, so this exercises the search-time hidden-entity? exclusion.
+      (recycle/recycle! conn (uuid root-uuid) {})
+
+      (doseq [[label opts] [["GUI" gui-opts] ["MCP" mcp-opts]]]
+        (is (contains? (titles opts) "delta active needle")
+            (str label " must still return the eligible active match"))
+        (is (not (contains? (titles opts) "delta needle"))
+            (str label " must exclude the stale recycled root"))
+        (is (not (contains? (titles opts) "delta child needle"))
+            (str label " must exclude recycled descendants"))
+        (is (contains? (limited-titles opts) "delta active needle")
+            (str label " must not let the excluded recycled match crowd out "
+                 "the eligible active match under :limit"))))))
+
 (deftest recycled-blocks-are-absent-from-index-build-inputs
   (testing "get-all-blocks/build-blocks-indice skip recycled nodes without a live FTS row"
     (let [conn (db-test/create-conn-with-blocks
