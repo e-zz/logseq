@@ -1,86 +1,85 @@
-# Issue fixes: remaining acceptance plan
+# Issue fixes：收束验收与交付计划
 
-> For Hermes: execute bounded acceptance tasks, delegate mechanical evidence/publication work when useful, and independently verify every child result. Do not substitute source tests for packaged-runtime acceptance.
+## 已采纳的推进方向
+用户已采纳：现有修复的主要功能验收接近结束，停止扩展范围；完成搜索修补及父代理复核，明确 #12 失败的处理边界，保留 #14/#21 阻塞和样本缺口，交付最终验收表。
 
-## Live progress update (supersedes stale snapshot statements below)
-- #11 fresh ordinary block: PASS native read/search and user-observed GUI search, autocomplete and reference navigation; evidence `issue11-fresh-block-api.md`. Fresh page candidate visible is PASS; its separate page navigation remains unreported. Do not recreate the passing block case.
-- #14 real page recycle: PASS native default exclusion, explicit recycled title/UUID reads, deleted-at marker and retained content. Same-title active/recycled coexistence is BLOCKED by independently published #21: add request silently reuses recycled UUID. Do not restore or write into recycled fixture to hide it.
-- GUI recycled-search compatibility: NOT ACCEPTED. Separate implementation worker is executing `.hermes/plans/search-mcp-filter-upstream-compatibility.md`; keep GUI/upstream and MCP defaults distinct. Source worker results cannot certify the currently running package.
-- #9 remaining gaps: PASS independent asset-reference/target readback after user-confirmed restart; PASS actual non-journal date batch rejection with valid first title edit not applied and complete before/after block equality. Evidence `.agents/audits/current-ui-acceptance-37203268496/issue9-remaining-gaps-results.md`. Exactly one upsertNodes call used for this follow-up.
-- #12 read-only follow-up: actual packaged CLI reports isolated CLI-owned revision fb5eb4e. Five file contents and SHA256 hashes match historical saved values; actual Datascript count query reports exactly one entity for each of five paths. Evidence `issue12-readonly-followup.json`. No new restart or deletion was performed in that read-only substep. Subsequent user explicitly authorized removal of ONLY isolated `logseq/custom.css` file entity and normal isolated CLI worker stop/reopen. Actual missing-file acceptance FAIL: file remained absent (no file entity and get-file-content=nil), while other four full contents and existing UUID/title rows were preserved; see `issue12-missing-file-results.json`. The fixture remains partial intentionally; no automatic restoration. Legacy init-conn / Windows classpath remain NOT EXERCISED in package; this failed packaged db-worker case does not prove legacy init-conn failure.
-- Public #20 and #21 published and independently read back in earlier turns; no closures authorized here. Latest #9/#11 fresh-block details are local evidence, not claimed newly published.
-- #5 legitimate historical missing-order fixture remains unavailable. No DB damage to manufacture a case.
+这是验收收束计划，不是全部通过声明，不是 release readiness 声明，也不是自动关闭 issue 的授权。
+本文件替代此前同文件的待测试列表。历史快照由 Git 提交 `d21ef1502a` 保留，不再将已完成项当作待办。
 
-Historical snapshot below is retained for provenance; its pending #9/#11/recycle/publication statements are superseded by this update. Task 3 is now completed; Tasks 1/2/4 only their explicitly named residual gaps remain.
+## 工作区与证据归属
+- 专用 worktree：`D:/orca/workspaces/logseq/issues-human-test-20261003`，分支 `test/issues-mcp-20261003`。
+- 当前 non-release Windows 包：CI `37203268496`，源码 SHA `fb5eb4eb43cdb3be7a29d816b969d45c127d4861`。
+- 较早 API/GUI 证据来自 CI `37134185100`；没有在当前包逐项重跑，最终表必须保留实际构建归属。
+- 搜索后续源码修补即使测试通过，也不代表正在运行的旧 CI 包已包含修补。
+- 实测、用户实测、源码核验、推断、未验必须区分。receipt 为当前 DataScript 状态读回，不是 SQLite crash durability 或索引完成屏障。
+- 下表 GitHub 状态为最后核验记录；本次计划编辑没有重新查询远程状态。
 
-## Goal
-Finish only the acceptance checks mapped to the integrated issue fixes. Separate passing functional cases, documented API limits, missing fixtures, and unrelated/pre-existing defects. Do not claim all issues resolved or release readiness.
+## 当前验收状态
+| 项目 | 已有证据与状态 | 收束边界 |
+|---|---|---|
+| #4 列表属性 | 实测：number-list 写入/读回、静态 UI、非法 bullet 批次拒绝 | removal/bullet 的既有 API 限制保留；动态编号为独立 #20，不在本轮实现 |
+| #5 缺 order | 源码核验/整合记录：upstream 已覆盖，未叠加旧 fallback | 缺合格历史样本，当前包 GUI 覆盖标 NOT TESTED；禁止破坏 DB 造样本 |
+| #6 嵌套 | 实测：临时父引用、多层/子先于父、顺序和循环拒绝 | 用户已明确关闭；不重复核心测试，不因未测 direct self-parent 重开 |
+| #7 状态 | 实测：Task/普通块状态及未知闭集值原子拒绝 | 用户已明确关闭；不扩展 Task 视图测试 |
+| #8 树/搜索/回收恢复 | 实测：完整树预算、单块读取、范围搜索、receipt、普通子树回收恢复 | GUI 搜索兼容性单独处理；不新增性能或 crash durability 门槛 |
+| #9 类型属性 | 实测：标量、property-only、node-many 追加去重、date/asset/status、false/0、错误原子拒绝；最新 asset 精确引用/目标在用户确认重启后读回；非 journal date 批次拒绝，完整块前后相同 | 本轮两项缺口已补齐，不再重复；移除、空 many、many closed-value 不支持，不能包装成已实现 |
+| #11 新写入可检索 | 实测 API + 用户实测 GUI：重启后新普通块搜索、补全、选择引用及导航通过；新页候选可见通过 | 新页独立选择/跳转仍未确认，标 NOT TESTED；不重建通过的普通块 fixture，不做时延 benchmark |
+| #12 CLI 文件保留 | 实测：真实 packaged CLI；五文件两轮正常重开内容/哈希保留；追加只读检查每个路径单一实体 | 缺文件测试出现 FAIL，详见下节；原 init-conn / Windows classpath 包内路径 NOT EXERCISED |
+| #14 回收页读取 | 实测：默认 getPage/listPages 排除、显式 title/UUID 读回、deleted-at 和内容保留 | 同名并存 fixture 被 #21 阻塞；active-first/歧义未完整验收；GUI 搜索不能借 MCP 排除结果宣称通过 |
+| #20 动态编号 | 用户实测：插入后重复/不顺延，切页无效，重启恢复，旧版同样存在 | 独立 OPEN，原因未定，不混入本轮修补 |
+| #21 同名回收页写入 | 实测 + 源码核验：新增请求复用回收 UUID，新块落入旧回收页却报告新增成功 | 独立 OPEN；不自动恢复旧页或再次写入掩盖问题；不与搜索修补合并 |
 
-## Current artifact and evidence provenance
-- Dedicated worktree: D:/orca/workspaces/logseq/issues-human-test-20261003, test/issues-mcp-20261003.
-- Current non-release Windows artifact: CI run 37203268496, commit fb5eb4eb43cdb3be7a29d816b969d45c127d4861.
-- Earlier integrated-build API/GUI evidence includes run 37134185100. Those cases were not all rerun on the current artifact; retain the exact build attribution.
-- Latest user observations: a new MCP-created page after the latest restart appears in [[...]] autocomplete; selecting it and navigation have not been reported. Dynamic numbering may duplicate/stale after insertion, does not recover by page navigation, and recovers after application restart. User reports earlier-version reproduction; no exact earlier identifier or bisect, frontend/backend cause unknown.
-- Public numbering follow-up and #4/#11 comments are delegated under .agents/briefs/live-numbering-and-fresh-page-autocomplete-followup.md; publication and independent parent readback are not yet complete at this plan snapshot.
-- Historical NEXT-TESTS.md and parent-ci-remaining-todo.md contain obsolete CLI-placeholder and GUI-pending statements. This plan supersedes those statements only; historical evidence remains intact.
+## 剩余推进任务（按顺序）
 
-## Status by issue
-|Issue|Verified scope|Remaining gap / boundary|GitHub state read this turn|
-|---|---|---|---|
-|#4|Real number-list property write/readback, static UI display, invalid bullet value batch rejection|MCP bullet/removal unsupported; dynamic numbering is separately tracked pre-existing defect, not a new regression attribution. No full feature-completion claim.|OPEN|
-|#5|Integration documentation states upstream coverage; local missing-order implementation not layered|No qualified historical sample for current-package GUI regression. Do not damage DB to manufacture it.|OPEN|
-|#6|Temporary-parent multi-level nesting including child-before-parent; before/after relation and order; two-node cycle batch rejection|Direct self-parent live case not covered, not a reason to repeat passing core cases or reopen user-closed issue.|CLOSED by explicit user instruction|
-|#7|Task status on add and ordinary block; unknown status atomic rejection; UI/API status correspondence|No general task-view testing required.|CLOSED by explicit user instruction|
-|#8|Full tree with budget, single-block lookup, scoped search, real receipt state readback, ordinary subtree recycle/restore with search exclusion|Receipt is current DataScript readback, not crash durability or index-completion fence. Functional checks covered; no controlled latency benchmark.|OPEN|
-|#9|Typed scalar/property-only/node-many/date/asset/status writes with independent reads; false/0; additive dedup; tested error atomicity; earlier date/task/metadata normal reopen|Non-journal date rejection and latest asset-reference persistence not independently rechecked after latest restart. Null/empty-many/removal and many closed values unsupported, not hidden features.|OPEN|
-|#11|Current-package GUI search for existing fixture; block [[...]] candidate/UUID selection after earlier restart; latest genuinely fresh MCP page candidate confirmed by user|Latest post-restart fresh ordinary-block write -> autocomplete/search still needed; page selection/navigation not reported; no timing benchmark.|OPEN|
-|#12|Real packaged CLI now shipped; five DB file contents/hashes survive two normal isolated CLI-worker stop/open cycles; defaults on fresh graph|Original init-conn path not established by newer worker lifecycle; missing-file repair on existing graph and explicit semicolon-separated Windows classpath not verified.|OPEN|
-|#14|Source contract reviewed; public comments corrected for active-first naming|Real recycled-page, same-name active/recycled, recycled UUID reads and ambiguous active names not live-tested.|OPEN|
+### 1. 完成搜索兼容性修补与独立复核
+执行计划：`.hermes/plans/search-mcp-filter-upstream-compatibility.md`。
+- 目标固定：GUI 遵循对应 upstream 默认行为；MCP 默认排除回收实体；MCP 选项/结果发布不得污染 GUI 或共享状态。
+- 不能用“过滤条件已存在于 upstream”排除本轮索引/共享路径的间接影响；也不能为迎合旧行为记忆全局撤掉 upstream hidden/private 过滤。
+- 已核验模型为 OpenCode `baqis/deepseek-v4.1-flash`。第一轮因外部 `/tmp` 文件权限拒绝而中止，exit 0 不是完成；没有落盘报告或修补。已续接原会话，提供 worktree 内对照文件与 `.agents/briefs/search-mcp-filter-resume.md`。
+- Worker 完成标准：实际调查/修补报告，最小源码差异，真实执行的回归测试和准确计数；根因未证实须明确标注，禁止捏造 red/green。
+- 父代理独立检查默认策略、调用顺序/共享状态隔离、全量/增量索引、回收祖先、范围与限额、#11 新写入可检索，再重跑针对性测试。不能只采信 worker 摘要。
+- 若需要新包 GUI 验收，只针对已修补的直接路径另行形成 non-release CI 验收记录；不自行安装、操作用户图或重启当前应用。
 
-## Ordered remaining tasks
+### 2. 明确 #12 失败的处理边界
+实测反例已完成，不能再列为“未测”或 PASS：
+- 用户明确授权仅移除隔离 CLI 图 `issue12-preservation` 的 `logseq/custom.css` 文件实体，并正常停止/重开隔离 worker。
+- 重开后 file/path 实体仍不存在，get-file-content 为 nil；其他四文件完整内容与现有 UUID/title 行保留。
+- fixture 按 disposable 约定保持缺文件状态，不自动恢复；未删除磁盘文件，未触碰当前 GUI 图。
 
-### 1. Complete #11 fresh ordinary-block case
-Prerequisite: app still on disposable graph; do not restart or rebuild index between write and query. Read current fixture and properties first. Use at most one upsertNodes per active user request to create one distinct ordinary block on an existing dedicated test page. Native desktop MCP only: do not open a second live CLI/SQLite mirror.
-Acceptance: getBlock/getPage confirms title+UUID; GUI search finds that exact block; typing [[distinct-prefix in a different test block produces its existing-block candidate; selecting it stores reference to the correct UUID, not a newly created page. Save input, readbacks, screenshot, and user report separately. Earlier pre-restart fixtures do not satisfy this fresh case. Ask user only for precise GUI steps that automation cannot reliably do. Page reference selection/navigation can be confirmed in the same manual batch but is distinct from candidate appearance.
+源码核验：当前 packaged worker 的初始化分支与 legacy `logseq.outliner.cli/init-conn` 是不同路径。推断：已有图跳过初始数据构建可解释缺文件未补齐，但包内没有分支 instrumentation，不能称实测根因。
+下一步只做有界判断：核对 #12 原承诺与实际调用路径，将“文件保留 PASS / packaged 缺文件 FAIL / legacy init-conn 与 Windows classpath NOT EXERCISED”明确分列。
+若现有承诺确实覆盖 packaged 缺文件补齐，才安排独立最小修补/针对性测试；否则作为独立跟进缺陷记录，不默认扩大本轮到 worker 初始化重构。无论采用哪一边界，保留原失败证据，不改写为通过。
+不为了运行 legacy 测试重编译整套应用；源码测试不能替代该路径的包内验收。
 
-### 2. Run #14 real page-recycle cases
-Create new dedicated disposable fixtures, not existing notes. Get explicit fixture-specific recycling confirmation before any page recycling. Existing three-block recycle authorization is not page-deletion authorization.
-Acceptance:
-- Recycled page absent from listPages/default getPage; explicit includeRecycled read carries deleted-at marker.
-- With an active page having the same name, name lookup resolves the active page even with includeRecycled=true.
-- Explicit UUID resolves the recycled generation when includeRecycled=true.
-- If feasible using supported fixture creation, multiple active same-name candidates produce actionable UUID ambiguity instead of arbitrary selection; if the app prevents creating this condition, record fixture limitation, do not edit SQLite.
-User can perform only the fixture-page recycle GUI operation; parent performs exact readback. No permanent deletion and no automatic test-graph cleanup.
+### 3. 冻结覆盖缺口与阻塞项
+- #14 同名 active/recycled 与 UUID/歧义矩阵：BLOCKED by #21。不得直接改 SQLite、擅自恢复或静默写回收页造 fixture。
+- #5 合格历史样本：sample-limited / NOT TESTED，不继续无界寻找、不制造损坏数据。
+- #11 新页独立跳转：NOT TESTED；若用户后续提供确切操作结果，再追加用户实测记录，不为此重做已通过普通块测试。
+- 原 init-conn / Windows classpath 的包内入口：找不到受支持可执行入口时明确 NOT EXERCISED；不以通用 CLI 启动成功冒称 classpath 验证。
+- 这些明确缺口可以随最终验收报告交付，不要求全部变 PASS 才结束本轮。
 
-### 3. Close focused #9 evidence gaps
-Use independent read-only getBlock to inspect the previously written asset reference after the user-confirmed normal restart; do not rewrite it. Validate target existence and exact UUID, not merely a display label.
-For non-journal date rejection, make one bounded negative write paired with a valid title edit only in a fresh fixture, record complete before/after equality and explicit rejection. Do not conflate source rejection with live atomicity. Respect one upsertNodes per user request; do not bypass via HTTP or delegation.
-API limits remain explicit: removal unsupported, many inputs additive union, many closed values unsupported. Completing tests does not silently expand delivered semantics.
+### 4. 最终验收表与交付
+创建 `.agents/reports/issue-fixes-final-acceptance.md`，每行包含：issue、具体验收用例、实际 build/SHA、证据类型、PASS/FAIL/NOT TESTED/UNSUPPORTED/BLOCKED、直接证据路径、失败/限制原因、后续跟踪。
+- #6/#7 最后记录 CLOSED，其他 issue 最后记录 OPEN；交付前重新查询远程状态，不凭计划快照声称当前状态。
+- 区分本地已落盘证据与已发布 GitHub 评论；如发布，先 brief/payload、脱敏，再发布并精确读回目标。计划更新本身不意味着已发布新测试结果。
+- 对每个 issue 给出有明确交付边界的结论/关闭建议，不自动关闭。
+- 标明 CI success 不等于完整 test suite 全绿；无当前包全用例统一 passed count，无受控性能数据。
+- 原 source suite 的 sync.restart-test/connect-calls 失败归因仍未被父代理独立确认，不能照抄“已证明 baseline race”。保留为 source-test attribution 未决，不扩大到本轮全面 sync 测试。
+- 关键计划/证据/报告定向 Git 提交，不 broad add，不 push；保留历史证据构建归属。
 
-### 4. Complete #12 isolated runtime-path acceptance
-Reuse only the dedicated disposable CLI graph and exact current packaged CLI; current GUI graph must not be opened by a second mirror.
-- Establish whether the package exposes a supported route that actually executes original init-conn. Trace with source guidance but require runtime evidence; if absent, mark that packaged path NOT EXERCISED, not PASS.
-- Use supported graph/file transactions on the isolated graph to remove only an owned test file entity, then reopen and verify missing-file defaults restored without changing the other four full contents. State the consequence and get required fixture-specific deletion authorization first; no raw DB edits.
-- Test explicit two-directory Windows classpath separated by semicolon using the relevant supported entry point and discoverable sentinel/resource; distinguish exact resolution from merely successful generic startup.
-- Check duplicate file-entity counts and unrelated canary preservation while reading this isolated graph.
-No rebuild needed to repeat an existing runtime case. Rebuild only if a reproduced defect requires source changes and user scope permits.
+## 明确排除
+不新增 PDF/Zotero/sync/外链功能验收；不重复已通过核心用例；不新增性能、强杀/crash durability、全应用探索 QA；不修 #20 动态编号；不在搜索 worker 内修 #21 importer。
+不得操作其他笔记或图，不永久删除，不自作主张关闭/强杀当前应用。图写入只走当前 app 原生 MCP；每用户请求最多一次 upsertNodes，禁止 HTTP/委派绕过。隔离 CLI 图可走其自身 runtime transaction，但必须验证 owner/root/revision，禁止打开当前 GUI 图的第二镜像。
 
-### 5. Mark #5 sample-limited and finalize evidence
-Find a legitimate historical disposable missing-order sample if already available. Without one, record runtime coverage gap; do not manufacture malformed current graph data.
-Read back child-created public issue/comment targets and compare exact payloads before reporting publication complete. Assemble final acceptance table with build SHA, case, evidence type, PASS/FAIL/NOT TESTED/UNSUPPORTED, and reason. Recommend closure per issue only when its delivered boundary is explicit; do not close without user instruction.
+## 直接证据
+根目录：`.agents/audits/current-ui-acceptance-37203268496/`
+- `issue11-fresh-block-api.md`：API 实测与用户 GUI 结果分别记录。
+- `issue14-real-page-results.md`、`gui-search-and-recycled-title-import-diagnosis.md`：回收读取、#21 同名复用与源码诊断。
+- `issue9-remaining-gaps-results.md`：asset 重启后精确读回，非 journal date 原子拒绝。
+- `issue12-readonly-followup.json`：五文件内容/哈希保留、路径实体计数。
+- `issue12-missing-file-probe.py`、`issue12-missing-file-results.json`、`issue12-missing-file-followup.md`：缺文件 FAIL 与其他数据保留。探针现已非 PASS 返回非零；保存结果已独立核验，未重复移除已经缺失的 fixture。
+历史 `.agents/audits/demo-graph-acceptance-20261004/parent-issue12-package-file-preservation.md` 与 JSON 保留两轮正常重开证据。
 
-## Excluded work
-Do not test unrelated PDF/Zotero/sync/external-link features (#2/#10/#13 not covered by this batch). Do not undertake dynamic-numbering implementation as part of this acceptance batch: independent issue first, later dedicated diagnosis. No controlled performance benchmark exists; timing tool calls/events does not create one. Crash durability, arbitrary UI editing, and broad full-app QA are not added acceptance gates.
-
-## Integration-test caveat
-An earlier source suite had a sync.restart-test/connect-calls failure. The previous baseline-race attribution was a worker claim not independently confirmed by parent. Retain as unresolved source-test attribution, separate from packaged-runtime passes; CI build success does not prove the full test suite green. Do not rerun/recompile source solely to replace current-package acceptance.
-
-## Evidence pointers
-- docs/testing/issues-20261003.md: implementation/test mapping, some statements historical rather than current acceptance authority.
-- .agents/audits/current-ui-acceptance-37203268496/parent-reopen/: direct GUI evidence.
-- .agents/audits/current-ui-acceptance-37203268496/parent-review.md: historical parent review, superseded UI-pending lines by latest evidence.
-- .agents/audits/demo-graph-acceptance-20261004/parent-issue12-package-file-preservation.md and parent-issue12-package-file-probe.json: isolated runtime preservation evidence.
-- Corrected public #8/#9/#12 comment bodies read back this turn establish existing documented scope, not new tests.
-
-## Completion definition
-Each named case has independently reviewed evidence or an explicit supported limitation/fixture blocker. No fabricated aggregate pass percentage. No blanket current-build attribution for old-build cases. No issue closure or release declaration implied by finishing this plan.
+## 本轮结束条件
+搜索 worker 产出已独立复核，#12 的失败与原承诺边界已有明确结论，最终验收表完成并逐条有证据或明确缺口。
+完成计划不等于所有功能通过。允许 FAIL/BLOCKED/NOT TESTED 随报告正式交付；禁止通过重复测试、扩大范围或改写标准把结果做成全绿。
