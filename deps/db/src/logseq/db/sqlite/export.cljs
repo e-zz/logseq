@@ -8,6 +8,7 @@
             [clojure.walk :as walk]
             [datascript.core :as d]
             [datascript.impl.entity :as de]
+            [logseq.common.defkeywords :refer [defkeywords]]
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.frontend.class :as db-class]
@@ -19,6 +20,10 @@
             [logseq.db.frontend.validate :as db-validate]
             [logseq.db.sqlite.build :as sqlite-build]
             [logseq.db.sqlite.create-graph :as sqlite-create-graph]))
+
+(defkeywords
+  ::mcp-upsert? {:doc "Identifies API upserts using EDN import machinery that need
+                       incremental search indexing instead of a full import rebuild."})
 
 ;; Export fns
 ;; ==========

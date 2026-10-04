@@ -432,6 +432,10 @@
   (let [semantic-ops (atom [])
         single-op-outliner-op (when (= 1 (count ops))
                                 (first (first ops)))
+        ;; Only outer metadata reaches the final batch commit. Genuine imports
+        ;; still skip incremental indexing, including batches mixed with upserts.
+        import-ops (filter import-edn-op? ops)
+        mcp-upsert? (some #(get-in % [1 1 :tx-meta ::sqlite-export/mcp-upsert?]) import-ops)
         opts' (cond-> (assoc opts
                              :transact-opts {:conn conn}
                              :local-tx? true
@@ -440,7 +444,10 @@
                      (nil? (:outliner-op opts)))
                 (assoc :outliner-op single-op-outliner-op)
 
-                (some import-edn-op? ops)
+                mcp-upsert?
+                (assoc ::sqlite-export/mcp-upsert? true)
+
+                (some #(not (get-in % [1 1 :tx-meta ::sqlite-export/mcp-upsert?])) import-ops)
                 (assoc ::sqlite-export/imported-data? true))
         *result (atom nil)]
 
