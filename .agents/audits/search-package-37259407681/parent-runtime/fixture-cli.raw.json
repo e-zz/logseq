@@ -1,0 +1,75 @@
+[
+  {
+    "args": [
+      "graph",
+      "create"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"message\":\"Created graph \\\"search-package-fixture\\\"\"}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "page",
+      "--page",
+      "Search Fixture"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[192]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "block",
+      "--target-page",
+      "Search Fixture",
+      "--content",
+      "parentactivecanary3785"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[193]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "block",
+      "--target-page",
+      "Search Fixture",
+      "--content",
+      "parentcontrolcanary9432"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[194]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "graph",
+      "switch"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"message\":\"switched to search-package-fixture\"}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "graph",
+      "info"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"graph\":\"search-package-fixture\",\"logseq.kv/graph-created-at\":1791172544090,\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"kv\":{\"logseq.kv/db-type\":\"db\",\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-initial-schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-created-at\":1791172544090,\"logseq.kv/local-graph-uuid\":\"00000000-cde5-4566-904b-73bb1fed877f\",\"logseq.kv/recycle-last-gc-at\":1791172544338}}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "server",
+      "stop"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"repo\":\"logseq_db_search-package-fixture\"}}\n",
+    "stderr": "[graph-lifecycle] {\"event\":\"worker-termination\",\"repo\":\"search-package-fixture\",\"graphsDir\":\"D:\\\\orca\\\\workspaces\\\\logseq\\\\issues-human-test-20261003\\\\.agents\\\\audits\\\\search-package-37259407681\\\\parent-runtime\\\\home\\\\logseq\\\\graphs\",\"generation\":\"cc9253ca-e7ca-427d-b4a6-793ef5f6dee4\",\"ticket\":\"3a36b7d1-2c05-4bf3-981c-68df00282768\",\"pid\":38272,\"stage\":\"graceful\"}\n"
+  }
+]

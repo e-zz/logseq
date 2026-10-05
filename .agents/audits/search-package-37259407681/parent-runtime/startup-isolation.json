@@ -1,0 +1,11 @@
+{
+  "measured": {
+    "home": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\parent-runtime\\home",
+    "userData": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\parent-runtime\\userdata",
+    "appData": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\parent-runtime/appdata",
+    "logs": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\parent-runtime/logs",
+    "osHome": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\parent-runtime\\home",
+    "appPath": "C:\\Users\\zhang\\Downloads\\logseq-ci-37259407681-x64\\unpacked\\resources\\app.asar"
+  },
+  "scope": "Inspector adjusts only filesystem paths before production app startup; search code unchanged."
+}

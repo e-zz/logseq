@@ -89,3 +89,11 @@
 ## 本轮结束条件
 搜索 worker 产出已独立复核，#12 的失败与原承诺边界已有明确结论，最终验收表完成并逐条有证据或明确缺口。
 完成计划不等于所有功能通过。允许 FAIL/BLOCKED/NOT TESTED 随报告正式交付；禁止通过重复测试、扩大范围或改写标准把结果做成全绿。
+
+## 2026-10-05 后续授权与新包实测（取代上文相关未验/禁止项）
+
+用户明确 ok so go ahead，授权源码-only fork CI、non-release Windows包及独立配置/合成图验证；不授权操作原应用/现有图或发布正式Release。已发布仅五src文件、一提交的分支 source-only-ci-5c1b5e55 @ 7b1ae92ee1eb1679b8bb827d12d7e76e22d4d5c5；没有发布原补丁提交夹带的两份报告或本地审计材料。
+
+实测：五文件clj-kondo v2026.04.15父重跑0errors/0warnings（1info）。CI37259407681 success，compile实际checkout SHA精确匹配；x64包已下载，精确ASAR核验新旧指纹。独立真实DB图中新包renderer默认发布、MCP返回、异查询未持续覆盖sentinel、Cmd-K精确节点，以及普通块回收/恢复后MCP和Cmd-K可见性全部通过，最终14条检查PASS（非14独立场景）。结论PASS_WITH_OBSERVATION_LIMIT：状态采样不证明零瞬时/同值写入，GUI测试是重新发起查询而非打开结果自动刷新。
+
+隔离实例已正常quit并读回其三个测试端口关闭，fixture保留；原应用/图未操作。旧/新GUI回收可见性根因仍UNRESOLVED，未完成同fixture两包运行对照，整体原需求仍PARTIAL。既有issue证据不移用到新包，不自动关单。完整报告 .agents/reports/search-package-37259407681-parent-acceptance.md，真实结果 .agents/audits/search-package-37259407681/parent-runtime/behavior-parent.json。
