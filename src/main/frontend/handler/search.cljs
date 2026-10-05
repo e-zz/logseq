@@ -34,11 +34,12 @@
    (search (state/get-current-repo) q))
   ([repo q]
    (search repo q {:limit 10}))
-  ([repo q {:keys [page-db-id page-uuid block-uuid limit more?]
+  ([repo q {:keys [page-db-id page-uuid block-uuid limit more? publish-result?]
             :or {page-db-id nil
                  page-uuid nil
                  block-uuid nil
-                 limit 10}
+                 limit 10
+                 publish-result? true}
             :as opts}]
    (validate-search-limit! opts limit)
    (when (and page-uuid
@@ -62,7 +63,7 @@
          (throw (js/Error. "pageUuid and blockUuid must identify the same page")))
        (when-not (string/blank? q)
          (p/let [page-db-id (<resolve-page-db-id repo page-db-id)
-                 opts (cond-> (assoc (dissoc opts :page-uuid :block-uuid) :limit limit)
+                 opts (cond-> (assoc (dissoc opts :page-uuid :block-uuid :publish-result?) :limit limit)
                         page-db-id (assoc :page (str page-db-id))
                         page-uuid (assoc :page page-uuid)
                         block-uuid (assoc :block (:block-uuid block)))
@@ -75,7 +76,8 @@
                          (when-not (or page-db-id page-uuid block-uuid)
                            {:files files}))
                  search-key (if more? :search/more-result :search/result)]
-             (state/swap-state! assoc search-key result)
+             (when publish-result?
+               (state/swap-state! assoc search-key result))
              result)))))))
 
 (defn open-find-in-page!

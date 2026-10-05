@@ -232,5 +232,64 @@
                    (is false "recycled page UUID must reject instead of searching")
                    (done)))
           (.catch (fn [_]
-                    (is (false? @global-search?))
+                   (is (false? @global-search?))
+                   (done)))))))
+
+(deftest search-publishes-result-state-only-when-requested
+  (async done
+    (let [state-updates (atom [])]
+      (-> (p/with-redefs [search/block-search (fn [_repo _query _options]
+                                                (p/resolved [{:block/uuid "block-1"}]))
+                          search/file-search (fn [_query]
+                                               (p/resolved ["file.md"]))
+                          state/swap-state! (fn [_f & args]
+                                              (swap! state-updates conj args)
+                                              nil)]
+            (p/let [mcp-result (search-handler/search
+                                "repo" "needle"
+                                {:enable-snippet? false :publish-result? false})
+                    gui-result (search-handler/search "repo" "needle")]
+              (is (= {:blocks [{:block/uuid "block-1"}]
+                      :has-more? false
+                      :files ["file.md"]}
+                     mcp-result))
+              (is (= mcp-result gui-result)
+                  "suppressing publication must not change the returned result")
+              (is (= [[:search/result {:blocks [{:block/uuid "block-1"}]
+                                       :has-more? false
+                                       :files ["file.md"]}]]
+                     @state-updates)
+                  "only the default (GUI/plugin) caller may publish :search/result")))
+          (.then (fn [_] (done)))
+          (.catch (fn [error]
+                    (is false (str error))
+                    (done)))))))
+
+(deftest search-does-not-leak-scope-options-across-callers
+  (async done
+    (let [worker-calls (atom [])]
+      (-> (p/with-redefs [search/block-search (fn [_repo _query options]
+                                                (swap! worker-calls conj options)
+                                                (p/resolved []))
+                          search/file-search (fn [_query]
+                                               (p/resolved []))
+                          state/swap-state! (fn [& _] nil)]
+            (p/let [mcp-opts {:enable-snippet? false
+                              :publish-result? false
+                              :dev? true}
+                    _ (search-handler/search "repo" "needle" mcp-opts)
+                    _ (search-handler/search "repo" "needle" {:limit 3})]
+              (is (= [{:enable-snippet? false :dev? true :limit 10}
+                      {:limit 3}]
+                     @worker-calls)
+                  "each caller's search reaches the worker with its own options
+                   and no MCP-only publication flag")
+              (is (= {:enable-snippet? false
+                      :publish-result? false
+                      :dev? true}
+                     mcp-opts)
+                  "the caller's options map must not be mutated")))
+          (.then (fn [_] (done)))
+          (.catch (fn [error]
+                    (is false (str error))
                     (done)))))))

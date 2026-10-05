@@ -2,7 +2,8 @@
 
 (defn search-call-args
   [args]
-  (let [options #js {:enable-snippet? false}
+  (let [options #js {:enable-snippet? false
+                     :publish-result? false}
         page-uuid (aget args "pageUuid")
         block-uuid (aget args "blockUuid")
         limit (aget args "limit")]
