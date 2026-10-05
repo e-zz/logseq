@@ -25,15 +25,42 @@
   "run_id": 37321968445,
   "run_url": "https://github.com/e-zz/logseq/actions/runs/37321968445",
   "created_at": "2026-10-05T14:06:00Z",
-  "status_observed": "in_progress",
-  "conclusion_observed": null,
+  "status_observed": "completed (re-observed 2026-10-06; earlier record said in_progress)",
+  "conclusion_observed": "success",
   "compile_job_id": 111803045090,
   "checkout_step_observed": "success",
-  "compile_checkout_sha_log_verified": false,
-  "compile_checkout_sha_log_note": "Pending raw job-log verification; input SHA and pure-source remote branch are verified, not substituted by run.headSha.",
-  "artifact_count_observed": 0,
+  "compile_checkout_sha_log_verified": true,
+  "compile_checkout_sha_log_note": "Measured from compile-cljs raw log: line 42 \"ref: 22a29b30dee3b3930cf49bba50454650c31d2a07\"; line 104 fetch of that exact SHA; line 114 \"Note: switching to '22a29b30...'\"; line 131 \"HEAD is now at 22a29b3 fix: resolve uuid refs in search results, breadcrumbs, and nested page refs (#13580)\". run.headSha is the workflow execution ref, not the compiled source SHA.",
+  "artifact_count_observed": 3,
   "expected_x64_artifact_name": "logseq-win-x64-builds",
   "release_requested": false,
   "existing_application_or_graph_operations": false,
-  "existing_source_or_test_branch_changed": false
+  "existing_source_or_test_branch_changed": false,
+  "run_completed_at_observed": "2026-10-05T14:21:42Z",
+  "compile_checkout_log_path": ".agents/audits/upstream-ci-37321968445/compile-checkout.raw.log",
+  "artifacts_observed": [
+    {
+      "name": "logseq-win-x64-builds",
+      "size_in_bytes": 348389033,
+      "expired": false
+    },
+    {
+      "name": "logseq-win-arm64-builds",
+      "size_in_bytes": 341262642,
+      "expired": false
+    },
+    {
+      "name": "static",
+      "size_in_bytes": 64799064,
+      "expired": false
+    }
+  ],
+  "jobs_conclusion": {
+    "compile-cljs": "success",
+    "build-windows-x64": "success",
+    "build-windows-arm64": "success",
+    "other_matrix_jobs": "skipped"
+  },
+  "artifact_downloaded_or_run": false,
+  "artifact_download_note": "Artifacts were not downloaded or executed; this record verifies build identity only."
 }

@@ -124,4 +124,32 @@ Plan saved, worker actually launched with verified model. Implementation accepta
 
 验收判定：新合成图所覆盖的页面标签/路径/点击导航/普通页回收恢复 **PASS（有限覆盖）**；用户原图标题消失现象 **UNRESOLVED**；旧索引真实迁移、特定图配置/过滤/实体路径、旧A回收行来源与全部upstream功能 **未验证**。不据此盲目回退publish-result?或修改公共渲染，不宣称原问题已解决或总矩阵全绿。
 
-最终本轮实例PID和六专属端口独立核对均已退出/关闭，没有强杀。完整报告 `.agents/audits/gui-search-upstream-compatibility-independent/runtime-review.md`；原始结果和截图 `runtime-results/gui-pair-recycle.json` 与 `{U,B,C}/*.png`；父程序化验收 `runtime-results/acceptance-summary.json`。审计产物仅本地归档，不push/发布/关issue。
+最终本轮实例PID和六专属端口独立核对均已退出/关闭，没有强杀。完整报告 `.agents/audits/gui-search-upstream-compatibility-independent/runtime-review.md`；原始结果和截图 `runtime-results/gui-pair-recycle.json` 与 `{U,B,C}/*.png`；父程序化验收 `runtime-results/acceptance-summary.json`。审计产物本地归档。
+
+## 2026-10-05/06 收尾：U CI 身份核验、用户纠正与 #4/#8/#9/#11 关闭
+
+### 1. fresh U 对比构建已核验成功（实测，取代先前 in_progress 记录）
+run https://github.com/e-zz/logseq/actions/runs/37321968445 现读回 `completed` / `success`（2026-10-05T14:21:42Z 结束）。
+- compile-cljs 原始日志实测：line 42 `ref: 22a29b30dee3b3930cf49bba50454650c31d2a07`；line 104 fetch 同一 SHA；line 131 `HEAD is now at 22a29b3 fix: resolve uuid refs in search results, breadcrumbs, and nested page refs (#13580)`。即**编译的源码确实是 U**，先前"原始 checkout SHA 日志待验"一项已完成。
+- 产物 3 个：`logseq-win-x64-builds`（348,389,033 B）、`logseq-win-arm64-builds`、`static`，均未过期。**未下载、未运行**该包，本条只核构建身份。
+- 注意：run 的 `headSha` 是工作流执行 ref `7b1ae92…`，**不是**编译源码 SHA；两者必须分开记。
+- 原始日志 `.agents/audits/upstream-ci-37321968445/compile-checkout.raw.log`；身份记录同目录 `manifest.json`。
+
+### 2. 用户撤回"GUI 标题退化"怀疑（取代此前疑似回归前提）
+用户实测 `logseq-ci-3725940768` 后明确："I am wrong … it actually behaves exactly the same way"。因此**不再把标题差异当作本轮引入的回归**，不据此改 breadcrumb/publish/filter，也不再索要失败样本。
+保留的边界：用户**原图**上该现象的成因仍未复现、未定位（旧索引迁移、特定图配置/过滤/实体路径均未证），整体原需求仍 **PARTIAL / UNRESOLVED**；新合成图上 U/B/C 行为一致，只是有限兼容性证据。
+用户手测的包号 `3725940768` 在 API 返回 404；存在 `37259407681`（=C）。是否漏末位仍是推断，未确认。
+
+### 3. #4/#8/#9/#11 已关闭（用户 `ok` 授权，仅此四个）
+每个 issue 先发布复核过的验收/限制说明，再以 `completed` 关闭，正文逐一读回 `body_match=true`；证据目录 `.agents/audits/issue-closures-4-8-9-11/`。
+| Issue | 关闭时间 (UTC) | 评论 |
+|---|---|---|
+| #4 | 2026-10-05T15:31:02Z | https://github.com/e-zz/logseq/issues/4#issuecomment-5997654250 |
+| #8 | 2026-10-05T15:31:07Z | https://github.com/e-zz/logseq/issues/8#issuecomment-5997655714 |
+| #9 | 2026-10-05T15:31:12Z | https://github.com/e-zz/logseq/issues/9#issuecomment-5997657210 |
+| #11 | 2026-10-05T15:31:18Z | https://github.com/e-zz/logseq/issues/11#issuecomment-5997658668 |
+
+本文件早前"不自动关 issue / 无关闭授权"的表述，在**这四个**上已被本次授权取代；#5/#12/#14/#20/#21 仍未关闭、未改动（读回 `non_target_state_changes` 为空）。
+关闭依据是**原 issue 核心需求**，不是所有后续测试项通过：保留 #4 无 removal/number→bullet、#8 receipt 非磁盘持久、#9 无 remove/空 many、#11 新页独立跳转未验。
+该源码修补（`5c1b5e5574`）仍**不在**已关闭所依据的任一构建中：C=7b1ae92 含修补但 #4/#8/#9/#11 的关闭证据属 CI 37134185100 与 CI 37203268496。
+
