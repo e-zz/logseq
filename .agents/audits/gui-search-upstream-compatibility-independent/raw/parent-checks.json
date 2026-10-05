@@ -1,0 +1,22 @@
+{
+  "refs": {
+    "U": "22a29b30dee3b3930cf49bba50454650c31d2a07",
+    "B": "fb5eb4eb43cdb3be7a29d816b969d45c127d4861",
+    "A": "bb70c73d29352c85473bdc3bba2bd37d1f2abe72"
+  },
+  "source_equality": {
+    "src/main/frontend/components/cmdk/core.cljs": true,
+    "src/main/frontend/components/cmdk/state.cljs": true,
+    "src/main/frontend/components/block/breadcrumb.cljs": true,
+    "src/main/frontend/components/block/breadcrumb_model.cljs": true,
+    "src/main/frontend/worker/handler/block_breadcrumb.cljs": true,
+    "src/main/frontend/search.cljs": true,
+    "search-result->block-result": true,
+    "combine-results": true
+  },
+  "a_u_mergebase": "be800f171172c259d4dd942346e4d247a0783738",
+  "a_is_ancestor_of_u": false,
+  "u_has_active_visible_resolvers": false,
+  "b_has_active_visible_resolvers": true,
+  "runtime_verified": false
+}

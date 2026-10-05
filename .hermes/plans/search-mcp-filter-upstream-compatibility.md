@@ -113,3 +113,15 @@ Plan saved, worker actually launched with verified model. Implementation accepta
 实测：五文件clj-kondo v2026.04.15父重跑0errors/0warnings（1info）。CI37259407681 success，compile实际checkout SHA精确匹配；x64包已下载，精确ASAR核验新旧指纹。独立真实DB图中新包renderer默认发布、MCP返回、异查询未持续覆盖sentinel、Cmd-K精确节点，以及普通块回收/恢复后MCP和Cmd-K可见性全部通过，最终14条检查PASS（非14独立场景）。结论PASS_WITH_OBSERVATION_LIMIT：状态采样不证明零瞬时/同值写入，GUI测试是重新发起查询而非打开结果自动刷新。
 
 隔离实例已正常quit并读回其三个测试端口关闭，fixture保留；原应用/图未操作。旧/新GUI回收可见性根因仍UNRESOLVED，未完成同fixture两包运行对照，整体原需求仍PARTIAL。既有issue证据不移用到新包，不自动关单。完整报告 .agents/reports/search-package-37259407681-parent-acceptance.md，真实结果 .agents/audits/search-package-37259407681/parent-runtime/behavior-parent.json。
+
+## 后续独立审核及 U/B/C 真包 GUI 对照（最新状态）
+
+用户要求先对清现状、独立审核，再修复；核心目标为不破坏 upstream 既有功能，不再要求用户选择排查方法。子代理审核经过父代理固定ref复核后部分拒收：所谓U引入active-visible resolver、runtime-write跳过同步、无block时SQL完全等价、A→U均为upstream历史等结论错误。以 `.agents/audits/gui-search-upstream-compatibility-independent/parent-review.md` 为准。
+
+实测：取得精确U=22a29b30的官方Windows包（run37131548966/artifact11277537465，ZIP digest相符、compile checkout SHA已核）。使用新建seed复制出的隔离合成图，实际运行U、B=fb5eb4eb43、C=7b1ae92三个包；三个精确普通/嵌套结果样本每包均有正确页面标题/父块路径，点击后async页读回和目标块正文均正确，共9个结果样本。没有更改产品源码。
+
+实测：三个包的自建普通页均在回收后保留同UUID、deleted-at已设、parent=Recycle；页面标题与其内容块的GUI查询均由1条变0条；恢复后同UUID、deleted-at去除、内容块重新命中且页面标签可见。当前U的这一新图行为与B/C相同，不能把旧A截图当作当前upstream规范，也不能把那行归因为MCP污染。
+
+验收判定：新合成图所覆盖的页面标签/路径/点击导航/普通页回收恢复 **PASS（有限覆盖）**；用户原图标题消失现象 **UNRESOLVED**；旧索引真实迁移、特定图配置/过滤/实体路径、旧A回收行来源与全部upstream功能 **未验证**。不据此盲目回退publish-result?或修改公共渲染，不宣称原问题已解决或总矩阵全绿。
+
+最终本轮实例PID和六专属端口独立核对均已退出/关闭，没有强杀。完整报告 `.agents/audits/gui-search-upstream-compatibility-independent/runtime-review.md`；原始结果和截图 `runtime-results/gui-pair-recycle.json` 与 `{U,B,C}/*.png`；父程序化验收 `runtime-results/acceptance-summary.json`。审计产物仅本地归档，不push/发布/关issue。

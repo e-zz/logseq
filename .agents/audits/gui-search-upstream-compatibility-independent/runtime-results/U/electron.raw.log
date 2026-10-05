@@ -1,0 +1,54 @@
+
+[31456:1005/201648.736:ERROR:electron\shell\common\node_bindings.cc:507] Most NODE_OPTIONs are not supported in packaged apps. See documentation for more details.
+Debugger listening on ws://127.0.0.1:19541/400ed1f4-deea-410b-9d5f-38ab35759ba6
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+DevTools listening on ws://127.0.0.1:19542/devtools/browser/66b7f916-1061-471b-8b73-766bc1c824b7
+20:16:49.911 > Logseq App(2.0.2) Starting... 
+20:16:50.032 > restore proxy settings {:type "system"}
+20:16:50.033 > set proxy to {:type "system"}
+20:16:50.036 > :cli/install Installed launcher at C:\Users\zhang\AppData\Local\Temp\ls-ub-20261005\U\appdata\Microsoft\WindowsApps\logseq.cmd
+20:16:50.038 > [updater] configure-auto-updater {:platform "win32", :arch "x64", :channel "latest-x64"}
+20:16:50.039 > [updater] init-auto-updater
+Checking for update
+Generated new staging user ID: 8f821032-9ac4-5397-9075-d80c558d9a1c
+Update for version 2.0.2 is not available (latest version: 2.0.1, downgrade is disallowed).
+Debugger ending on ws://127.0.0.1:19541/400ed1f4-deea-410b-9d5f-38ab35759ba6
+For help, see: https://nodejs.org/en/docs/inspector
+
+[17180:1005/202657.177:ERROR:electron\shell\common\node_bindings.cc:507] Most NODE_OPTIONs are not supported in packaged apps. See documentation for more details.
+Debugger listening on ws://127.0.0.1:19541/299fcb5a-bdef-4b60-ad71-d6bed960ac69
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+DevTools listening on ws://127.0.0.1:19542/devtools/browser/a731c79a-bc5b-419b-8370-78aa3e54aec7
+20:26:58.351 > Logseq App(2.0.2) Starting... 
+20:26:58.470 > restore proxy settings {:type "system"}
+20:26:58.470 > set proxy to {:type "system"}
+20:26:58.474 > [updater] configure-auto-updater {:platform "win32", :arch "x64", :channel "latest-x64"}
+20:26:58.478 > [updater] init-auto-updater
+Checking for update
+(node:17180) [DEP0176] DeprecationWarning: fs.W_OK is deprecated, use fs.constants.W_OK instead
+(Use `Logseq --trace-deprecation ...` to show where the warning was created)
+Update for version 2.0.2 is not available (latest version: 2.0.1, downgrade is disallowed).
+Debugger ending on ws://127.0.0.1:19541/299fcb5a-bdef-4b60-ad71-d6bed960ac69
+For help, see: https://nodejs.org/en/docs/inspector
+
+[22816:1005/203610.803:ERROR:electron\shell\common\node_bindings.cc:507] Most NODE_OPTIONs are not supported in packaged apps. See documentation for more details.
+Debugger listening on ws://127.0.0.1:19541/813efcdb-887f-438a-89eb-1543551679fc
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+DevTools listening on ws://127.0.0.1:19542/devtools/browser/fc86d656-be96-478a-85aa-e563cea8aff3
+20:36:11.919 > Logseq App(2.0.2) Starting... 
+20:36:12.042 > restore proxy settings {:type "system"}
+20:36:12.042 > set proxy to {:type "system"}
+20:36:12.049 > [updater] configure-auto-updater {:platform "win32", :arch "x64", :channel "latest-x64"}
+20:36:12.055 > [updater] init-auto-updater
+Checking for update
+(node:22816) [DEP0176] DeprecationWarning: fs.W_OK is deprecated, use fs.constants.W_OK instead
+(Use `Logseq --trace-deprecation ...` to show where the warning was created)
+Update for version 2.0.2 is not available (latest version: 2.0.1, downgrade is disallowed).
+Debugger ending on ws://127.0.0.1:19541/813efcdb-887f-438a-89eb-1543551679fc
+For help, see: https://nodejs.org/en/docs/inspector

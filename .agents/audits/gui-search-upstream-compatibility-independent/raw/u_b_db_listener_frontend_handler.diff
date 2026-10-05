@@ -1,0 +1,106 @@
+diff --git a/src/main/frontend/handler/search.cljs b/src/main/frontend/handler/search.cljs
+index aaee96613a..4d623fe59a 100644
+--- a/src/main/frontend/handler/search.cljs
++++ b/src/main/frontend/handler/search.cljs
+@@ -8,6 +8,7 @@
+             [frontend.search :as search]
+             [frontend.state :as state]
+             [frontend.util :as util]
++            [logseq.common.util :as common-util]
+             [promesa.core :as p]))
+ 
+ (defn- <resolve-page-db-id
+@@ -17,29 +18,65 @@
+       (:db/id page))
+     page-db-id))
+ 
++(defn- <resolve-page-uuid
++  [repo page-uuid]
++  (state/<invoke-db-worker :thread-api/search-page-uuid repo page-uuid))
++
++(defn- validate-search-limit!
++  [opts limit]
++  (when (and (contains? opts :limit)
++             (not (and (integer? limit) (pos? limit) (<= limit 100))))
++    (throw (js/Error. "search limit must be a positive integer no greater than 100"))))
++
+ (defn search
+   "The aggregation of search results"
+   ([q]
+    (search (state/get-current-repo) q))
+   ([repo q]
+    (search repo q {:limit 10}))
+-  ([repo q {:keys [page-db-id limit more?]
++  ([repo q {:keys [page-db-id page-uuid block-uuid limit more?]
+             :or {page-db-id nil
++                 page-uuid nil
++                 block-uuid nil
+                  limit 10}
+             :as opts}]
+-   (when-not (string/blank? q)
+-     (p/let [page-db-id (<resolve-page-db-id repo page-db-id)
+-             opts (if page-db-id (assoc opts :page (str page-db-id)) opts)
+-             blocks (search/block-search repo q opts)
+-             files (search/file-search q)]
+-       (let [result (merge
+-                     {:blocks blocks
+-                      :has-more? (= limit (count blocks))}
+-                     (when-not page-db-id
+-                       {:files files}))
+-             search-key (if more? :search/more-result :search/result)]
+-         (state/swap-state! assoc search-key result)
+-         result)))))
++   (validate-search-limit! opts limit)
++   (when (and page-uuid
++              (not (and (string? page-uuid)
++                        (common-util/uuid-string? page-uuid))))
++     (throw (js/Error. "pageUuid must be a valid page UUID string")))
++   (when (and block-uuid
++              (not (and (string? block-uuid)
++                        (common-util/uuid-string? block-uuid))))
++     (throw (js/Error. "blockUuid must be a valid block UUID string")))
++   (when (and page-db-id page-uuid)
++     (throw (js/Error. "pageDbId and pageUuid cannot both be specified")))
++   (when (and page-db-id block-uuid)
++     (throw (js/Error. "pageDbId and blockUuid cannot both be specified")))
++   (if (and (string/blank? q) (not page-uuid) (not block-uuid))
++     nil
++     (p/let [page-uuid (when page-uuid (<resolve-page-uuid repo page-uuid))
++             block (when block-uuid
++                     (state/<invoke-db-worker :thread-api/search-block-uuid repo block-uuid))]
++       (when (and page-uuid block-uuid (not= page-uuid (:page-uuid block)))
++         (throw (js/Error. "pageUuid and blockUuid must identify the same page")))
++       (when-not (string/blank? q)
++         (p/let [page-db-id (<resolve-page-db-id repo page-db-id)
++                 opts (cond-> (assoc (dissoc opts :page-uuid :block-uuid) :limit limit)
++                        page-db-id (assoc :page (str page-db-id))
++                        page-uuid (assoc :page page-uuid)
++                        block-uuid (assoc :block (:block-uuid block)))
++                 blocks (search/block-search repo q opts)
++                 files (when-not (or page-db-id page-uuid block-uuid)
++                         (search/file-search q))]
++           (let [result (merge
++                         {:blocks blocks
++                          :has-more? (= limit (count blocks))}
++                         (when-not (or page-db-id page-uuid block-uuid)
++                           {:files files}))
++                 search-key (if more? :search/more-result :search/result)]
++             (state/swap-state! assoc search-key result)
++             result)))))))
+ 
+ (defn open-find-in-page!
+   []
+diff --git a/src/main/frontend/worker/db_listener.cljs b/src/main/frontend/worker/db_listener.cljs
+index c6066cd9dd..5470953ccf 100644
+--- a/src/main/frontend/worker/db_listener.cljs
++++ b/src/main/frontend/worker/db_listener.cljs
+@@ -175,7 +175,8 @@
+   [tx-meta]
+   (or (:from-disk? tx-meta)
+       (:logseq.graph-parser.exporter/imported-data? tx-meta)
+-      (:logseq.db.sqlite.export/imported-data? tx-meta)))
++      (and (:logseq.db.sqlite.export/imported-data? tx-meta)
++           (not (:logseq.outliner.op/runtime-write? tx-meta)))))
+ 
+ (defmethod listen-db-changes :search
+   [_ {:keys [repo]} {:keys [tx-meta] :as tx-report}]

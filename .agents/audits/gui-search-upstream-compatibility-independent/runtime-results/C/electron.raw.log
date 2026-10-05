@@ -1,0 +1,36 @@
+
+[16300:1005/202753.887:ERROR:electron\shell\common\node_bindings.cc:507] Most NODE_OPTIONs are not supported in packaged apps. See documentation for more details.
+Debugger listening on ws://127.0.0.1:19561/47facb3f-f3c1-4e6d-ab54-0b8f4f8a72ba
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+DevTools listening on ws://127.0.0.1:19562/devtools/browser/fb963952-495f-4c11-974d-419cb6895d17
+20:27:55.309 > Logseq App(2.0.2) Starting... 
+20:27:55.453 > restore proxy settings {:type "system"}
+20:27:55.453 > set proxy to {:type "system"}
+20:27:55.462 > :cli/install Installed launcher at C:\Users\zhang\AppData\Local\Temp\ls-ub-20261005\C\appdata\Microsoft\WindowsApps\logseq.cmd
+20:27:55.464 > [updater] configure-auto-updater {:platform "win32", :arch "x64", :channel "latest-x64"}
+20:27:55.468 > [updater] init-auto-updater
+Checking for update
+Generated new staging user ID: 274bf038-e3af-531c-870b-286b03ac37cd
+Update for version 2.0.2 is not available (latest version: 2.0.1, downgrade is disallowed).
+Debugger ending on ws://127.0.0.1:19561/47facb3f-f3c1-4e6d-ab54-0b8f4f8a72ba
+For help, see: https://nodejs.org/en/docs/inspector
+
+[18060:1005/203725.654:ERROR:electron\shell\common\node_bindings.cc:507] Most NODE_OPTIONs are not supported in packaged apps. See documentation for more details.
+Debugger listening on ws://127.0.0.1:19561/fe577b36-df39-4bd6-9c93-357c18710fd1
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+DevTools listening on ws://127.0.0.1:19562/devtools/browser/b554f7d3-0d5b-43cc-9d8f-8d0d79f0a443
+20:37:26.760 > Logseq App(2.0.2) Starting... 
+20:37:26.878 > restore proxy settings {:type "system"}
+20:37:26.879 > set proxy to {:type "system"}
+20:37:26.892 > [updater] configure-auto-updater {:platform "win32", :arch "x64", :channel "latest-x64"}
+20:37:26.893 > [updater] init-auto-updater
+Checking for update
+(node:18060) [DEP0176] DeprecationWarning: fs.W_OK is deprecated, use fs.constants.W_OK instead
+(Use `Logseq --trace-deprecation ...` to show where the warning was created)
+Update for version 2.0.2 is not available (latest version: 2.0.1, downgrade is disallowed).
+Debugger ending on ws://127.0.0.1:19561/fe577b36-df39-4bd6-9c93-357c18710fd1
+For help, see: https://nodejs.org/en/docs/inspector

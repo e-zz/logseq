@@ -1,0 +1,216 @@
+diff --git a/deps/db/src/logseq/db/frontend/malli_schema.cljs b/deps/db/src/logseq/db/frontend/malli_schema.cljs
+index cae0fe7e8f..efb1e1ec37 100644
+--- a/deps/db/src/logseq/db/frontend/malli_schema.cljs
++++ b/deps/db/src/logseq/db/frontend/malli_schema.cljs
+@@ -208,10 +208,11 @@
+                 (into {})))))))
+ 
+ (defn datoms->entities
+-  "Returns a vec of entity maps given :eavt datoms"
+-  [datoms]
++  "Returns a vec of entity maps given :eavt datoms. Optional keys:
++   * :entity-fn - Optional fn that given an entity id, returns entity"
++  [datoms & {:keys [entity-fn]}]
+   (mapv (fn [[db-id m]] (assoc m :db/id db-id))
+-        (datoms->entity-maps datoms)))
++        (datoms->entity-maps datoms {:entity-fn entity-fn})))
+ 
+ (assert (every? #(re-find #"^(block|logseq\.)" (namespace %)) db-property/db-attribute-properties)
+         "All db-attribute idents start with an internal namespace")
+diff --git a/deps/db/src/logseq/db/frontend/validate.cljs b/deps/db/src/logseq/db/frontend/validate.cljs
+index 912c0a125a..d4456ef31f 100644
+--- a/deps/db/src/logseq/db/frontend/validate.cljs
++++ b/deps/db/src/logseq/db/frontend/validate.cljs
+@@ -135,7 +135,7 @@
+   (let [datoms (if entity-ids
+                  (entity-datoms db entity-ids)
+                  (d/datoms db :eavt))
+-        ent-maps* (db-malli-schema/datoms->entities datoms)
++        ent-maps* (db-malli-schema/datoms->entities datoms {:entity-fn #(d/entity db %)})
+         _ (when verbose
+             (println "Read graph" (str db-name " with counts: "
+                                        (pr-str (assoc (graph-counts db ent-maps*)
+diff --git a/deps/db/src/logseq/db/sqlite/create_graph.cljs b/deps/db/src/logseq/db/sqlite/create_graph.cljs
+index baea292efd..2c064ce02b 100644
+--- a/deps/db/src/logseq/db/sqlite/create_graph.cljs
++++ b/deps/db/src/logseq/db/sqlite/create_graph.cljs
+@@ -231,8 +231,9 @@
+ 
+ (defn build-db-initial-data
+   "Builds tx of initial data for a new graph including key values, initial files,
+-   built-in properties and built-in classes"
+-  [config-content & {:keys [import-type graph-git-sha creating-remote-graph?]}]
++   built-in properties and built-in classes. `:existing-file-paths` preserves stored
++   files when initial data is also applied to an existing graph."
++  [config-content & {:keys [import-type graph-git-sha creating-remote-graph? existing-file-paths]}]
+   (assert (string? config-content))
+   (let [initial-data (cond->
+                       [(sqlite-util/kv :logseq.kv/db-type "db")
+@@ -251,7 +252,8 @@
+                        true
+                        (conj (sqlite-util/kv :logseq.kv/local-graph-uuid
+                                              (uuid (str "00000000" (subs (str (common-uuid/gen-uuid)) 8))))))
+-        initial-files (build-initial-files config-content)
++        initial-files (remove #(contains? existing-file-paths (:file/path %))
++                               (build-initial-files config-content))
+         {properties-tx :tx :keys [properties]} (build-initial-properties)
+         db-ident->properties (zipmap (map :db/ident properties) properties)
+         default-classes (build-initial-classes db-ident->properties)
+diff --git a/deps/graph-parser/src/logseq/graph_parser/exporter.cljs b/deps/graph-parser/src/logseq/graph_parser/exporter.cljs
+index cd387be7f5..93a7397c3e 100644
+--- a/deps/graph-parser/src/logseq/graph_parser/exporter.cljs
++++ b/deps/graph-parser/src/logseq/graph_parser/exporter.cljs
+@@ -900,10 +900,15 @@
+                            [[:logseq.property.view/type
+                              (if prop-value :logseq.property.view/type.table :logseq.property.view/type.list)]]
+                            :query-sort-by
+-                           [[:logseq.property.table/sorting
+-                             [{:id (or (query-table-special-keys (keyword prop-value))
+-                                       (get-ident @all-idents (keyword prop-value)))
+-                               :asc? true}]]]
++                           (when-let [sort-by-ident (try
++                                                      (or (query-table-special-keys (keyword prop-value))
++                                                          (get-ident @all-idents (keyword prop-value)))
++                                                      (catch :default e
++                                                        (js/console.error "Translating query sort-by failed with:" e)
++                                                        nil))]
++                             [[:logseq.property.table/sorting
++                               [{:id sort-by-ident
++                                 :asc? true}]]])
+                            ;; ignore to handle below
+                            :query-sort-desc
+                            nil
+@@ -921,7 +926,8 @@
+                            [[(built-in-property-file-to-db-idents prop) prop-value]]))))
+              (into {}))]
+     (cond-> m
+-      (and (contains? props :query-sort-desc) (:query-sort-by props))
++      (and (contains? props :query-sort-desc) (:query-sort-by props)
++           (contains? m :logseq.property.table/sorting))
+       (update :logseq.property.table/sorting
+               (fn [v]
+                 (assoc-in v [0 :asc?] (not (:query-sort-desc props))))))))
+@@ -1708,8 +1714,25 @@
+         remote-url? (remote-http-url? link-url)
+         file-url (when (and (string? link-url) (string/starts-with? link-url "file://"))
+                    link-url)
+-        zotero-path-data (when (map? path*)
+-                           (get-zotero-local-pdf-path user-config link-map))
++        zotero-path-data (cond
++                           ;; Standard zotero://select/... link
++                           (and (map? path*) (= "zotero" (:protocol path*)))
++                           (get-zotero-local-pdf-path user-config link-map)
++
++                           ;; Standalone {{zotero-linked-file "..."}} macro without a
++                           ;; matching zotero:// link. Resolve against the configured
++                           ;; linked attachment base directory so that assets (and
++                           ;; their pdf annotations) are still built for such
++                           ;; references.
++                           (and (map? link-map)
++                                (= "zotero-linked-file" (:protocol path*))
++                                (string? (:link path*))
++                                (string? linked-base-dir)
++                                (not (string/blank? linked-base-dir)))
++                           (let [relative-path (:link path*)]
++                             {:link (str "zotero-link://" relative-path)
++                              :path (node-path/join linked-base-dir relative-path)
++                              :base (node-path/basename relative-path)}))
+         zotero-asset? (some? zotero-path-data)
+         linked-relative (when (and linked-files zotero-asset? (seq @linked-files))
+                           (let [value (first @linked-files)]
+@@ -1831,7 +1854,19 @@
+   [block {:keys [asset-links zotero-imported-files zotero-linked-files]} {:keys [assets ignored-assets pdf-annotation-pages]} {:keys [notify-user <get-file-stat user-config] :as opts}]
+   (let [linked-files (when (seq zotero-linked-files) (atom zotero-linked-files))
+         linked-base-dir (when linked-files
+-                          (get-in user-config [:zotero/settings-v2 "default" :zotero-linked-attachment-base-directory]))]
++                          (get-in user-config [:zotero/settings-v2 "default" :zotero-linked-attachment-base-directory]))
++        ;; A standalone {{zotero-linked-file "..."}} macro (i.e. without a matching
++        ;; zotero://select/... link in the same block) still references a real pdf.
++        ;; Synthesize asset links for these so that the asset block (and its pdf
++        ;; annotations) gets built. Blocks that already have asset links keep the
++        ;; original pairing behavior (zotero:// link + linked file path).
++        asset-links (if (and (empty? asset-links) (seq zotero-linked-files))
++                      (mapv (fn [linked-path]
++                              ["Link" {:url ["url" {:protocol "zotero-linked-file"
++                                                    :link linked-path}]
++                                       :label [["text" (node-path/basename linked-path)]]}])
++                            zotero-linked-files)
++                      asset-links)]
+     (if (seq asset-links)
+       (p/let [asset-maps* (p/all (map
+                                   (fn [asset-link]
+@@ -2216,7 +2251,11 @@
+ (defn- <build-block-tx
+   [db block* pre-blocks per-file-state walked-ast-blocks options]
+   (let [core (build-block-tx-core db block* pre-blocks per-file-state walked-ast-blocks options)]
+-    (if (seq (:asset-links walked-ast-blocks))
++    (if (or (seq (:asset-links walked-ast-blocks))
++            ;; A standalone {{zotero-linked-file "..."}} macro (no asset links in the
++            ;; same block) still references a real pdf; <handle-assets-in-block
++            ;; synthesizes asset links for it, so run the asset pass here too.
++            (seq (:zotero-linked-files walked-ast-blocks)))
+       (p/let [{block-after-assets :block :keys [asset-blocks-tx]}
+               (<handle-assets-in-block (:block-after-built-in-props core)
+                                       walked-ast-blocks
+@@ -2309,7 +2348,13 @@
+ 
+ (defn- block-has-asset-links?
+   [walked-by-uuid block]
+-  (seq (:asset-links (get walked-by-uuid (:block/uuid block)))))
++  (let [walked (get walked-by-uuid (:block/uuid block))]
++    (or (seq (:asset-links walked))
++        ;; A standalone {{zotero-linked-file "..."}} macro (no asset links in the
++        ;; same block) still references a real pdf; <handle-assets-in-block
++        ;; synthesizes asset links for it, so route such blocks through the async
++        ;; asset-building path too.
++        (seq (:zotero-linked-files walked)))))
+ 
+ (defn- block-uuid-ref?
+   [ref]
+diff --git a/deps/graph-parser/src/logseq/graph_parser/exporter/finalize.cljs b/deps/graph-parser/src/logseq/graph_parser/exporter/finalize.cljs
+index b3facf27c7..3d6afa4baf 100644
+--- a/deps/graph-parser/src/logseq/graph_parser/exporter/finalize.cljs
++++ b/deps/graph-parser/src/logseq/graph_parser/exporter/finalize.cljs
+@@ -26,6 +26,17 @@
+   (and (:block/uuid entity)
+        (nil? (:block/title entity))))
+ 
++(defn- orphaned-placeholder?
++  "A true orphaned placeholder: an entity whose ONLY attribute is :block/uuid
++  (no :block/title and no other attrs). Stricter than placeholder-block-ref?
++  because property-value blocks for :node/:date types legitimately have a
++  :block/uuid but no :block/title while still carrying other attrs
++  (:logseq.property/value etc.) — those must be left alone."
++  [entity]
++  (and (:block/uuid entity)
++       (nil? (:block/title entity))
++       (empty? (dissoc entity :block/uuid :db/id :block/tx-id))))
++
+ (defn- missing-placeholder-ref-datoms
+   [db attr candidate-ref-uuids]
+   (if (seq candidate-ref-uuids)
+@@ -70,11 +81,19 @@
+                      [:db/add source-id :block/title title'])))
+                refs-by-source-id)
+          retract-placeholder-tx
+-         (->> (concat missing-ref-datoms missing-link-datoms)
+-              (map (juxt :ref-id :ref-uuid))
+-              distinct
+-              (map (fn [[ref-id ref-uuid]]
+-                     [:db/retract ref-id :block/uuid ref-uuid])))]
++         ;; Retract :block/uuid from ALL orphaned placeholder entities, not just
++         ;; those referenced by :block/refs or :block/link. Placeholders can also
++         ;; be left behind when a property's type changes and the old value is
++         ;; retracted but the placeholder entity it pointed at survives (orphaned).
++         ;; An orphaned placeholder has ONLY a :block/uuid; typed property-value
++         ;; blocks (:node/:date) also lack :block/title but carry other attrs, so
++         ;; the stricter orphaned-placeholder? predicate excludes them. Note:
++         ;; d/entity returns a Datascript entity object (no -dissoc protocol), so
++         ;; convert to a plain map first.
++         (->> (d/datoms db :aevt :block/uuid)
++              (keep (fn [datom]
++                      (when (orphaned-placeholder? (into {} (d/entity db (:e datom))))
++                        [:db/retract (:e datom) :block/uuid (:v datom)]))))]
+      (concat retract-ref-tx retract-link-tx update-title-tx retract-placeholder-tx))))
+ 
+ (defn set-finishing-import-ui!

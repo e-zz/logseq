@@ -1,0 +1,41 @@
+{
+  "U": {
+    "sha": "22a29b30dee3b3930cf49bba50454650c31d2a07",
+    "exe": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\gui-search-upstream-compatibility-independent\\upstream-package-37131548966\\portable\\Logseq.exe",
+    "app_asar_sha256": "97f2164f0baa39bb9be40bffcb3f45a8b66e47c3dc378d3d3fcebdfc4b16e29a",
+    "isolation": {
+      "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\home",
+      "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\userdata",
+      "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U/appdata",
+      "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U/logs",
+      "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\home",
+      "appPath": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\gui-search-upstream-compatibility-independent\\upstream-package-37131548966\\portable\\resources\\app.asar"
+    }
+  },
+  "B": {
+    "sha": "fb5eb4eb43cdb3be7a29d816b969d45c127d4861",
+    "exe": "C:/Users/zhang/Downloads/logseq-ci-37203268496-x64/Logseq-win-x64-2.0.2/Logseq.exe",
+    "app_asar_sha256": "e499eb2a719f01a17b947f6bd473c9cf6a6909d2beafe76d6afd0349cb2face3",
+    "isolation": {
+      "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\home",
+      "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\userdata",
+      "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B/appdata",
+      "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B/logs",
+      "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\home",
+      "appPath": "C:\\Users\\zhang\\Downloads\\logseq-ci-37203268496-x64\\Logseq-win-x64-2.0.2\\resources\\app.asar"
+    }
+  },
+  "C": {
+    "sha": "7b1ae92ee1eb1679b8bb827d12d7e76e22d4d5c5",
+    "exe": "C:/Users/zhang/Downloads/logseq-ci-37259407681-x64/unpacked/Logseq.exe",
+    "app_asar_sha256": "bcee01c59e76e71754a5ad1d8b7b997c443fb3f8b21dd76f4b646f9f9a71f727",
+    "isolation": {
+      "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\home",
+      "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\userdata",
+      "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C/appdata",
+      "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C/logs",
+      "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\home",
+      "appPath": "C:\\Users\\zhang\\Downloads\\logseq-ci-37259407681-x64\\unpacked\\resources\\app.asar"
+    }
+  }
+}

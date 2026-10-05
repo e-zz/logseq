@@ -1,0 +1,20 @@
+[
+  {
+    "args": [
+      "graph",
+      "create"
+    ],
+    "exit": 1,
+    "stdout": "{\"status\":\"error\",\"error\":{\"code\":\"server-cleanup-failed\",\"message\":\"unable to open database file\"}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "server",
+      "stop"
+    ],
+    "exit": 1,
+    "stdout": "{\"status\":\"error\",\"error\":{\"code\":\"server-cleanup-failed\",\"message\":\"Outdated worker cleanup failed: unable to open database file\"}}\n",
+    "stderr": ""
+  }
+]

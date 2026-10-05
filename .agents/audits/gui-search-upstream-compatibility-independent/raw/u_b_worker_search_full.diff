@@ -1,0 +1,205 @@
+diff --git a/src/main/frontend/worker/search.cljs b/src/main/frontend/worker/search.cljs
+index ce708ecefb..f3981c8de0 100644
+--- a/src/main/frontend/worker/search.cljs
++++ b/src/main/frontend/worker/search.cljs
+@@ -438,28 +438,25 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+       match-input)))
+ 
+ (defn- build-search-bind
+-  [q input page limit use-namespace-last-part?]
++  [q input page block limit use-namespace-last-part?]
+   (let [namespace? (and use-namespace-last-part?
+                         (ns-util/namespace-page? q))
+         last-part (when namespace?
+                     (some-> (text/get-namespace-last-part q)
+                             get-match-input))]
+-    (cond
+-      (and namespace? page)
+-      [page input last-part limit]
+-      page
+-      [page input limit]
+-      namespace?
+-      [input last-part limit]
+-      :else
+-      [input limit])))
++    (cond-> (cond-> [] page (conj page) block (conj block))
++      true (conj input)
++      namespace? (conj last-part)
++      true (conj limit))))
+ 
+ (defn- search-blocks-aux
+   ([db sql q input page limit]
+-   (search-blocks-aux db sql q input page limit false))
++   (search-blocks-aux db sql q input page nil limit false))
+   ([db sql q input page limit use-namespace-last-part?]
++   (search-blocks-aux db sql q input page nil limit use-namespace-last-part?))
++  ([db sql q input page block limit use-namespace-last-part?]
+    (try
+-     (let [bind (build-search-bind q input page limit use-namespace-last-part?)
++     (let [bind (build-search-bind q input page block limit use-namespace-last-part?)
+            result (.exec db (bean/->js
+                              {:sql sql
+                               :bind bind
+@@ -537,12 +534,15 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+   (not (re-find #"\s" q)))
+ 
+ (defn- search-blocks-exact-title-aux
+-  [db q page limit]
++  [db q page block limit]
+   (try
+-    (let [sql (str "select id, page, title from blocks where "
+-                   (if page "page = ? and " "")
++    (let [scope-sql (str (when page "page = ? and ")
++                         (when block "id = ? and "))
++          scope-bind (cond-> [] page (conj page) block (conj block))
++          sql (str "select id, page, title from blocks where "
++                   scope-sql
+                    "title = ? COLLATE NOCASE limit ?")
+-          bind (if page [page q limit] [q limit])
++          bind (into scope-bind [q limit])
+           blocks (exec-search-blocks-fuzzy db sql bind)]
+       (fuzzy-block-rows->results q blocks))
+     (catch :default e
+@@ -550,7 +550,7 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+       (js/console.error e))))
+ 
+ (defn- search-blocks-fuzzy-aux
+-  [db q page limit]
++  [db q page block limit]
+   (let [q (some-> q
+                   (fuzzy/search-normalize true)
+                   fuzzy/clean-str)
+@@ -559,11 +559,22 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+       (try
+         (let [candidate-limit (fuzzy-candidate-limit limit)
+               pattern (fuzzy-like-pattern q)
+-              blocks (if page
++              blocks (cond
++                       block
++                       (let [scope-sql (str (when page "page = ? and ")
++                                             "id = ? and lower(title) like ? escape '\\' limit ?")
++                             scope-bind (cond-> [] page (conj page))]
++                         (exec-search-blocks-fuzzy
++                          db
++                          (str "select id, page, title from blocks where " scope-sql)
++                          (into (conj scope-bind block) [pattern candidate-limit])))
++
++                       page
+                        (exec-search-blocks-fuzzy
+                         db
+                         "select id, page, title from blocks where page = ? and lower(title) like ? escape '\\' limit ?"
+                         [page pattern candidate-limit])
++                       :else
+                        (let [page-blocks (exec-search-blocks-fuzzy
+                                           db
+                                           "select id, page, title from blocks where id = page and lower(title) like ? escape '\\' limit ?"
+@@ -877,26 +888,37 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+             (and code-class
+                  (ldb/class-instance? code-class block))))))
+ 
++(defn- search-block-in-page?
++  [page block]
++  (let [current-page-uuid (if (ldb/page? block)
++                            (:block/uuid block)
++                            (some-> block :block/page :block/uuid))]
++    (= (str page) (str current-page-uuid))))
++
+ (defn- include-search-block?
+-  [conn block code-class {:keys [library-page-search? page-only? dev? built-in? code-only?]}]
++  [conn entity code-class {:keys [library-page-search? page block page-only? dev? built-in? code-only?]}]
+   (and
++   (or (nil? page)
++       (search-block-in-page? page entity))
++   (or (nil? block)
++       (= (str block) (str (:block/uuid entity))))
+    (not
+     (or
+      ;; remove pages that already have parents
+      (and library-page-search?
+-          (or (ldb/page-in-library? @conn block)
+-              (not (ldb/internal-page? block))))
++          (or (ldb/page-in-library? @conn entity)
++              (not (ldb/internal-page? entity))))
+      ;; remove non-page blocks when asking for pages only
+-     (and page-only? (not (ldb/page? block)))))
++     (and page-only? (not (ldb/page? entity)))))
+    (if dev?
+      true
+      (if built-in?
+-       (or (not (ldb/built-in? block))
+-           (not (ldb/private-built-in-page? block))
+-           (ldb/class? block))
+-       (not (ldb/built-in? block))))
++       (or (not (ldb/built-in? entity))
++           (not (ldb/private-built-in-page? entity))
++           (ldb/class? entity))
++       (not (ldb/built-in? entity))))
+    (or (not code-only?)
+-       (code-block? code-class block))))
++       (code-block? code-class entity))))
+ 
+ (defn- search-result->block-result
+   [conn q code-class option {:keys [id page snippet] :as result}]
+@@ -991,6 +1013,7 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+ (defn search-blocks
+   "Options:
+    * :page - the page to specifically search on
++   * :block - exactly one block UUID to specifically search on
+    * :limit - Number of result to limit search results. Defaults to 100
+    * :search-limit - Number of result to limit sqlite search results. Defaults to nil
+    * :enable-snippet? - Whether to replace title with snippet. Defaults to true
+@@ -999,7 +1022,7 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+    * :built-in?  - Whether to return public built-in nodes for db graphs. Defaults to false"
+   ([conn search-db q option]
+    (search-blocks conn search-db nil q option))
+-  ([conn search-db vector-index q {:keys [limit search-limit page enable-snippet? page-only? code-only? include-matched-count?]
++  ([conn search-db vector-index q {:keys [limit search-limit page block enable-snippet? page-only? code-only? include-matched-count?]
+                                    :as option
+                                    :or {enable-snippet? true}}]
+    (let [tag-title? (boolean (tag-title-query q))
+@@ -1013,21 +1036,26 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+              limit-p (or search-limit limit)
+              exact-title-result (when (and (not page-only?)
+                                            (exact-title-query? q))
+-                                  (search-blocks-exact-title-aux search-db q page limit-p))
++                                  (search-blocks-exact-title-aux search-db q page block limit-p))
+              enough-exact-title-results? (>= (count exact-title-result) limit-p)
+              ;; don't use sqlite snippet function anymore, all snippets will be handled by ensure-highlighted-snippet
+              select "select id, page, title, rank from blocks_fts where "
+-             pg-sql (if page "page = ? and" "")
++             scope-sql (str (when page "page = ? and ")
++                            (when block "id = ? and "))
+              match-sql (if (ns-util/namespace-page? q)
+-                         (str select pg-sql " title match ? or title match ? limit ?")
+-                         (str select pg-sql " title match ? limit ?"))
+-             non-match-sql (str select pg-sql " title like ? limit ?")
++                         (str select scope-sql
++                              (if (or page block)
++                                "(title match ? or title match ?)"
++                                "title match ? or title match ?")
++                              " limit ?")
++                         (str select scope-sql "title match ? limit ?"))
++             non-match-sql (str select scope-sql "title like ? limit ?")
+              matched-result (when (and (not page-only?)
+                                        (not tag-title?)
+                                        (not enough-exact-title-results?))
+-                              (search-blocks-aux search-db match-sql q match-input page limit-p (ns-util/namespace-page? q)))
++                              (search-blocks-aux search-db match-sql q match-input page block limit-p (ns-util/namespace-page? q)))
+              non-match-result (when (and (not page-only?) (not tag-title?) non-match-input)
+-                                (->> (search-blocks-aux search-db non-match-sql q non-match-input page limit-p)
++                                (->> (search-blocks-aux search-db non-match-sql q non-match-input page block limit-p false)
+                                      (map (fn [result]
+                                             (assoc result :keyword-score (fuzzy/score q (:title result)))))))
+              skip-fuzzy? (or enough-exact-title-results?
+@@ -1035,8 +1063,9 @@ ALTER TABLE blocks_fts_next RENAME TO blocks_fts;"))
+                              (and (multi-term-query? q)
+                                   (seq matched-result)))
+              fuzzy-result (when-not skip-fuzzy?
+-                            (search-blocks-fuzzy-aux search-db q page limit))
+-             vector-result (when (and (not page-only?)
++                            (search-blocks-fuzzy-aux search-db q page block limit))
++             vector-result (when (and (not block)
++                                      (not page-only?)
+                                       (:feature/enable-semantic-search? option))
+                              (vector-search-blocks vector-index {:limit limit-p
+                                                                  :page page

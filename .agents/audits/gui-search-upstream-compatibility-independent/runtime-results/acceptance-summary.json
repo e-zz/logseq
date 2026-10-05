@@ -1,0 +1,47 @@
+[
+  {
+    "side": "U",
+    "ordinary_queries": 3,
+    "ordinary_checks": true,
+    "before_page": 1,
+    "before_block": 1,
+    "after_page": 0,
+    "after_block": 0,
+    "recycle_marker_and_parent": true,
+    "restored_block": 1,
+    "restored_same_uuid": true,
+    "restored_deleted_at_absent": true,
+    "restored_page_label_visible": true,
+    "ports_closed": true
+  },
+  {
+    "side": "B",
+    "ordinary_queries": 3,
+    "ordinary_checks": true,
+    "before_page": 1,
+    "before_block": 1,
+    "after_page": 0,
+    "after_block": 0,
+    "recycle_marker_and_parent": true,
+    "restored_block": 1,
+    "restored_same_uuid": true,
+    "restored_deleted_at_absent": true,
+    "restored_page_label_visible": true,
+    "ports_closed": true
+  },
+  {
+    "side": "C",
+    "ordinary_queries": 3,
+    "ordinary_checks": true,
+    "before_page": 1,
+    "before_block": 1,
+    "after_page": 0,
+    "after_block": 0,
+    "recycle_marker_and_parent": true,
+    "restored_block": 1,
+    "restored_same_uuid": true,
+    "restored_deleted_at_absent": true,
+    "restored_page_label_visible": true,
+    "ports_closed": true
+  }
+]
