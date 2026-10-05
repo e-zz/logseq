@@ -1,0 +1,4 @@
+v2026.04.15
+2026-04-15T08:26:25Z
+clj-kondo-2026.04.15-windows-amd64.zip
+clj-kondo-2026.04.15-windows-amd64.zip.sha256

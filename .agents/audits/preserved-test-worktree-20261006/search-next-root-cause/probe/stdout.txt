@@ -1,0 +1,59 @@
+{
+  "probes": [
+    {
+      "name": "P1-fts-mirror-of-blocks",
+      "ok": true,
+      "ftsTitles": [
+        "Zebraquantum Active Page",
+        "Zebraquantum Recycled Child"
+      ],
+      "blocksTitles": [
+        "Zebraquantum Active Page",
+        "Zebraquantum Recycled Child"
+      ],
+      "blockColumns": [
+        "id",
+        "title",
+        "page"
+      ],
+      "ftsColumns": [
+        "id",
+        "title",
+        "page"
+      ],
+      "verdict": "SQL layer has no deleted-at/hide column; a row upserted by CLJS is query-identical to any other row"
+    },
+    {
+      "name": "P2-delete-blocks-removes-fts-row",
+      "ok": true,
+      "ftsTitlesAfterDelete": [
+        "Zebraquantum Active Page"
+      ],
+      "verdict": "DELETE FROM blocks (search-delete-blocks path) removes the FTS row via blocks_ad trigger"
+    },
+    {
+      "name": "P3-exact-title-reads-blocks-table",
+      "ok": true,
+      "rows": [
+        "Zebraquantum Active Page"
+      ],
+      "verdict": "exact-title query hits blocks (NOT FTS); row presence is the only gate"
+    },
+    {
+      "name": "P4-truncate-is-drop-recreate-version0",
+      "ok": true,
+      "userVersionAfterTruncate": 0,
+      "ftsRows": 0,
+      "blocksRows": 0,
+      "ftsAfterBatch1": [
+        "Zebraquantum Active Page"
+      ],
+      "verdict": "mid-rebuild FTS == completed batches only; whether recycled rows appear is decided by the CLJS per-batch filter, not SQL"
+    }
+  ],
+  "meta": {
+    "node": "v24.16.0",
+    "sourceRef": "HEAD 546d1f7cca src/main/frontend/worker/search.cljs",
+    "note": "Schema/SQL strings transcribed verbatim from production source; FTS5 trigram tokenizer."
+  }
+}

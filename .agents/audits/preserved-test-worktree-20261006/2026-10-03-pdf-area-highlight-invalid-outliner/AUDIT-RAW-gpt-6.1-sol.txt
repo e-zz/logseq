@@ -1,0 +1,649 @@
+Query: # 审计 brief: Logseq PDF 区域高亮 "Invalid outliner data"
+
+## 背景
+
+Logseq 桌面应用（DB graph 版本，用户装的是 2.0.1 stable win-x64），在 **PDF 
+区域高亮（area highlight）** 时，
+控制台报 `Error: Invalid outliner data`，事务被拒（worker 返回 HTTP 500，`:code
+:exception`），
+PNG 已落盘但 asset 块未建 → 孤儿文件。
+
+同时有一个 **fork**：`D:/Action/logseq`，基于 upstream master，带一批 
+local-only 修复。
+另一处相关代码是 
+`logseq-pdf-extract`（用户自己的插件，v0.4.0），但插件不在本次失败调用链上。
+
+## 硬约束 / 判读要求
+
+- 
+只接受**能落到源码行号**的结论；区分「实测（读过源码/日志）」vs「推断」vs「推测
+」。
+- 不要泛泛而谈"可能因为版本差异"，要指名文件:行号 与 具体代码形态。
+- 特别注意：**fork 的修复方向是否正确、是否补完**。用户怀疑"这是我们 fork 
+历史修复里的 PDF 相关修复造成的"。
+
+## 实测证据（原文摘录）
+
+### E1. 失败事务（db-worker-node 日志，2026-10-02T16:15:58）
+```
+{:db-worker-node-invoke-failed
+ {:status 500, :code :exception,
+  :error #error {:message "Invalid outliner data",
+   :data {:opts {:sibling? true, :replace-empty-target? false, :keep-uuid? 
+true,
+                 :keep-block-order? nil, :outliner-op :insert-blocks, 
+:insert-template? nil},
+          :tx [{:logseq.property.asset/external-url 
+"assets:///D/logseq__colon/library/qn/Chen%20and%20Chan%20-%202026%20-%20Framew
+ork%20for%20Robust%20Quantum%20Speedups%20in%20Practical%20Correlated%20Electro
+n.pdf",
+                :logseq.property.asset/type "pdf",
+                :block/uuid #uuid "6abfd8be-4731-48d0-a7ab-ee01933cd8d6",
+                :block/updated-at 1790957758186,
+                :logseq.property.asset/checksum "27aa8bbc...",
+                :block/created-at 1790957758186,
+                :block/level 1,
+                :block/tags ({... :db/ident :logseq.class/Asset, :block/title 
+"Asset" ...}),
+                :block/title "Chen%20and%20Chan%20-%20....pdf",     ;; ← 
+URL-encoded
+                :logseq.property.asset/size 0,
+                :block/parent nil,                                   ;; ← nil
+                :block/order "a0",
+                :block/page 57693}],                                 ;; ← 指向 
+Sep 18th, 2026
+          :blocks [{... 同上，:block/tags #{:logseq.class/Asset}}],
+          :target-block {:block/uuid #uuid 
+"00000001-2026-0918-0000-000000000000",
+                         :block/journal-day 20260918,
+                         :block/title "Sep 18th, 2026",
+                         :block/name "sep 18th, 2026",
+                         :db/id 57693}}},
+  :method :thread-api/apply-outliner-ops}}
+```
+
+### E2. 抛出点（upstream master = fork = 2.0.1 均有）
+`deps/outliner/src/logseq/outliner/core.cljs:1082`
+```clojure
+(if (some (fn  (or (nil? (:block/parent b)) (nil? (:block/order b)))) 
+blocks-tx)
+  (throw (ex-info "Invalid outliner data" {:opts insert-opts :tx (vec 
+blocks-tx) ...}))
+```
+
+### E3. `build-insert-block-tx`（upstream master:722-741）
+```clojure
+(defn- build-insert-block-tx
+  [db block result* {:keys }]
+  (let 
+    (if existing-page
+      {:block/uuid uuid' :block/parent parent :block/order order
+       :block/page target-page :block/title "" ... :block/link (:db/id 
+existing-page)}
+      (cond-> result*
+        (not page?) (assoc :block/page target-page)
+        page? (dissoc :block/page)))))
+```
+
+### E4. `page?` 判定链
+- `deps/db/src/logseq/db/frontend/entity_util.cljs`: `internal-page? = 
+(has-tag? entity :logseq.class/Page)`；
+  `page? = (or internal-page? journal? class? property?)`；`object? = (seq 
+(:block/tags node))`
+- Asset 块只有 `:logseq.class/Asset` → `page?` = **false**
+- 该 asset 由 MCP 写入，**没有 `:block/name`** → 第二分支也 false
+
+### E5. `target-page` 计算（upstream master:709-720）
+```clojure
+(defn- get-target-block-page 
+  (or (:db/id (:block/page target-block))
+      (when sibling? (when-let 
+                       (when (ldb/page? parent) (:db/id parent))))
+      (:db/id target-block)))
+```
+target-block 是 **Sep 18th, 2026** 这个 journal page 实体 → `(:block/page 
+page)` = **nil** → `target-page` = **nil**
+→ `(assoc result* :block/page nil)` → E2 抛错。
+
+### E6. 调用方（upstream master 
+`src/main/frontend/extensions/pdf/assets.cljs:140-148`）
+```clojure
+(defn- db-based-persist-hl-area-image 
+  (let [file (js/File. #js  "pdf area highlight.png")]
+    (editor-assets/db-based-save-assets! repo  {:pdf-area? true})))
+```
+
+### E7. `db-based-save-assets!` 目标选择
+```clojure
+insert-to-current-block-page? (boolean (and (not target-block) (:block/uuid 
+edit-block) (not pdf-area?)))
+target (cond target-block target-block
+             insert-to-current-block-page? edit-block
+             save-to-page save-to-page
+             :else today-page)
+...
+(outliner-op/insert-blocks! blocks target {:keep-uuid? true :bottom? true
+                                           :sibling? (boolean (and edit-block 
+(= edit-block target)))
+                                           :replace-empty-target? 
+insert-to-current-block-page?})
+```
+（`:pdf-area?` 强制 `insert-to-current-block-page?`=false ⇒ 无编辑块时 
+target=today-page，`:sibling?`=false）
+
+### E8. **关键差异：fork 相对 upstream**（`git diff upstream/master HEAD`）
+`src/main/frontend/handler/editor/assets.cljs`：
+```diff
+-            asset-page (db-async/<invoke-db-worker :thread-api/pull repo
+-                                                  [:block/uuid] 
+:logseq.class/Asset)
++            today-page-name (db-async/<get-today-journal-title repo)
++            today-page-e (db-async/<get-journal-page-by-day repo 
+(date/today-journal-day))
++            today-page (if (nil? today-page-e)
++                         (state/pub-event! [:page/create today-page-name])
++                         today-page-e)
+...
+-                     asset-page)]
++                     today-page)]
+```
+即：**upstream 的 fallback target 是 Asset 类实体**（`(:block/page 
+asset-page-entity)` 可能为 nil），
+**fork 换成了 today journal page**。
+
+### E9. 2.0.1 stable 的实际形态（从 GitHub tag `2.0.1` 拉源码 + 从安装版 
+`resources/app.asar`
+解出 `js/db-worker-node.js` 对照）
+- 2.0.1 的 `build-insert-block-tx` 是**旧结构**（无 `existing-page` 块、无 
+`target-page` 参数）：
+  ```clojure
+  page? (or (ldb/page? block) (:block/name block))
+  result (cond-> result* (not page?) (assoc :block/page target-page) page? 
+(dissoc :block/page))
+  ```
+- 但**抛错点完全相同**：
+  ```js
+  if(l(vg(function(n){return null==MH.h(n)||null==Br.h(n)},m))) throw 
+Tk.g("Invalid outliner data",...)
+  ```
+  （`null==` 在 CLJS 编译后是 `null?`，**不匹配集合内的 nil**）
+- 安装版 `app.asar` 里 `grep -c "existing-page"` 在 `db-worker-node.js` 中 **0 
+命中**，`Invalid outliner data` **1 命中**
+
+### E10. 未完成核实项
+- fork 用的是 **CLJS 源码**；安装版是 **压缩后的 JS 
+bundle**。`date/today-journal-day`、`<get-journal-page-by-day`、
+  `<get-today-journal-title` 都是改过的调用，**目前无法证明 fork 的 today-page 
+这条路径在 DB graph 下必然非 nil**。
+- 未能确认用户触发时的 UI 状态（是否有未保存的编辑块 → `edit-block` 是否非 nil 
+→ target 是 edit-block 还是 today-page）。
+
+## 请审计以下判断（我给出的结论）
+
+**C1.** 根因：`build-insert-block-tx` 中 `page?` 对 Asset 块判为 false，
+导致 `(assoc result* :block/page target-page)`，而 `target-page` 在 target 是 
+page 实体时为 nil → E2 抛错。
+
+**C2.** `logseq-pdf-extract` 插件**不在**失败调用链上，改插件无效。
+
+**C3.** 失败事务里那个 asset（`assets:///D/logseq__colon/...`、`size 0`、无 
+`:block/name`）
+是**通过 MCP 写入**的（依据：URL 形态 + `:block/name` 缺失 + `:block/tags` 
+是完整实体）。
+
+**C4.** fork 在 `editor/assets.cljs` 把 fallback target 从 `asset-page` 改成 
+`today-page`，
+**方向正确**（避开 `(:block/page asset-entity)` = 
+nil），但**没有补完**——`page?` 判定本身未修，
+所以若 target 落到被 MCP 写入的块（`(:block/page edit-block)` 为 nil）或其它 
+nil 路径，仍会抛错。
+
+**C5.** 安装的 2.0.1 跑的是**未修版本**，所以无论怎么改插件/自建版，装好的 app 
+仍会报错。
+
+**C6.** 建议的最小修复（二选一或都做）：
+   (a) 在 `build-insert-block-tx` 里把 `page?` 判定改为同时认「class-tagged / 
+asset」或有 `:logseq.class/Asset` 的块；
+   (b) 调用侧对 `:pdf-area?` 传 `:sibling? true` 或显式传一个非 page 的 
+target，使 `target-page` 非 nil。
+
+## 审计要求
+
+1. 逐条判 C1–C6：**成立 / 部分成立 / 不成立**，给出理由与所需证据。
+2. 指出我漏掉的**其它**可能根因路径（特别是：`existing-page` 分支是否会在非 
+`:paste` 操作下被走到？`merge entity block` 是否会复活 `:block/title` 而清掉 
+`:block/page`？`assign-temp-id` 是否可能覆盖 `:block/parent`？）。
+3. 评价 C6 的修复方案：会不会引入回归（尤其对 file graph / 普通 asset 插入 / 
+MCP 写入）？有没有更小、更安全的修法？
+4. 明确列出**我目前无法证明**的东西，以及要在 GUI/复现里确认什么。
+5. 输出中文，直说问题，不要客套。
+
+---
+以上是完整审计 brief。请按其中「审计要求」1-5 
+条输出中文结构化审计报告，直说问题。
+[2;3mInitializing agent...[0m
+[38;2;93;184;245m────────────────────────────────────────[0m
+
+  │ ⚡ tool_desc   0.0s
+  │ ⚡ mcp__code build-insert-block-tx get-target-block-page insert-blocks Invalid outliner data assign-temp-id  0.0s
+  │ 💻 $         git -C D:/Action/logseq status --short + 2 commands  1.0s
+  │ 🔎 grep      db-based-save-assets!|db-based-persist-hl-area-image|assign-temp-id|build-insert-block-tx|get-target-block-page  1.5s
+  🔀 [set 1] delegating 2 tasks
+⭐ 只读核查 D:/Action/logseq PDF区域高亮资产保存调用链与fork历史修复：src/main/frontend/handler/editor/assets.cljs、extensions/pdf/assets.cljs、journal page获取函数、outliner-op wrappers、PDF加载时对既有外部PDF资产创建路径。git diff upstream/master HEAD限定相关文件及git log历史，判定fallback Asset→today方向、PDF area sibling false与失败日志sibling true冲突、日志外部PDF而非新PNG是否另条路径、MCP归因是否证明。若可找到安装2.0.1对应源码或已存在日志可引用，但勿宽泛扫全磁盘勿改代码安装或真实graph。输出中文具体文件:行号+commit，实测/推断/推测分类。
+
+SKIP  🟢 99%
+⭐ 只读审计 D:/Action/logseq outliner Invalid outliner data 原因。逐行检查 deps/outliner/src/logseq/outliner/core.cljs build-insert-block-tx/get-target-block-page/insert-blocks/build-blocks-tx/assign-temp-id 与 merge entity block，parent/order 如何产生并变nil、existing-page是否非paste触发、Asset是否应被视作page、class Page判定。关注失败事务 sibling? true target journal page db/id57693 parent nil order a0 page57693，说明此形态如何形成。检查相关测试与最小安全修法。输出中文，每项含绝对或仓库相对文件:行号；区分源码实测与推断，不改文件，不跑GUI不访问真实graph数据库。返回具体证据，不用output_schema。
+
+SKIP  🟢 100%
+  ✓ [set 1 · 2/2] 只读核查 D:/Action/logseq PDF区域高亮资产保存调用链与for  (490.42s)
+  ✓ [set 1 · 1/2] 只读审计 D:/Action/logseq outliner Invalid o  (842.02s)
+  │ 🔀 delegate  2x: 只读审计 D:/Action/logseq outli... | 只读核查 D:/Action/logseq PDF区域...  844.3s
+  │ 📖 read      core.cljs L540-804  0.5s
+  │ 📖 read      core.cljs L830-1125  0.5s
+  │ 📖 read      assets.cljs L1-161  0.5s
+  │ 💻 $         git -C D:/Action/logseq diff upstream/master HEAD -- src/main/frontend/handler/editor/assets.cljs src/main/frontend/extensions/pdf/assets.cljs + 3 commands  0.4s
+  │ 💻 $         python -c 'import subprocess; r="D:/Action/logseq"; specs=[("deps/outliner/src/logseq/outliner/core.cljs",[(480,570),(620,815),(840,955)]),("src/main/frontend/handler/editor/assets.cljs",[(35,145)]),("src/main/frontend/extensions/pdf/assets.cljs",[(80,180)])]; for path, ranges in specs: s=subprocess.check_output(["git","-C",r,"show","2.0.1:"+path],text=True).splitlines();print("\n=== 2.0.1 "+path+" ==="); for a,b in ranges: print("\n".join(str(i+1)+"|"+s[i] for i in range(a-1,min(b,len(s)))))'  0.6s [exit 1]
+  │ 🔎 grep      defn.*pub-event!|defn.*<get-today-journal-title|defn.*<get-journal-page-by-day|defn.*today-journal-day|:page/create  0.7s
+  │ 📖 read      entity_util.cljs L1-110  0.5s
+  │ 📖 read      assets.cljs L1-190  0.5s
+  │ 📖 read      async.cljs L45-108  0.5s
+  │ 📖 read      state.cljs L1096-1137  0.5s
+  │ 📖 read      rfx.cljs L150-213  0.5s
+  │ 📖 read      events.cljs L151-195  0.5s
+  │ 💻 $         python -c 'import subprocess; r="D:/Action/logseq"; tree=subprocess.check_output(["git","-C",r,"ls-tree","-r","--name-only","2.0.1","src/main/frontend/handler"],text=True);print("tag editor paths:");print("\n".join(p for p in tree.splitlines() if "editor" in p));s=subprocess.check_output(["git","-C",r,"show","2.0.1:deps/outliner/src/logseq/outliner/core.cljs"],text=True).splitlines();print("\n===stable parent/build==="); for a,b in [(412,438),(547,598)]:print("\n".join(str(i+1)+"|"+s[i] for i in range(a-1,b))) s=subprocess.check_output(["git","-C",r,"show","2.0.1:src/main/frontend/handler/editor.cljs"],text=True).splitlines(); terms=["defn- new-asset-block","defn db-based-save-assets!","today-page-name","sibling? (boolean","defn db-based-write-asset!"];hits=[i for i,l in enumerate(s) if any(t in l for t in terms)];print("\n===stable editor assets===");idx=set(); for h in hits:idx.update(range(max(0,h-3),min(len(s),h+65))) print("\n".join(str(i+1)+"|"+s[i] for i in sorted(idx)))'  0.4s
+  │ 🔎 grep      defn.*create-today-journal!|defn.*<create!|defn.*get-today-journal-title|defn.*get-journal-page|defn.*get-file-checksum|defn.*get-journal-page-by-day  1.0s
+  │ 💻 $         python -c 'import subprocess;r="D:/Action/logseq";specs=[("2.0.1","src/main/frontend/db/model.cljs",["defn get-today-journal-title","defn get-journal-page"]),("2.0.1","src/main/frontend/extensions/pdf/assets.cljs",["db-based-persist-hl-area-image","new-asset-block"]),("upstream/master","deps/outliner/src/logseq/outliner/core.cljs",["defn- compute-block-parent","defn- get-target-block-page","defn- get-target-block","Invalid outliner data"]),("upstream/master","src/main/frontend/handler/editor/assets.cljs",["asset-page"])] for rev,path,terms in specs: s=subprocess.check_output(["git","-C",r,"show",rev+":"+path],text=True).splitlines(); idx=set() for i,l in enumerate(s): if any(t in l for t in terms):idx.update(range(max(0,i-2),min(len(s),i+36))) print("\n=== "+rev+":"+path+" ===");print("\n".join(str(i+1)+"|"+s[i] for i in sorted(idx))) print("\n=== diffs from stable ===");print(subprocess.check_output(["git","-C",r,"diff","2.0.1","HEAD","--","src/main/frontend/extensions/pdf/assets.cljs"],text=True));print("\n=== ancestry ==="); for rev in ["HEAD","upstream/master","2.0.1"]: p=subprocess.run(["git","-C",r,"merge-base","--is-ancestor","e9fd02c8be",rev]);print(rev,"contains e9fd02c8be:",p.returncode==0)'  0.6s
+  │ 📖 read      date.cljs L50-132  0.4s
+  │ 🔎 find      *logseq*pdf*  2.3s
+  │ 📖 read      assets.cljs L195-281  0.5s
+  │ 📖 read      page.cljs L315-376  0.5s
+  │ 📖 read      page.cljs L85-180  0.5s
+  │ 📖 read      rfx.cljs L110-169  0.5s
+  │ 🔎 grep      defn.*insert-blocks!|defn.*apply-insert-blocks-op!|defn.*get-journal-page-by-day|defn.*db-based-create-page!  41.7s
+  │ 📖 read      op.cljs L1-38  0.4s
+  │ 📖 read      op.cljs L233-260  0.4s
+  │ 🔎 grep      defn.*insert-blocks|:sibling\?|:bottom\?  0.8s
+  │ 💻 $         python -c 'import subprocess;r="D:/Action/logseq";cmds=[["log","-1","--format=%H %ad %s","--date=iso","2.0.1"],["diff","--unified=4","upstream/master","HEAD","--","deps/outliner/src/logseq/outliner/core.cljs"],["log","--format=%h %ad %s","--date=iso","-10","HEAD","--","src/main/frontend/extensions/pdf/assets.cljs"]]; for c in cmds: print("\n===git "+" ".join(c)+"===");print(subprocess.check_output(["git","-C",r]+c,text=True))'  0.6s
+  │ 📖 read      asset.cljs L1-72  0.3s
+  │ 💻 $         python -c 'from datetime import datetime,timezone;from zoneinfo import ZoneInfo;t=1790957758186;print("E1 created/updated epoch-ms UTC:",datetime.fromtimestamp(t/1000,timezone.utc).isoformat());print("E1 CST:",datetime.fromtimestamp(t/1000,ZoneInfo("Asia/Shanghai")).isoformat())' + 2 commands  0.4s
+  │ 📖 read      op.cljs L37-58  0.5s
+  │ 📖 read      construct.cljc L478-542  0.5s
+  │ 📖 read      events.cljs L1-25  0.5s
+  │ 🔎 grep      defmacro defevent!|defn.*resolve-pub-event  0.8s
+  │ 📖 read      macros.clj L1-55  0.4s
+  │ 🔎 grep      logseq.class/Asset|block/tags|logseq.class/Tag  0.8s
+  │ 📖 read      construct.cljc L750-799  0.4s
+  │ 💻 $         python -c 'import subprocess;r="D:/Action/logseq";p="deps/outliner/src/logseq/outliner/core.cljs"; for rev in ["2.0.1","HEAD","upstream/master"]: s=subprocess.check_output(["git","-C",r,"show",rev+":"+p],text=True).splitlines(); terms=["defn- assign-temp-id","defn- get-target-block-page","defn- compute-block-parent","Invalid outliner data"];print(rev,[(i+1,l.strip()) for i,l in enumerate(s) if any(t in l for t in terms)]) for rev in ["HEAD","2.0.1"]: print(rev,"contains c6790c330c",subprocess.run(["git","-C",r,"merge-base","--is-ancestor","c6790c330c",rev]).returncode==0)'  0.4s
+  │ 🔎 grep      defn.*build|:block/tags \[|:block/tags #|assoc.*:block/tags  0.8s [Search failed: grep: Unmatched [, [^, [:, [.,...]
+  │ 🔎 grep      \[logseq.outliner.core|\[logseq.outliner|db-based-graph\?  0.8s [Search failed: grep: Unmatched [, [^, [:, [.,...]
+  │ 🔎 grep      defn.*register-event-definition!  0.8s
+  │ 📖 read      class.cljs L165-264  0.5s
+  │ 🔎 grep      logseq.outliner.core  0.9s
+  │ 📖 read      events.cljs L45-83  0.5s
+  │ 🔎 grep      db-based-graph  0.8s
+  │ 🔎 grep      remove-disallowed-inline-classes  0.7s
+  │ 📖 read      core.cljs L383-420  0.4s
+
+[1;38;2;93;184;245m╭─ Ψ Poseidon  01:02  ─────────────────────────────────────────────────────────╮[0m
+[38;2;234;247;255m审计结论[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC1 不成立；C2 部分成立；C3 不成立；C4 部分成立；C5 部分成立；C6 不成立。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m最重要的纠正：E1 已经写出 :block/page 57693。不是 target-page 为 nil，而是 :block/parent 为 nil。直接失败机制可以定位到源码，但“哪个调用方把 journal page 当成 sibling 目标”尚未闭环。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m核查范围与证据口径[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 本次读取了 D:/Action/logseq，并用 git show 比对：[0m
+[38;2;234;247;255m  fork HEAD：44ce435eab2d871508537abf6758c4deadf082ce[0m
+[38;2;234;247;255m  upstream/master：6f2c2a0f659a0b5b1155d31fa42811edb1de0588[0m
+[38;2;234;247;255m  2.0.1 tag：26f6f7880b1ec894871a9ec2c03bb97b954b4cb0[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m未修改仓库、安装包或 graph；未做 GUI 复现。E1 和安装包解包结果 E9 是用户提供的实测证据，本次没有独立重取。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m下文简写：[0m
+[38;2;234;247;255m  core.cljs = deps/outliner/src/logseq/outliner/core.cljs[0m
+[38;2;234;247;255m  editor/assets.cljs = src/main/frontend/handler/editor/assets.cljs[0m
+[38;2;234;247;255m  pdf/assets.cljs = src/main/frontend/extensions/pdf/assets.cljs[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m未特别标版本的行号均指当前 fork。注意：同一抛错条件在 fork 是 core.cljs:1082，当前 upstream/master 是 :1130，2.0.1 是 :777。brief 将三者行号混在一起，需要纠正。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m1. 逐条判断 C1–C6[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC1：不成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 有两处直接反证。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m第一，get-target-block-page 不是只取 (:block/page target-block)：[0m
+[38;2;234;247;255m  core.cljs:709–720[0m
+[38;2;234;247;255m最后明确回退到 (:db/id target-block)。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mE1 的 target journal page 有 :db/id 57693，因此这段代码给出的 target-page 是 57693。事务中的 :block/page 57693 也与此一致。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m第二，抛错条件只检查 parent/order：[0m
+[38;2;234;247;255m  core.cljs:1082–1087[0m
+[38;2;234;247;255m它不检查 :block/page。即便另一次事务的 page 真是 nil，也不能直接据此解释这个异常。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·条件推导，未复现] 与 E1 完整吻合的直接失败机制是：[0m
+[38;2;234;247;255m  输入块为顶层块；[0m
+[38;2;234;247;255m  解析后的 target 是没有 parent 的 journal page；[0m
+[38;2;234;247;255m  解析后的 sibling? 为 true；[0m
+[38;2;234;247;255m  compute-block-parent 取 (:db/id (:block/parent target-block))，得到 nil。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m证据：[0m
+[38;2;234;247;255m  core.cljs:577–593，尤其 :587–590[0m
+[38;2;234;247;255m  core.cljs:756–768，将计算所得 parent 写入事务[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.0.1 的相同逻辑在：[0m
+[38;2;234;247;255m  core.cljs@2.0.1:420–436、555–568[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mAsset 判为非 page 是现行数据模型的正常行为，不是这里需要修正的误判：[0m
+[38;2;234;247;255m  deps/db/src/logseq/db/frontend/entity_util.cljs:24–56[0m
+[38;2;234;247;255m  editor/assets.cljs:74–82[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m结论应改成：“journal page 被作为 sibling 插入目标，导致 parent 计算为 nil”，而不是“Asset 未被识别为 page，导致 target-page nil”。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC2：部分成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 原生区域截图的直接调用是：[0m
+[38;2;234;247;255m  pdf/assets.cljs:140–148[0m
+[38;2;234;247;255m  → editor/assets.cljs:84–149[0m
+[38;2;234;247;255m  → src/main/frontend/modules/outliner/op.cljs:42–46[0m
+[38;2;234;247;255m  → deps/outliner/src/logseq/outliner/op.cljs:236–240[0m
+[38;2;234;247;255m  → core.cljs 的 insert-blocks[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m这条直接调用没有经过 logseq-pdf-extract。插件不是修复 core.cljs parent 计算缺陷的位置。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·边界] 但“改插件无效”说得过满。E1 的 method 只有通用的 apply-outliner-ops，不是完整调用栈；它本身不能排除插件此前构造数据、另行提交事务等间接参与。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m更关键的是，E1 是 external-url 指向 PDF 的资产，而原生区域截图入口构造的是 “pdf area highlight.png”。尚不能证明 E1 就是这笔 PNG 创建事务。插件排除结论应限定在已经确认的原生直接调用链。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC3：不成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 三个所谓“MCP 特征”都不是来源证明。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  size 0：[0m
+[38;2;234;247;255m    editor/assets.cljs:43–51[0m
+[38;2;234;247;255m    string src 会转为 external-url，file 变 nil，size 默认 0。[0m
+[38;2;234;247;255m    原生资产函数自身就能产生。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  无 :block/name：[0m
+[38;2;234;247;255m    editor/assets.cljs:74–82[0m
+[38;2;234;247;255m    原生 new-asset-block 返回的字段本来就没有 :block/name。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  tags 从 keyword set 变成完整实体：[0m
+[38;2;234;247;255m    core.cljs:383–397[0m
+[38;2;234;247;255m    remove-disallowed-inline-classes 会将 qualified keyword tags[0m
+[38;2;234;247;255m    通过 d/entity 展开为实体。[0m
+[38;2;234;247;255m    E1 中 blocks 是 #{:logseq.class/Asset}、tx 是完整 Asset 实体，[0m
+[38;2;234;247;255m    正好可以由这一原生转换解释。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] URL 字符串还能有 checksum：[0m
+[38;2;234;247;255m  src/main/frontend/handler/assets.cljs:217–220[0m
+[38;2;234;247;255m  deps/db/src/logseq/db/frontend/asset.cljs:12–19[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m这里对 string 用 TextEncoder 编码后计算 SHA-256，不要求先读取 PDF 内容。因此 E1 的 checksum 也不能证明来自 MCP，不能将其默认当作 PDF 文件内容的校验值。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推测] MCP 写入是候选来源之一，不是已经证明的来源。需要 MCP 写入记录与该 UUID、具体 payload 对上。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC4：部分成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·Git] diff 的代码差异成立，但“这是 fork 做的 Asset→today 修复”不成立。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m实际历史方向是：[0m
+[38;2;234;247;255m  2.0.1 已使用 today fallback：[0m
+[38;2;234;247;255m    src/main/frontend/handler/editor.cljs@2.0.1:1488–1521[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  当前 fork 仍使用 today fallback：[0m
+[38;2;234;247;255m    editor/assets.cljs:105–109、121–132[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  upstream 的 e9fd02c8be 在 2026-10-01[0m
+[38;2;234;247;255m  将 today fallback 改为 Asset 类页：[0m
+[38;2;234;247;255m    editor/assets.cljs@upstream/master:105–106、128–129[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m该 commit 在 upstream/master 中，不在 fork HEAD，也不在 2.0.1 中。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m因此 git diff upstream/master HEAD 的“+today”不能被读成 fork 曾实施了一次修复。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 两种 fallback 都不是因为缺少 :block/page 就必然失败。有效 journal page 或 Asset 类页在 worker 中解析成实体后，get-target-block-page 都能回退到自身 ID：[0m
+[38;2;234;247;255m  core.cljs:709–720[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m还必须区分“Asset 类实体”与“带 Asset 标签的资产实例”；二者不是同一种对象：[0m
+[38;2;234;247;255m  entity_util.cljs:28–30、45–56[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·边界] fork 当前确实没有阻止“无父 page + sibling true”产生 nil parent。但这个缺口不是“page? 未把 Asset 纳入”造成的。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m“edit-block 没有 :block/page 就仍会抛错”也不成立。是否抛这个错误取决于 parent/order。缺少 page 可能造成错误的 page 归属，但不是该异常的充分条件。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC5：部分成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 2.0.1 保留同样的 parent 计算与校验：[0m
+[38;2;234;247;255m  core.cljs@2.0.1:420–436、777–783[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m当前 fork 和 upstream/master 也仍有同样的无父 sibling 处理逻辑。不能简单称“2.0.1 未修、fork 已修”。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·部署] 修改插件或 D:/Action/logseq 的源码，不会自动替换正在运行的安装包。这部分判断成立。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m但“装好的 app 仍会报错”只能限定为：仍具有触发该错误的代码路径。不是所有区域高亮都必然失败；合法的 child 插入或具有 parent 的 sibling 插入不会由这项条件报错。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m另外，E9 的 “existing-page 0 命中”只是辅助证据。压缩 JS 可能移除局部变量名，不能单凭文本计数证明某段逻辑不存在。tag 中旧结构的明确源码比对更有力。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mC6：不成立[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m(a) 将 Asset 或所有 class-tagged 对象视为 page：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 这个修改只改变是否保留 :block/page：[0m
+[38;2;234;247;255m  core.cljs:724、739–741[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mparent 已经在此前计算并写入：[0m
+[38;2;234;247;255m  core.cljs:757、765–768[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m因此它不能修复 E1 的 nil parent。更可能把原本正常的资产块改成缺少 page 归属的事务。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m(b) 对 pdf-area 强制 sibling true：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·源码支撑] 如果最终目标仍是无父 journal page，这正好触发 nil parent 路径，而不是修复它：[0m
+[38;2;234;247;255m  core.cljs:587–590[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m显式选一个有 parent 的普通块，在条件满足时可以避免这个直接错误，但会改变插入位置；“非 page”也不保证有 parent、有效 order 或正确 page。不能作为无条件安全修复。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2. 漏掉的调用路径与成因[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.1 E1 与原生 PNG 创建路径没有对齐[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 原生区域截图入口构造 File：[0m
+[38;2;234;247;255m  pdf/assets.cljs:140–143[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mnew-asset-block 对这个 File 应生成 PNG 类型、File 的 size，并且本调用没有提供 external-url：[0m
+[38;2;234;247;255m  editor/assets.cljs:43–51、61、74–79[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mE1 却是 PDF 类型、PDF external-url、size 0。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 这意味着至少还缺一段解释：日志是否属于另一笔外部 PDF 创建/重插入事务，或者某次同 UUID 的实体合并保留了旧字段。不能仅凭“点击区域高亮时看见报错”将两笔事务认作同一笔。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.2 sibling? 可以重算，但不能只看布尔值[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] get-target-block 会重新计算目标和 sibling?：[0m
+[38;2;234;247;255m  core.cljs:846–893[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mbottom 插入：[0m
+[38;2;234;247;255m  有最后一个子块 → [last-child true][0m
+[38;2;234;247;255m  没有子块 → [page false][0m
+[38;2;234;247;255m  具体在 :880–883。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m异常里的 target-block 是重新解析后的目标：[0m
+[38;2;234;247;255m  core.cljs:1047、1083–1087[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m所以“调用侧 sibling false，worker 自动改成 true”不够解释 E1。正常 bottom 重算为 true 时，异常目标应是那个子块，不应仍是无父 journal page。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 要解释完整 E1，必须取得原始 outliner op，包括 bottom?/top?，以及 get-target-block 前后的目标。异常 insert-opts 没有保留这些全部入口参数。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.3 existing-page 能否在非 paste 下执行？[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[排除·源码] 不能，当前分支要求：[0m
+[38;2;234;247;255m  (= :paste outliner-op) 且 (:block/name block)[0m
+[38;2;234;247;255m  core.cljs:727–729[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mE1 是 :insert-blocks，且无 name，不满足两个条件。2.0.1 则根本没有这个分支。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m即便在其他 paste 事务中走到该分支，它也直接使用已经算出的 parent：[0m
+[38;2;234;247;255m  core.cljs:731–734[0m
+[38;2;234;247;255m不能替 nil parent 兜底。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.4 merge entity block 是否复活 title、清掉 page？[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] merge 顺序是：[0m
+[38;2;234;247;255m  已有实体[0m
+[38;2;234;247;255m  → 已有 raw-title/title 的规范化值[0m
+[38;2;234;247;255m  → 输入 b[0m
+[38;2;234;247;255m  core.cljs:1024–1041[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m所以：[0m
+[38;2;234;247;255m  输入未提供 title 时，可以带回已有 title；[0m
+[38;2;234;247;255m  输入提供 title 时，输入值覆盖已有值；[0m
+[38;2;234;247;255m  输入显式提供某字段 nil，也可能覆盖原值。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mmerge 本身没有无条件清掉 page。page 随后在 build-insert-block-tx 中被重新赋值或 dissoc：[0m
+[38;2;234;247;255m  core.cljs:739–741[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mparent/order 随后也被计算结果覆盖：[0m
+[38;2;234;247;255m  core.cljs:765–771[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 同 UUID 复用是值得核查的路径，但不是已证明的 E1 成因。特别应检查区域截图时是否有空编辑块，因为资产 UUID 复用条件没有排除 pdf-area：[0m
+[38;2;234;247;255m  editor/assets.cljs:99–103、117–118[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.5 assign-temp-id 是否覆盖 parent？[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[排除·源码] 不会。它修改 db/id；替换空目标时额外修改 uuid/order：[0m
+[38;2;234;247;255m  core.cljs:548–563[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m而且它在 Invalid outliner data 校验通过后才执行：[0m
+[38;2;234;247;255m  core.cljs:1082–1088[0m
+[38;2;234;247;255m不能造成这一次已经抛出的异常。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m2.6 不能从 order a0 推出 undo 恢复[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·日志] E1 的 keep-block-order? 是 nil。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 正常删除恢复构造的 insert op 明确带 keep-block-order? true：[0m
+[38;2;234;247;255m  deps/outliner/src/logseq/outliner/op/construct.cljc:767–775[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m因此“a0 只能是保留旧 order，故这是 undo”不成立。目标 page 没有 order 时，也不能假定 start-order 是 a0。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推测] 其他调用方直接提交、历史/同步操作重放、目标在异步保存期间被删除或改变，都是入口候选。现有证据无法选定其中一条。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m3. 修复评价与更小、更安全的方案[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m推荐：修正实际提交该事务的目标/插入关系，不修改 Asset 的 page? 语义。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·工程建议] 应先捕获原始 op。原生 PDF 保存代码已经发送 bottom true，并通常发送 sibling false：[0m
+[38;2;234;247;255m  editor/assets.cljs:141–144[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m若实际错误来自另一条创建、重插入或重放路径，继续修改这个已经正确表达“插入 page 子级”的调用，只会错修位置。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m确定调用方后：[0m
+[38;2;234;247;255m  对根 page，表达为 child 插入；[0m
+[38;2;234;247;255m  对普通块，只有确认其有效 parent 后才允许 sibling 插入；[0m
+[38;2;234;247;255m  不以“有 db/id”替代对 parent/page 关系的验证。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·防御建议] worker 可以在 get-target-block 解析之后、生成 orders/parent 之前，明确识别“根 page + sibling true”，拒绝并报告原始与解析后的参数。对应位置：[0m
+[38;2;234;247;255m  core.cljs:1047–1048、743–747[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m如果产品决定将这种请求规范化为 page 的 child 插入，必须同时规范化 target/sibling，再计算 orders。不能只在 compute-block-parent 里随意回退 parent，否则 parent 与 order 可能依据两种不同插入关系生成。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m这是一个有语义变化的修复，尚未验证，不能直接称为安全补丁。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m关于 today-page：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 它不是“pub-event! 只发消息、没有等待”。当前实现返回 deferred，事件处理结果进入 Promise：[0m
+[38;2;234;247;255m  src/main/frontend/state.cljs:1108–1111[0m
+[38;2;234;247;255m  src/main/frontend/rfx.cljs:170–177[0m
+[38;2;234;247;255m  src/main/frontend/handler/events.cljs:67–74、168–171[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m但返回值并不保证永远是 page。create-today-journal! 在 loading/importing/publishing 状态会跳过，重查发现已有 page 时也没有返回该 page 的分支：[0m
+[38;2;234;247;255m  src/main/frontend/handler/page.cljs:334–351[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·工程建议] 更稳妥的调用侧处理是：必要时等待创建，然后按 journal-day 重新读取，并验证有效目标，而不是把创建事件的返回值直接当成必然有效的实体。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m这个缺口与 E1 必须分开：today 为 nil 通常会先触发 editor/assets.cljs:133–136 的 “invalid target”；E1 已经有解析后的 journal page。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m回归范围：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断·风险][0m
+[38;2;234;247;255m  C6(a) 会影响所有经过该 builder 的普通资产/自定义标签对象，不应采用。[0m
+[38;2;234;247;255m  C6(b) 可能改变 PDF 图片的层级或插入顺序。[0m
+[38;2;234;247;255m  修改全局 core 会影响直接插入、复制粘贴、模板及操作重放。[0m
+[38;2;234;247;255m  只改 DB 资产调用侧，范围较小，但不能据此宣称 file graph 已验证无回归。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m此外还有独立的孤儿文件问题：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码] 文件先写，事务后提交：[0m
+[38;2;234;247;255m  editor/assets.cljs:70–73[0m
+[38;2;234;247;255m  editor/assets.cljs:112–119、139–144[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 事务失败确实可能留下新文件。但要用文件名 UUID 对上失败事务，才能证明某个 PNG 属于这次失败。后续应设计失败文件保留/恢复机制，不能未经核查直接批量删除。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m4. 目前无法证明的东西，以及 GUI 要确认什么[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m目前无法证明：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  [未证明] E1 就是原生区域 PNG 创建事务。[0m
+[38;2;234;247;255m  [未证明] 该 PDF asset 由 MCP 创建。[0m
+[38;2;234;247;255m  [未证明] 该 asset 在失败前已存在，还是本次创建。[0m
+[38;2;234;247;255m  [未证明] 哪个调用方产生了“解析后 page + sibling true”。[0m
+[38;2;234;247;255m  [未证明] 生产安装包是否与本地 fork 的某次构建相同。[0m
+[38;2;234;247;255m  [未证明] fork 历史中的某个 PDF 修复导致此次生产故障。[0m
+[38;2;234;247;255m  [未验证] 上述建议修法在 GUI、重放及 file graph 中无回归。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255mGUI/复现应记录：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  1. 运行进程对应的 executable、app.asar 路径和版本。[0m
+[38;2;234;247;255m  2. 点击前的 edit-block UUID、编辑内容、是否空块、是否有未保存修改。[0m
+[38;2;234;247;255m  3. 当前 PDF asset UUID 与新 PNG UUID。[0m
+[38;2;234;247;255m  4. db-based-save-assets! 的输入 file/map、pdf-area?、显式 target/save-to-page。[0m
+[38;2;234;247;255m  5. 原始 insert op 的全部 opts。[0m
+[38;2;234;247;255m  6. get-target-block 前后的 target UUID、parent、page、order、sibling?。[0m
+[38;2;234;247;255m  7. 失败前后资产查询结果及新文件路径。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·时间换算] E1 的 1790957758186 对应：[0m
+[38;2;234;247;255m  UTC：2026-10-02 16:15:58.186[0m
+[38;2;234;247;255m  北京时间：2026-10-03 00:15:58.186[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m而目标是 Sep 18th, 2026。正常 today-journal-day 取当前 Date：[0m
+[38;2;234;247;255m  src/main/frontend/date.cljs:65–67[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 不能未经解释把这个目标叫作“当天 fallback”。需要查显式目标、原始操作记录、运行构建及当时状态；时区转换不足以解释这个日期差异。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m5. 对 fork 历史修复的最终评价[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[实测·源码/Git] 当前能排除的是：[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m  “Asset→today 是 fork 为解决 nil page 做的修复”这个历史解释。[0m
+[38;2;234;247;255m  “Asset 的 page? 判 false 是 E1 根因”这个代码解释。[0m
+[38;2;234;247;255m  “existing-page 或 assign-temp-id 造成 E1”这两条具体解释。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[推断] 当前 fork 在目标有效、按 child 关系插入时，并不会因为 Asset 不是 page 而必然失败；但它仍缺少对非法根 page sibling 请求的明确处理，也存在 today 创建返回值与文件/事务非原子性的独立缺口。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m[未证明] 这些事实不足以将生产故障归罪于 fork 的历史 PDF 修复。已定位的是共同 outliner 逻辑中的直接失败条件；尚缺的是产生该非法目标关系的真实入口。[0m
+[38;2;234;247;255m[0m
+[38;2;234;247;255m下一步应围绕 E1 捕获“原始 op → 解析后 target/sibling → parent”这一段。不要先改 Asset 的类型判定，也不要强制 sibling true。[0m
+[1;38;2;93;184;245m╰──────────────────────────────────────────────────────────────────────────────╯[0m
+
+Resume this session with:
+  hermes --resume 20261003_004012_3bd649
+  hermes -c "审计 Logseq PDF 高亮 Invalid outliner data"
+
+Session:        20261003_004012_3bd649
+Title:          审计 Logseq PDF 高亮 Invalid outliner data
+Duration:       24m 40s
+Messages:       67 (1 user, 65 tool calls)
+  [tool] (≈) measuring pressure...

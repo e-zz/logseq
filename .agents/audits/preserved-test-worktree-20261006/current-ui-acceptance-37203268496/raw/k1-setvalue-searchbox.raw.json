@@ -1,0 +1,15 @@
+{
+  "tool": "set_value",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "element_index": 8,
+    "value": "ISSUE4-11-UI-ACCEPTANCE-A",
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:50:09.665474+08:00",
+  "finished_at": "2026-10-04T22:50:10.449569+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"refusal\": {\n    \"code\": \"snapshot_id_required\",\n    \"message\": \"set_value: bare element_index is not accepted; pass element_token, or snapshot_id together with element_index\"\n  },\n  \"status\": \"refused\"\n}\n",
+  "stderr": ""
+}

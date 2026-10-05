@@ -1,0 +1,5 @@
+
+Testing logseq.api.db-test
+
+Ran 6 tests containing 9 assertions.
+0 failures, 0 errors.

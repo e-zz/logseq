@@ -1,0 +1,15 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 25932,
+    "window_id": 201312,
+    "element_token": "s00000014:57",
+    "button": "right",
+    "delivery_mode": "background"
+  },
+  "started_at": "2026-10-04T13:42:51.125298+08:00",
+  "finished_at": "2026-10-04T13:42:53.016248+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"cause\": \"InjectSyntheticPointerInput(pen): Access is denied. (0x80070005)\",\n  \"code\": \"background_unavailable\",\n  \"escalation\": {\n    \"reason\": \"background input could not be delivered by the coordinate actuator; retry this action with delivery_mode:\\\"foreground\\\".\",\n    \"recommended\": \"foreground\"\n  },\n  \"event_kind\": \"mouse_click\",\n  \"suggestion\": \"Retry this action with delivery_mode:\\\"foreground\\\".\",\n  \"target_class\": \"Chrome_WidgetWin_1\"\n}\n",
+  "stderr": ""
+}

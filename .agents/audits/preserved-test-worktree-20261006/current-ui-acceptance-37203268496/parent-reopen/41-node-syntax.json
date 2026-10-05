@@ -1,0 +1,13 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "text": "[[ISSUE4-11-UI-ACCEPTANCE-B",
+    "delivery_mode": "foreground"
+  },
+  "tool": "type_text",
+  "started_at": "2026-10-04T23:44:07.657114+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"foreground\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

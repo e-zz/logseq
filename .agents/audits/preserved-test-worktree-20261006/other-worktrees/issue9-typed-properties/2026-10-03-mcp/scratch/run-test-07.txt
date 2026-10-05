@@ -1,0 +1,80 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> logseq@0.0.1 cljs:run-test D:\orca\workspaces\logseq\issue9-typed-properties
+> cross-env LOGSEQ_STABLE_IDENTS=1 bb dev:run-test-namespaces -r "^(?!logseq.db-sync.).*" -e fix-me "-n" "logseq.api.db-based.cli-test" "-n" "logseq.api.db-based.tools-test" "-n" "frontend.worker.search-test" "-n" "frontend.handler.search-test" "-n" "electron.mcp-server-test"
+
+
+Testing electron.mcp-server-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.search-test
+
+Testing electron.mcp-server-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.search-test
+
+Testing electron.mcp-server-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.search-test
+
+Testing electron.mcp-server-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.search-test
+sync-search-indice 300 new blocks with semantic search enabled took 812ms CPU
+sync-search-indice 300 new blocks with semantic search enabled took 781ms CPU
+sync-search-indice 300 new blocks with semantic search enabled took 718ms CPU
+sync-search-indice 300 new blocks with semantic search enabled took 750ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 640ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 672ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 656ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 687ms CPU
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.tools-test
+
+Testing logseq.api.db-based.tools-test
+
+Testing logseq.api.db-based.tools-test
+
+Testing logseq.api.db-based.tools-test
+
+Ran 148 tests containing 602 assertions.
+0 failures, 0 errors.
+
+Ran 148 tests containing 602 assertions.
+0 failures, 0 errors.
+
+Ran 148 tests containing 602 assertions.
+0 failures, 0 errors.
+
+Ran 148 tests containing 602 assertions.
+0 failures, 0 errors.
+
+Testing electron.mcp-server-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.search-test
+sync-search-indice 300 new blocks with semantic search enabled took 625ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 593ms CPU
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.tools-test
+
+Ran 148 tests containing 602 assertions.
+0 failures, 0 errors.

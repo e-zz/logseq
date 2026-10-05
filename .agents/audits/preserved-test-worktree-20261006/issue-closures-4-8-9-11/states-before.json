@@ -1,0 +1,107 @@
+{
+  "21": {
+    "closedAt": null,
+    "number": 21,
+    "state": "OPEN",
+    "title": "Bug: MCP page creation reuses a same-title recycled page and writes new blocks into it",
+    "url": "https://github.com/e-zz/logseq/issues/21"
+  },
+  "20": {
+    "closedAt": null,
+    "number": 20,
+    "state": "OPEN",
+    "title": "Bug: live ordered-list numbering remains stale until application restart",
+    "url": "https://github.com/e-zz/logseq/issues/20"
+  },
+  "14": {
+    "closedAt": null,
+    "number": 14,
+    "state": "OPEN",
+    "title": "Bug: MCP getPage returns trashed pages in full, with no recycle indicator (listPages filters them)",
+    "url": "https://github.com/e-zz/logseq/issues/14"
+  },
+  "13": {
+    "closedAt": null,
+    "number": 13,
+    "state": "OPEN",
+    "title": "FR: remember the user's decision when opening external links (trusted protocol/domain list)",
+    "url": "https://github.com/e-zz/logseq/issues/13"
+  },
+  "12": {
+    "closedAt": null,
+    "number": 12,
+    "state": "OPEN",
+    "title": "DB graph files silently destroyed by @logseq/cli init-conn on every open: config.edn replaced with {}, custom.css/custom.js/publish.* replaced with empty strings",
+    "url": "https://github.com/e-zz/logseq/issues/12"
+  },
+  "11": {
+    "closedAt": null,
+    "number": 11,
+    "state": "OPEN",
+    "title": "Bug: MCP upsertNodes adds blocks without updating the search index",
+    "url": "https://github.com/e-zz/logseq/issues/11"
+  },
+  "10": {
+    "closedAt": null,
+    "number": 10,
+    "state": "OPEN",
+    "title": "FR: programmatic creation of PDF highlights (agent/API path), not just the GUI",
+    "url": "https://github.com/e-zz/logseq/issues/10"
+  },
+  "9": {
+    "closedAt": null,
+    "number": 9,
+    "state": "OPEN",
+    "title": "FR: upsertNodes must allow writing property values (pages & blocks) — generic properties map",
+    "url": "https://github.com/e-zz/logseq/issues/9"
+  },
+  "8": {
+    "closedAt": null,
+    "number": 8,
+    "state": "OPEN",
+    "title": "MCP read/verify-side gaps: getPage strips :block/children (depth-1), searchBlocks has no page/uuid scope, upsertNodes receipt is input-echo not persist-proof",
+    "url": "https://github.com/e-zz/logseq/issues/8"
+  },
+  "7": {
+    "closedAt": "2026-10-04T14:35:33Z",
+    "number": 7,
+    "state": "CLOSED",
+    "title": "FR: MCP upsertNodes cannot set task status (todo/done/doing) — properties unwritable",
+    "url": "https://github.com/e-zz/logseq/issues/7"
+  },
+  "6": {
+    "closedAt": "2026-10-04T14:35:30Z",
+    "number": 6,
+    "state": "CLOSED",
+    "title": "FR: upsertNodes should accept nested/parented block structures",
+    "url": "https://github.com/e-zz/logseq/issues/6"
+  },
+  "5": {
+    "closedAt": null,
+    "number": 5,
+    "state": "OPEN",
+    "title": "\"Invalid direct-child order\" (500 in get-render-snapshots) hard-crashes the GUI on pages containing child blocks without :block/order",
+    "url": "https://github.com/e-zz/logseq/issues/5"
+  },
+  "4": {
+    "closedAt": null,
+    "number": 4,
+    "state": "OPEN",
+    "title": "FR: MCP upsertNodes cannot create ordered/numbered lists (no way to set a block's list type) + other write-API gaps",
+    "url": "https://github.com/e-zz/logseq/issues/4"
+  },
+  "3": {
+    "closedAt": "2026-09-21T06:59:08Z",
+    "number": 3,
+    "state": "CLOSED",
+    "title": "MCP upsertNodes: ~16 s fixed latency per write — whole-graph validate-local-db! runs on every import",
+    "url": "https://github.com/e-zz/logseq/issues/3"
+  },
+  "2": {
+    "closedAt": null,
+    "number": 2,
+    "state": "OPEN",
+    "title": "Resolve external PDF roots per machine (multi-device support)",
+    "url": "https://github.com/e-zz/logseq/issues/2"
+  }
+}

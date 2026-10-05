@@ -1,0 +1,15 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 600,
+    "y": 1200,
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:55:43.784750+08:00",
+  "finished_at": "2026-10-04T22:55:44.719403+08:00",
+  "exit_code": 0,
+  "stdout": "foreground_unavailable: exact target HWND 0x580ec6 or a verified same-process post-action window was not foreground after the click (actual foreground HWND 0x1014e)\n",
+  "stderr": ""
+}

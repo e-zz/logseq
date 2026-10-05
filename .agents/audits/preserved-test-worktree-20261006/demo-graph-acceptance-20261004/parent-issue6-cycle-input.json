@@ -1,0 +1,33 @@
+{
+  "operations": [
+    {
+      "data": {
+        "title": "CI-ISSUE6-CYCLE-PREEDIT-SHOULD-NOT-COMMIT"
+      },
+      "entityType": "block",
+      "id": "a855d7ad-20b0-413c-9652-96c33176a2d9",
+      "operation": "edit"
+    },
+    {
+      "data": {
+        "page-id": "63bab91a-013d-44df-afb7-4c83026b03ef",
+        "parent-id": "ci-cycle-b",
+        "title": "CI-ISSUE6-CYCLE-A"
+      },
+      "entityType": "block",
+      "id": "ci-cycle-a",
+      "operation": "add"
+    },
+    {
+      "data": {
+        "page-id": "63bab91a-013d-44df-afb7-4c83026b03ef",
+        "parent-id": "ci-cycle-a",
+        "title": "CI-ISSUE6-CYCLE-B"
+      },
+      "entityType": "block",
+      "id": "ci-cycle-b",
+      "operation": "add"
+    }
+  ],
+  "receipt": true
+}

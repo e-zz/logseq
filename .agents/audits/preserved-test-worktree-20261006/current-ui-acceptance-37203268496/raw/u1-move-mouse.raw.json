@@ -1,0 +1,14 @@
+{
+  "tool": "move_mouse",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 200,
+    "y": 120
+  },
+  "started_at": "2026-10-04T22:55:41.513305+08:00",
+  "finished_at": "2026-10-04T22:55:42.283464+08:00",
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "Permission denied: tool 'move_mouse' has no reviewed risk classification\n"
+}

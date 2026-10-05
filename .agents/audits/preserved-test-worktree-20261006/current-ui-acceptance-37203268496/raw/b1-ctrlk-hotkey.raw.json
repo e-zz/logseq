@@ -1,0 +1,16 @@
+{
+  "tool": "hotkey",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "keys": [
+      "ctrl",
+      "k"
+    ]
+  },
+  "started_at": "2026-10-04T22:44:19.571613+08:00",
+  "finished_at": "2026-10-04T22:44:20.347973+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"code\": \"background_unavailable\",\n  \"escalation\": {\n    \"reason\": \"background input is dropped by this surface; retry this action with delivery_mode:\\\"foreground\\\".\",\n    \"recommended\": \"foreground\"\n  },\n  \"event_kind\": \"key_combo\",\n  \"suggestion\": \"Retry this action with delivery_mode:\\\"foreground\\\".\",\n  \"target_class\": \"Chrome_WidgetWin_1\"\n}\n",
+  "stderr": ""
+}

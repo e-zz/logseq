@@ -1,0 +1,14 @@
+{
+  "tool": "set_value",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "element_token": "s00000027:8",
+    "value": "ISSUE4-11-UI-ACCEPTANCE-A"
+  },
+  "started_at": "2026-10-04T22:50:36.786800+08:00",
+  "finished_at": "2026-10-04T22:50:38.304003+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"unknown\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"accessibility\"\n}\n",
+  "stderr": ""
+}

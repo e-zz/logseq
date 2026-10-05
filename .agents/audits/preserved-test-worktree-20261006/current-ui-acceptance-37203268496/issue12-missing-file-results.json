@@ -1,0 +1,1085 @@
+{
+  "authorization": "User explicitly allowed only custom.css file entity removal and normal isolated worker stop/reopen via clarify.",
+  "root": "C:/Users/zhang/AppData/Local/hermes/cache/scratch/logseq-issue12-ci37203268496",
+  "graph": "issue12-preservation",
+  "package": "C:/Users/zhang/Downloads/logseq-ci-37203268496-x64/Logseq-win-x64-2.0.2/Logseq.exe",
+  "target": "logseq/custom.css",
+  "log": [
+    {
+      "args": [
+        "server",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"servers\":[{\"repo\":\"logseq_db_issue12-preservation\",\"graph\":\"issue12-preservation\",\"pid\":28764,\"host\":\"127.0.0.1\",\"port\":58989,\"base-url\":\"http://127.0.0.1:58989\",\"status\":\"ready\",\"owner-source\":\"cli\",\"owned\":true,\"revision\":\"fb5eb4e\",\"root-dir\":\"C:\\\\Users\\\\zhang\\\\AppData\\\\Local\\\\hermes\\\\cache\\\\scratch\\\\logseq-issue12-ci37203268496\"}]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "query",
+        "--graph",
+        "issue12-preservation",
+        "--query",
+        "[:find ?path (count ?e) :where [?e :file/path ?path]]"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[[\"logseq/config.edn\",1],[\"logseq/custom.css\",1],[\"logseq/custom.js\",1],[\"logseq/publish.css\",1],[\"logseq/publish.js\",1]]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "query",
+        "--graph",
+        "issue12-preservation",
+        "--query",
+        "[:find ?e ?uuid ?title :where [?e :block/uuid ?uuid] [?e :block/title ?title]]"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[[123,\"00000002-1081-4073-8700-000000000000\",\"View sort groups DESC\"],[83,\"00000002-1829-3222-7800-000000000000\",\"Medium\"],[136,\"00000002-3306-1650-4000-000000000000\",\"Image height\"],[82,\"00000002-2107-4537-4800-000000000000\",\"Low\"],[65,\"00000002-6078-1711-1000-000000000000\",\"List type\"],[101,\"00000002-1406-5331-0600-000000000000\",\"Advance from completion\"],[119,\"00000002-2012-8168-3300-000000000000\",\"Gallery card size\"],[25,\"00000002-2140-2109-9100-000000000000\",\"Node collapsed?\"],[38,\"00000002-1595-7230-1400-000000000000\",\"Non ref type default value\"],[55,\"00000002-9984-3783-2000-000000000000\",\"Annotation type\"],[47,\"00000002-2610-3727-0000-000000000000\",\"Hide from Node\"],[51,\"00000002-5191-2660-6000-000000000000\",\"Background color\"],[71,\"00000002-7629-6621-9000-000000000000\",\"Choice classes\"],[44,\"00000004-1830-0481-2500-000000000000\",\"When enabled, this tag will show reverse nodes that link to the current node via properties.\"],[36,\"00000002-8578-9716-5000-000000000000\",\"Code Mode\"],[169,\"00000002-1282-1814-5700-000000000000\",\"Task\"],[118,\"00000002-1806-7066-8800-000000000000\",\"Gallery display properties\"],[126,\"00000002-9750-5719-2000-000000000000\",\"View hidden columns\"],[132,\"00000002-1364-7751-6300-000000000000\",\"External URL\"],[172,\"00000002-2324-8016-6000-000000000000\",\"Query\"],[14,\"00000002-6836-5746-0000-000000000000\",\"Hide this property or page\"],[162,\"00000002-1783-0312-6200-000000000000\",\"Agent Session ID\"],[56,\"00000002-6747-9388-7000-000000000000\",\"Annotation color\"],[153,\"00000002-2393-3777-5000-000000000000\",\"History scalar value\"],[22,\"00000002-1814-9483-4000-000000000000\",\"Tags\"],[141,\"00000002-1297-5230-5500-000000000000\",\"Asset resize metadata\"],[60,\"00000002-1836-0512-4100-000000000000\",\"blue\"],[174,\"00000002-1284-2651-6700-000000000000\",\"Cards\"],[41,\"00000002-2123-7120-5000-000000000000\",\"Tag Properties\"],[158,\"00000002-1658-7897-9900-000000000000\",\"Recycle original page\"],[150,\"00000002-1142-5541-6000-000000000000\",\"History block\"],[122,\"00000002-6253-4002-1000-000000000000\",\"View sort groups by\"],[33,\"00000002-1516-5505-5100-000000000000\",\"Node updated at\"],[111,\"00000002-2182-3760-7000-000000000000\",\"View Type\"],[59,\"00000002-1992-2016-2600-000000000000\",\"green\"],[187,\"00000004-7336-8251-3000-000000000000\",\"Quick add\"],[134,\"00000002-1167-8621-9000-000000000000\",\"File Size\"],[108,\"00000002-1094-6579-3900-000000000000\",\"Publishing Public?\"],[93,\"00000002-1513-6550-8500-000000000000\",\"Minute\"],[49,\"00000002-2133-5311-8500-000000000000\",\"Page Tags\"],[73,\"00000002-3215-3256-9000-000000000000\",\"Properties displayed as checkbox\"],[110,\"00000002-4524-3306-5000-000000000000\",\"Excluded from Graph view?\"],[171,\"00000002-1323-0695-4000-000000000000\",\"Comment\"],[163,\"00000004-1209-4784-1500-000000000000\",\"Stores the AgentBridge session ID for a routed task.\"],[79,\"00000002-1827-5820-8200-000000000000\",\"Done\"],[68,\"00000002-2143-9561-0900-000000000000\",\"Commented blocks\"],[57,\"00000002-1752-1030-0200-000000000000\",\"yellow\"],[5,\"00000002-1720-8548-4600-000000000000\",\"Template\"],[89,\"00000004-9817-6380-0000-000000000000\",\"Use it to plan something to start at a specific date(time).\"],[148,\"00000002-8058-5960-2000-000000000000\",\"Enable property history\"],[103,\"00000002-7441-9615-3000-000000000000\",\"Advance from scheduled, skip to future\"],[188,\"00000004-1906-3437-5800-000000000000\",\"$$$views\"],[105,\"00000002-1866-3655-5300-000000000000\",\"Repeating Checked Property\"],[80,\"00000002-7526-4326-2000-000000000000\",\"Canceled\"],[116,\"00000002-8092-1623-6000-000000000000\",\"View group by property\"],[4,\"00000002-1484-3403-2900-000000000000\",\"Page\"],[176,\"00000002-1454-9866-4100-000000000000\",\"Code\"],[40,\"00000004-4485-6574-6000-000000000000\",\"This enables tags to inherit properties from other tags\"],[190,\"00000004-7238-1304-3000-000000000000\",\"Recycle\"],[107,\"00000002-5891-2328-5000-000000000000\",\"Icon\"],[76,\"00000002-1615-5853-7700-000000000000\",\"Todo\"],[29,\"00000002-7104-4568-4000-000000000000\",\"Node title\"],[173,\"00000002-1358-2811-0900-000000000000\",\"Card\"],[129,\"00000002-2673-7513-8000-000000000000\",\"Table view pinned columns\"],[143,\"00000002-1089-0805-4900-000000000000\",\"Due\"],[16,\"00000002-1843-0851-4900-000000000000\",\"Property public?\"],[94,\"00000002-1438-8849-5400-000000000000\",\"Hour\"],[104,\"00000002-8346-1078-4000-000000000000\",\"Repeating Temporal Property\"],[102,\"00000002-1646-4063-5900-000000000000\",\"Advance from scheduled\"],[155,\"00000002-6852-1375-1000-000000000000\",\"Deleted at\"],[90,\"00000002-8716-1592-2000-000000000000\",\"Repeating recur frequency\"],[151,\"00000002-1600-4090-8200-000000000000\",\"History property\"],[39,\"00000002-7475-9380-3000-000000000000\",\"Extends\"],[62,\"00000002-7532-8459-6000-000000000000\",\"Annotation page\"],[63,\"00000002-1377-6700-9000-000000000000\",\"Annotation image\"],[97,\"00000002-2073-3937-9700-000000000000\",\"Month\"],[45,\"00000002-2062-3258-9900-000000000000\",\"Hide empty value\"],[81,\"00000002-2392-2841-1000-000000000000\",\"Priority\"],[125,\"00000002-1702-3936-3300-000000000000\",\"View filters\"],[58,\"00000002-4136-2216-2000-000000000000\",\"red\"],[28,\"00000002-1872-3999-9300-000000000000\",\"Node links to\"],[186,\"00000004-1690-2597-3200-000000000000\",\"Contents\"],[112,\"00000002-1942-5424-0000-000000000000\",\"Table View\"],[21,\"00000002-2112-6446-9900-000000000000\",\"Alias\"],[117,\"00000002-1668-3468-9000-000000000000\",\"Gallery asset property\"],[32,\"00000002-1440-0150-0000-000000000000\",\"Node created at\"],[114,\"00000002-1506-0511-2000-000000000000\",\"Gallery View\"],[3,\"00000002-1038-7670-4800-000000000000\",\"Property\"],[95,\"00000002-3924-1785-8000-000000000000\",\"Day\"],[13,\"00000002-1125-9581-6000-000000000000\",\"Built in?\"],[18,\"00000002-1869-2008-6400-000000000000\",\"Property position\"],[26,\"00000002-8223-1410-8000-000000000000\",\"Node page\"],[139,\"00000002-9907-5046-9000-000000000000\",\"File remote metadata\"],[179,\"00000002-5049-5962-0000-000000000000\",\"PDF Annotation\"],[77,\"00000002-1840-1229-0800-000000000000\",\"Doing\"],[88,\"00000002-1644-5209-4300-000000000000\",\"Scheduled\"],[161,\"00000002-1127-5718-5000-000000000000\",\"Reaction target\"],[27,\"00000002-1214-4953-4900-000000000000\",\"Node references\"],[154,\"00000002-8544-3390-8000-000000000000\",\"Node created by\"],[46,\"00000004-1118-8585-8000-000000000000\",\"Hides a property's value on any node when empty e.g. when a property appears on a node through a tag.\"],[37,\"00000002-8920-7966-2000-000000000000\",\"Default value\"],[54,\"00000002-3269-7934-5000-000000000000\",\"ls-type\"],[147,\"00000002-4165-4885-8000-000000000000\",\"User Avatar\"],[131,\"00000002-1142-0830-9800-000000000000\",\"File Type\"],[67,\"00000002-2426-7588-9000-000000000000\",\"Excluded references\"],[149,\"00000004-1438-1481-0000-000000000000\",\"Records history anytime a property's value changes on a node.\"],[138,\"00000002-2107-8035-3500-000000000000\",\"Last visit page\"],[128,\"00000002-1675-5105-5500-000000000000\",\"View columns settings\"],[167,\"00000002-1979-7410-8100-000000000000\",\"Journal\"],[34,\"00000002-4424-4618-9000-000000000000\",\"Node Display Type\"],[98,\"00000002-1520-4385-2400-000000000000\",\"Year\"],[20,\"00000002-1396-5248-6500-000000000000\",\"Property value\"],[50,\"00000004-1223-8671-8000-000000000000\",\"Provides a way for a page to associate to another page i.e. backward compatible tagging.\"],[52,\"00000002-1858-7494-1500-000000000000\",\"Heading\"],[142,\"00000002-7135-0412-8000-000000000000\",\"Asset alignment\"],[78,\"00000002-1870-0014-4300-000000000000\",\"In Review\"],[178,\"00000002-2038-9631-2100-000000000000\",\"Math\"],[144,\"00000002-1165-1650-8700-000000000000\",\"State\"],[130,\"00000002-3627-4319-0000-000000000000\",\"This view belongs to\"],[96,\"00000002-2130-9244-4900-000000000000\",\"Week\"],[100,\"00000002-1984-2972-8100-000000000000\",\"Repeating type\"],[84,\"00000002-5672-2766-8000-000000000000\",\"High\"],[74,\"00000002-9072-1685-3000-000000000000\",\"Status\"],[35,\"00000002-3362-3620-0000-000000000000\",\"Description\"],[1,\"00000002-2737-8382-7000-000000000000\",\"Root Tag\"],[24,\"00000002-1429-2824-3700-000000000000\",\"Node order\"],[31,\"00000002-1457-4836-6000-000000000000\",\"Journal date\"],[146,\"00000002-1655-2060-6300-000000000000\",\"User Email\"],[86,\"00000002-1685-9016-0400-000000000000\",\"Deadline\"],[15,\"00000002-8618-9226-7000-000000000000\",\"Created from property\"],[113,\"00000002-1164-8285-0200-000000000000\",\"List View\"],[70,\"00000002-1272-4228-6300-000000000000\",\"Choice checkbox state\"],[175,\"00000002-7975-0297-0000-000000000000\",\"Asset\"],[92,\"00000002-6903-0624-7000-000000000000\",\"Repeating recur unit\"],[19,\"00000002-9137-5048-6000-000000000000\",\"Property classes\"],[166,\"00000002-1044-8271-6500-000000000000\",\"Reference to large block title stored in remote object storage\"],[165,\"00000002-4291-2432-2000-000000000000\",\"Apply template to tags\"],[177,\"00000002-1176-1666-1700-000000000000\",\"Quote\"],[12,\"00000002-8384-2404-0000-000000000000\",\"Property type\"],[75,\"00000002-7233-3491-0000-000000000000\",\"Backlog\"],[152,\"00000002-5131-3603-7000-000000000000\",\"History value\"],[159,\"00000002-8699-2537-0000-000000000000\",\"Recycle original order\"],[17,\"00000002-1547-3958-2800-000000000000\",\"Property view context\"],[170,\"00000002-2556-9161-5000-000000000000\",\"Comments\"],[109,\"00000002-2045-1825-0100-000000000000\",\"Published URL\"],[120,\"00000002-1403-2963-9500-000000000000\",\"Gallery card width\"],[2,\"00000002-5389-0208-3000-000000000000\",\"Tag\"],[106,\"00000002-2190-1503-4000-000000000000\",\"Assignee\"],[157,\"00000002-4970-0399-4000-000000000000\",\"Recycle original parent\"],[85,\"00000002-1996-4346-6700-000000000000\",\"Urgent\"],[64,\"00000002-5458-2940-2000-000000000000\",\"Annotation data\"],[69,\"00000002-1536-4979-5400-000000000000\",\"Title Format\"],[43,\"00000002-2917-8613-8000-000000000000\",\"Enable bidirectional properties\"],[185,\"00000004-1294-7765-6000-000000000000\",\"Library\"],[140,\"00000004-5450-2102-9000-000000000000\",\"Metadata of asset in remote storage\"],[156,\"00000002-1998-0431-1200-000000000000\",\"Deleted by\"],[48,\"00000002-9741-4126-0000-000000000000\",\"Query\"],[121,\"00000002-4342-2083-2000-000000000000\",\"Gallery card height\"],[137,\"00000002-1011-4169-7900-000000000000\",\"File checksum\"],[61,\"00000002-1104-3848-5600-000000000000\",\"purple\"],[87,\"00000004-1356-3664-2200-000000000000\",\"Use it to finish something at a specific date(time).\"],[145,\"00000002-1360-0260-1600-000000000000\",\"User Name\"],[164,\"00000002-9803-6990-6000-000000000000\",\"Used template\"],[23,\"00000002-9183-0906-4000-000000000000\",\"Node parent\"],[99,\"00000002-1908-1217-8900-000000000000\",\"Node Repeats?\"],[42,\"00000002-6050-5418-7000-000000000000\",\"Bidirectional property title\"],[115,\"00000002-9391-4187-1000-000000000000\",\"View Feature Type\"],[66,\"00000002-1680-5777-0300-000000000000\",\"Included references\"],[53,\"00000002-8768-5679-0000-000000000000\",\"Asset\"],[133,\"00000002-3995-2972-0000-000000000000\",\"External file name\"],[189,\"00000004-1018-5888-4100-000000000000\",\"$$$favorites\"],[124,\"00000002-2081-0259-4000-000000000000\",\"View sorting\"],[30,\"00000002-1157-7928-1300-000000000000\",\"Closed value property\"],[135,\"00000002-1857-8658-3900-000000000000\",\"Image width\"],[160,\"00000002-9877-5864-5000-000000000000\",\"Reaction emoji\"],[72,\"00000002-1233-5229-4600-000000000000\",\"Choice exclusions\"],[168,\"00000002-1013-6984-5200-000000000000\",\"Whiteboard\"],[127,\"00000002-1485-5871-0000-000000000000\",\"View ordered columns\"]]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "query",
+        "--graph",
+        "issue12-preservation",
+        "--query",
+        "[:find ?path (count ?e) :where [?e :file/path ?path]]"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[[\"logseq/config.edn\",1],[\"logseq/custom.js\",1],[\"logseq/publish.css\",1],[\"logseq/publish.js\",1]]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "server",
+        "stop",
+        "--graph",
+        "issue12-preservation"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"repo\":\"logseq_db_issue12-preservation\"}}\n",
+      "stderr": "[graph-lifecycle] {\"event\":\"worker-termination\",\"repo\":\"issue12-preservation\",\"graphsDir\":\"C:\\\\Users\\\\zhang\\\\AppData\\\\Local\\\\hermes\\\\cache\\\\scratch\\\\logseq-issue12-ci37203268496\\\\graphs\",\"generation\":\"5f5b45d5-3144-46e2-aa71-924f44f1518f\",\"ticket\":\"ccd65c12-3c32-4a33-bbd8-30c66b522925\",\"pid\":28764,\"stage\":\"graceful\"}\n"
+    },
+    {
+      "args": [
+        "graph",
+        "info",
+        "--graph",
+        "issue12-preservation"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"graph\":\"issue12-preservation\",\"logseq.kv/graph-created-at\":1791121732530,\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"kv\":{\"logseq.kv/db-type\":\"db\",\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-initial-schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-created-at\":1791121732530,\"logseq.kv/local-graph-uuid\":\"00000000-7f67-4118-8240-ecf6d5319c0e\",\"logseq.kv/recycle-last-gc-at\":1791121732778}}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "server",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"servers\":[{\"repo\":\"logseq_db_issue12-preservation\",\"graph\":\"issue12-preservation\",\"pid\":43840,\"host\":\"127.0.0.1\",\"port\":63088,\"base-url\":\"http://127.0.0.1:63088\",\"status\":\"ready\",\"owner-source\":\"cli\",\"owned\":true,\"revision\":\"fb5eb4e\",\"root-dir\":\"C:\\\\Users\\\\zhang\\\\AppData\\\\Local\\\\hermes\\\\cache\\\\scratch\\\\logseq-issue12-ci37203268496\"}]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "query",
+        "--graph",
+        "issue12-preservation",
+        "--query",
+        "[:find ?path (count ?e) :where [?e :file/path ?path]]"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[[\"logseq/config.edn\",1],[\"logseq/custom.js\",1],[\"logseq/publish.css\",1],[\"logseq/publish.js\",1]]}}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "query",
+        "--graph",
+        "issue12-preservation",
+        "--query",
+        "[:find ?e ?uuid ?title :where [?e :block/uuid ?uuid] [?e :block/title ?title]]"
+      ],
+      "exit": 0,
+      "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[[123,\"00000002-1081-4073-8700-000000000000\",\"View sort groups DESC\"],[83,\"00000002-1829-3222-7800-000000000000\",\"Medium\"],[136,\"00000002-3306-1650-4000-000000000000\",\"Image height\"],[82,\"00000002-2107-4537-4800-000000000000\",\"Low\"],[65,\"00000002-6078-1711-1000-000000000000\",\"List type\"],[101,\"00000002-1406-5331-0600-000000000000\",\"Advance from completion\"],[119,\"00000002-2012-8168-3300-000000000000\",\"Gallery card size\"],[25,\"00000002-2140-2109-9100-000000000000\",\"Node collapsed?\"],[38,\"00000002-1595-7230-1400-000000000000\",\"Non ref type default value\"],[55,\"00000002-9984-3783-2000-000000000000\",\"Annotation type\"],[47,\"00000002-2610-3727-0000-000000000000\",\"Hide from Node\"],[51,\"00000002-5191-2660-6000-000000000000\",\"Background color\"],[71,\"00000002-7629-6621-9000-000000000000\",\"Choice classes\"],[44,\"00000004-1830-0481-2500-000000000000\",\"When enabled, this tag will show reverse nodes that link to the current node via properties.\"],[36,\"00000002-8578-9716-5000-000000000000\",\"Code Mode\"],[169,\"00000002-1282-1814-5700-000000000000\",\"Task\"],[118,\"00000002-1806-7066-8800-000000000000\",\"Gallery display properties\"],[126,\"00000002-9750-5719-2000-000000000000\",\"View hidden columns\"],[132,\"00000002-1364-7751-6300-000000000000\",\"External URL\"],[172,\"00000002-2324-8016-6000-000000000000\",\"Query\"],[14,\"00000002-6836-5746-0000-000000000000\",\"Hide this property or page\"],[162,\"00000002-1783-0312-6200-000000000000\",\"Agent Session ID\"],[56,\"00000002-6747-9388-7000-000000000000\",\"Annotation color\"],[153,\"00000002-2393-3777-5000-000000000000\",\"History scalar value\"],[22,\"00000002-1814-9483-4000-000000000000\",\"Tags\"],[141,\"00000002-1297-5230-5500-000000000000\",\"Asset resize metadata\"],[60,\"00000002-1836-0512-4100-000000000000\",\"blue\"],[174,\"00000002-1284-2651-6700-000000000000\",\"Cards\"],[41,\"00000002-2123-7120-5000-000000000000\",\"Tag Properties\"],[158,\"00000002-1658-7897-9900-000000000000\",\"Recycle original page\"],[150,\"00000002-1142-5541-6000-000000000000\",\"History block\"],[122,\"00000002-6253-4002-1000-000000000000\",\"View sort groups by\"],[33,\"00000002-1516-5505-5100-000000000000\",\"Node updated at\"],[111,\"00000002-2182-3760-7000-000000000000\",\"View Type\"],[59,\"00000002-1992-2016-2600-000000000000\",\"green\"],[187,\"00000004-7336-8251-3000-000000000000\",\"Quick add\"],[134,\"00000002-1167-8621-9000-000000000000\",\"File Size\"],[108,\"00000002-1094-6579-3900-000000000000\",\"Publishing Public?\"],[93,\"00000002-1513-6550-8500-000000000000\",\"Minute\"],[49,\"00000002-2133-5311-8500-000000000000\",\"Page Tags\"],[73,\"00000002-3215-3256-9000-000000000000\",\"Properties displayed as checkbox\"],[110,\"00000002-4524-3306-5000-000000000000\",\"Excluded from Graph view?\"],[171,\"00000002-1323-0695-4000-000000000000\",\"Comment\"],[163,\"00000004-1209-4784-1500-000000000000\",\"Stores the AgentBridge session ID for a routed task.\"],[79,\"00000002-1827-5820-8200-000000000000\",\"Done\"],[68,\"00000002-2143-9561-0900-000000000000\",\"Commented blocks\"],[57,\"00000002-1752-1030-0200-000000000000\",\"yellow\"],[5,\"00000002-1720-8548-4600-000000000000\",\"Template\"],[89,\"00000004-9817-6380-0000-000000000000\",\"Use it to plan something to start at a specific date(time).\"],[148,\"00000002-8058-5960-2000-000000000000\",\"Enable property history\"],[103,\"00000002-7441-9615-3000-000000000000\",\"Advance from scheduled, skip to future\"],[188,\"00000004-1906-3437-5800-000000000000\",\"$$$views\"],[105,\"00000002-1866-3655-5300-000000000000\",\"Repeating Checked Property\"],[80,\"00000002-7526-4326-2000-000000000000\",\"Canceled\"],[116,\"00000002-8092-1623-6000-000000000000\",\"View group by property\"],[4,\"00000002-1484-3403-2900-000000000000\",\"Page\"],[176,\"00000002-1454-9866-4100-000000000000\",\"Code\"],[40,\"00000004-4485-6574-6000-000000000000\",\"This enables tags to inherit properties from other tags\"],[190,\"00000004-7238-1304-3000-000000000000\",\"Recycle\"],[107,\"00000002-5891-2328-5000-000000000000\",\"Icon\"],[76,\"00000002-1615-5853-7700-000000000000\",\"Todo\"],[29,\"00000002-7104-4568-4000-000000000000\",\"Node title\"],[173,\"00000002-1358-2811-0900-000000000000\",\"Card\"],[129,\"00000002-2673-7513-8000-000000000000\",\"Table view pinned columns\"],[143,\"00000002-1089-0805-4900-000000000000\",\"Due\"],[16,\"00000002-1843-0851-4900-000000000000\",\"Property public?\"],[94,\"00000002-1438-8849-5400-000000000000\",\"Hour\"],[104,\"00000002-8346-1078-4000-000000000000\",\"Repeating Temporal Property\"],[102,\"00000002-1646-4063-5900-000000000000\",\"Advance from scheduled\"],[155,\"00000002-6852-1375-1000-000000000000\",\"Deleted at\"],[90,\"00000002-8716-1592-2000-000000000000\",\"Repeating recur frequency\"],[151,\"00000002-1600-4090-8200-000000000000\",\"History property\"],[39,\"00000002-7475-9380-3000-000000000000\",\"Extends\"],[62,\"00000002-7532-8459-6000-000000000000\",\"Annotation page\"],[63,\"00000002-1377-6700-9000-000000000000\",\"Annotation image\"],[97,\"00000002-2073-3937-9700-000000000000\",\"Month\"],[45,\"00000002-2062-3258-9900-000000000000\",\"Hide empty value\"],[81,\"00000002-2392-2841-1000-000000000000\",\"Priority\"],[125,\"00000002-1702-3936-3300-000000000000\",\"View filters\"],[58,\"00000002-4136-2216-2000-000000000000\",\"red\"],[28,\"00000002-1872-3999-9300-000000000000\",\"Node links to\"],[186,\"00000004-1690-2597-3200-000000000000\",\"Contents\"],[112,\"00000002-1942-5424-0000-000000000000\",\"Table View\"],[21,\"00000002-2112-6446-9900-000000000000\",\"Alias\"],[117,\"00000002-1668-3468-9000-000000000000\",\"Gallery asset property\"],[32,\"00000002-1440-0150-0000-000000000000\",\"Node created at\"],[114,\"00000002-1506-0511-2000-000000000000\",\"Gallery View\"],[3,\"00000002-1038-7670-4800-000000000000\",\"Property\"],[95,\"00000002-3924-1785-8000-000000000000\",\"Day\"],[13,\"00000002-1125-9581-6000-000000000000\",\"Built in?\"],[18,\"00000002-1869-2008-6400-000000000000\",\"Property position\"],[26,\"00000002-8223-1410-8000-000000000000\",\"Node page\"],[139,\"00000002-9907-5046-9000-000000000000\",\"File remote metadata\"],[179,\"00000002-5049-5962-0000-000000000000\",\"PDF Annotation\"],[77,\"00000002-1840-1229-0800-000000000000\",\"Doing\"],[88,\"00000002-1644-5209-4300-000000000000\",\"Scheduled\"],[161,\"00000002-1127-5718-5000-000000000000\",\"Reaction target\"],[27,\"00000002-1214-4953-4900-000000000000\",\"Node references\"],[154,\"00000002-8544-3390-8000-000000000000\",\"Node created by\"],[46,\"00000004-1118-8585-8000-000000000000\",\"Hides a property's value on any node when empty e.g. when a property appears on a node through a tag.\"],[37,\"00000002-8920-7966-2000-000000000000\",\"Default value\"],[54,\"00000002-3269-7934-5000-000000000000\",\"ls-type\"],[147,\"00000002-4165-4885-8000-000000000000\",\"User Avatar\"],[131,\"00000002-1142-0830-9800-000000000000\",\"File Type\"],[67,\"00000002-2426-7588-9000-000000000000\",\"Excluded references\"],[149,\"00000004-1438-1481-0000-000000000000\",\"Records history anytime a property's value changes on a node.\"],[138,\"00000002-2107-8035-3500-000000000000\",\"Last visit page\"],[128,\"00000002-1675-5105-5500-000000000000\",\"View columns settings\"],[167,\"00000002-1979-7410-8100-000000000000\",\"Journal\"],[34,\"00000002-4424-4618-9000-000000000000\",\"Node Display Type\"],[98,\"00000002-1520-4385-2400-000000000000\",\"Year\"],[20,\"00000002-1396-5248-6500-000000000000\",\"Property value\"],[50,\"00000004-1223-8671-8000-000000000000\",\"Provides a way for a page to associate to another page i.e. backward compatible tagging.\"],[52,\"00000002-1858-7494-1500-000000000000\",\"Heading\"],[142,\"00000002-7135-0412-8000-000000000000\",\"Asset alignment\"],[78,\"00000002-1870-0014-4300-000000000000\",\"In Review\"],[178,\"00000002-2038-9631-2100-000000000000\",\"Math\"],[144,\"00000002-1165-1650-8700-000000000000\",\"State\"],[130,\"00000002-3627-4319-0000-000000000000\",\"This view belongs to\"],[96,\"00000002-2130-9244-4900-000000000000\",\"Week\"],[100,\"00000002-1984-2972-8100-000000000000\",\"Repeating type\"],[84,\"00000002-5672-2766-8000-000000000000\",\"High\"],[74,\"00000002-9072-1685-3000-000000000000\",\"Status\"],[35,\"00000002-3362-3620-0000-000000000000\",\"Description\"],[1,\"00000002-2737-8382-7000-000000000000\",\"Root Tag\"],[24,\"00000002-1429-2824-3700-000000000000\",\"Node order\"],[31,\"00000002-1457-4836-6000-000000000000\",\"Journal date\"],[146,\"00000002-1655-2060-6300-000000000000\",\"User Email\"],[86,\"00000002-1685-9016-0400-000000000000\",\"Deadline\"],[15,\"00000002-8618-9226-7000-000000000000\",\"Created from property\"],[113,\"00000002-1164-8285-0200-000000000000\",\"List View\"],[70,\"00000002-1272-4228-6300-000000000000\",\"Choice checkbox state\"],[175,\"00000002-7975-0297-0000-000000000000\",\"Asset\"],[92,\"00000002-6903-0624-7000-000000000000\",\"Repeating recur unit\"],[19,\"00000002-9137-5048-6000-000000000000\",\"Property classes\"],[166,\"00000002-1044-8271-6500-000000000000\",\"Reference to large block title stored in remote object storage\"],[165,\"00000002-4291-2432-2000-000000000000\",\"Apply template to tags\"],[177,\"00000002-1176-1666-1700-000000000000\",\"Quote\"],[12,\"00000002-8384-2404-0000-000000000000\",\"Property type\"],[75,\"00000002-7233-3491-0000-000000000000\",\"Backlog\"],[152,\"00000002-5131-3603-7000-000000000000\",\"History value\"],[159,\"00000002-8699-2537-0000-000000000000\",\"Recycle original order\"],[17,\"00000002-1547-3958-2800-000000000000\",\"Property view context\"],[170,\"00000002-2556-9161-5000-000000000000\",\"Comments\"],[109,\"00000002-2045-1825-0100-000000000000\",\"Published URL\"],[120,\"00000002-1403-2963-9500-000000000000\",\"Gallery card width\"],[2,\"00000002-5389-0208-3000-000000000000\",\"Tag\"],[106,\"00000002-2190-1503-4000-000000000000\",\"Assignee\"],[157,\"00000002-4970-0399-4000-000000000000\",\"Recycle original parent\"],[85,\"00000002-1996-4346-6700-000000000000\",\"Urgent\"],[64,\"00000002-5458-2940-2000-000000000000\",\"Annotation data\"],[69,\"00000002-1536-4979-5400-000000000000\",\"Title Format\"],[43,\"00000002-2917-8613-8000-000000000000\",\"Enable bidirectional properties\"],[185,\"00000004-1294-7765-6000-000000000000\",\"Library\"],[140,\"00000004-5450-2102-9000-000000000000\",\"Metadata of asset in remote storage\"],[156,\"00000002-1998-0431-1200-000000000000\",\"Deleted by\"],[48,\"00000002-9741-4126-0000-000000000000\",\"Query\"],[121,\"00000002-4342-2083-2000-000000000000\",\"Gallery card height\"],[137,\"00000002-1011-4169-7900-000000000000\",\"File checksum\"],[61,\"00000002-1104-3848-5600-000000000000\",\"purple\"],[87,\"00000004-1356-3664-2200-000000000000\",\"Use it to finish something at a specific date(time).\"],[145,\"00000002-1360-0260-1600-000000000000\",\"User Name\"],[164,\"00000002-9803-6990-6000-000000000000\",\"Used template\"],[23,\"00000002-9183-0906-4000-000000000000\",\"Node parent\"],[99,\"00000002-1908-1217-8900-000000000000\",\"Node Repeats?\"],[42,\"00000002-6050-5418-7000-000000000000\",\"Bidirectional property title\"],[115,\"00000002-9391-4187-1000-000000000000\",\"View Feature Type\"],[66,\"00000002-1680-5777-0300-000000000000\",\"Included references\"],[53,\"00000002-8768-5679-0000-000000000000\",\"Asset\"],[133,\"00000002-3995-2972-0000-000000000000\",\"External file name\"],[189,\"00000004-1018-5888-4100-000000000000\",\"$$$favorites\"],[124,\"00000002-2081-0259-4000-000000000000\",\"View sorting\"],[30,\"00000002-1157-7928-1300-000000000000\",\"Closed value property\"],[135,\"00000002-1857-8658-3900-000000000000\",\"Image width\"],[160,\"00000002-9877-5864-5000-000000000000\",\"Reaction emoji\"],[72,\"00000002-1233-5229-4600-000000000000\",\"Choice exclusions\"],[168,\"00000002-1013-6984-5200-000000000000\",\"Whiteboard\"],[127,\"00000002-1485-5871-0000-000000000000\",\"View ordered columns\"]]}}\n",
+      "stderr": ""
+    }
+  ],
+  "result": "FAIL",
+  "before": {
+    "logseq/config.edn": "{:meta/version 1\n\n ;; Hide empty block properties\n ;; Default value: false\n ;; :ui/hide-empty-properties? false\n\n ;; Enable tooltip preview on hover.\n ;; Default value: true\n :ui/enable-tooltip? true\n\n ;; Display brackets [[]] around page references.\n ;; Default value: true\n ;; :ui/show-brackets? true\n\n ;; Display all lines of a block when referencing ((block)).\n ;; Default value: false\n :ui/show-full-blocks? false\n\n ;; Automatically expand block references when zooming in.\n ;; Default value: true\n :ui/auto-expand-block-refs? true\n\n ;; Disable accent marks when searching.\n ;; After changing this setting, rebuild the search index by pressing (^C ^S).\n ;; Default value: true\n :feature/enable-search-remove-accents? true\n\n ;; Enable flashcards.\n ;; Default value: true\n ;; :feature/enable-flashcards? true\n\n ;; Disable the journal's built-in 'Scheduled tasks and deadlines' query.\n ;; Default value: false\n ;; :feature/disable-scheduled-and-deadline-query? false\n\n ;; Specify the number of days displayed in the future for\n ;; the 'scheduled tasks and deadlines' query.\n ;; Example usage:\n ;; Display all scheduled and deadline blocks for the next 14 days:\n ;; :scheduled/future-days 14\n ;; Default value: 7\n ;; :scheduled/future-days 7\n\n ;; Specify the first day of the week.\n ;; Available options:\n ;;  - integer from 0 to 6 (Monday to Sunday)\n ;; Default value: 6 (Sunday)\n :start-of-week 6\n\n ;; Specify a custom CSS import.\n ;; This option takes precedence over the local `logseq/custom.css` file.\n ;; Example usage:\n ;; :custom-css-url \"@import url('https://cdn.jsdelivr.net/gh/dracula/logseq@master/custom.css');\"\n\n ;; Specify a custom JS import.\n ;; This option takes precedence over the local `logseq/custom.js` file.\n ;; Example usage:\n ;; :custom-js-url \"https://cdn.logseq.com/custom.js\"\n\n ;; Set bullet indentation when exporting\n ;; Available options:\n ;;  - `:eight-spaces` as eight spaces\n ;;  - `:four-spaces` as four spaces\n ;;  - `:two-spaces` as two spaces\n ;;  - `:tab` as a tab character (default)\n ;; :export/bullet-indentation :tab\n\n ;; Publish all pages within the Graph\n ;; Regardless of whether individual pages have been marked as public.\n ;; Default value: false\n ;; :publishing/all-pages-public? false\n\n ;; Define the default home page and sidebar status.\n ;; If unspecified, the journal page will be loaded on startup and the right sidebar will stay hidden.\n ;; The `:page` value represents the name of the page displayed at startup.\n ;; Available options for `:sidebar` are:\n ;; - \"Contents\" to display the Contents page in the right sidebar.\n ;; - A specific page name to display in the right sidebar.\n ;; - An array of multiple pages, e.g., [\"Contents\" \"Page A\" \"Page B\"].\n ;; If `:sidebar` remains unset, the right sidebar will stay hidden.\n ;; Examples:\n ;; 1. Set \"Changelog\" as the home page and display \"Contents\" in the right sidebar:\n ;; :default-home {:page \"Changelog\", :sidebar \"Contents\"}\n ;; 2. Set \"Jun 3rd, 2021\" as the home page without the right sidebar:\n ;; :default-home {:page \"Jun 3rd, 2021\"}\n ;; 3. Set \"home\" as the home page and display multiple pages in the right sidebar:\n ;; :default-home {:page \"home\", :sidebar [\"Page A\" \"Page B\"]}\n\n ;; Configure custom shortcuts.\n ;; Syntax:\n ;; 1. + indicates simultaneous key presses, e.g., `Ctrl+Shift+a`.\n ;; 2. A space between keys represents key chords, e.g., `t s` means\n ;;    pressing `t` followed by `s`.\n ;; 3. mod refers to `Ctrl` for Windows/Linux and `Command` for Mac.\n ;; 4. Use false to disable a specific shortcut.\n ;; 5. You can define multiple bindings for a single action, e.g., [\"ctrl+j\" \"down\"].\n ;; The full list of configurable shortcuts is available at:\n ;; https://github.com/logseq/logseq/blob/master/src/main/frontend/modules/shortcut/config.cljs\n ;; Example:\n ;; :shortcuts\n ;; {:editor/new-block       \"enter\"\n ;;  :editor/new-line        \"shift+enter\"\n ;;  :editor/insert-link     \"mod+shift+k\"\n ;;  :editor/highlight       false\n ;;  :ui/toggle-settings     \"t s\"\n ;;  :editor/up              [\"ctrl+k\" \"up\"]\n ;;  :editor/down            [\"ctrl+j\" \"down\"]\n ;;  :editor/left            [\"ctrl+h\" \"left\"]\n ;;  :editor/right           [\"ctrl+l\" \"right\"]}\n :shortcuts {}\n\n ;; Configure the behavior of pressing Enter in document mode.\n ;; if set to true, pressing Enter will create a new block.\n ;; Default value: false\n :shortcut/doc-mode-enter-for-new-block? false\n\n ;; Block content larger than `block/title-max-length` will not be searchable\n ;; or editable for performance.\n ;; Default value: 10000\n :block/title-max-length 10000\n\n ;; Display command documentation on hover.\n ;; Default value: true\n :ui/show-command-doc? true\n\n ;; Display empty bullet points.\n ;; Default value: false\n :ui/show-empty-bullets? false\n\n ;; Pre-defined :view function to use with advanced queries.\n :query/views\n {:pprint\n  (fn [r] [:pre.code (pprint r)])}\n\n ;; Advanced queries `:result-transform` function.\n ;; Transform the query result before displaying it.\n ;; Example usage for DB graphs:\n;;  :query/result-transforms\n;;  {:sort-by-priority\n;;   (fn [result] (sort-by (fn [h] (get h :logseq.property/priority \"Z\")) result))}\n\n;; Queries will be displayed at the bottom of today's journal page.\n;; Example usage:\n;; :default-queries\n;; {:journals []}\n\n ;; Add custom commands to the command palette\n ;; Example usage:\n ;; :commands\n ;; [\n ;;  [\"js\" \"Javascript\"]\n ;;  [\"md\" \"Markdown\"]\n ;;  ]\n :commands []\n\n ;; Enable collapsing blocks with titles but no children.\n ;; By default, only blocks with children can be collapsed.\n ;; Setting `:outliner/block-title-collapse-enabled?` to true allows collapsing\n ;; blocks with titles (multiple lines) and content. For example:\n ;; - block title\n ;;   block content\n ;; Default value: false\n :outliner/block-title-collapse-enabled? false\n\n ;; Macros replace texts and will make you more productive.\n ;; Example usage:\n ;; Change the :macros value below to:\n ;; {\"poem\" \"Rose is $1, violet's $2. Life's ordered: Org assists you.\"}\n ;; input \"{{poem red,blue}}\"\n ;; becomes\n ;; Rose is red, violet's blue. Life's ordered: Org assists you.\n :macros {}\n\n ;; Configure the default expansion level for linked references.\n ;; For example, consider the following block hierarchy:\n ;; - a [[page]] (level 1)\n ;;   - b        (level 2)\n ;;     - c      (level 3)\n ;;       - d    (level 4)\n ;;\n ;; With the default value of level 2, block b will be collapsed.\n ;; If the level's value is set to 3, block c will be collapsed.\n ;; Default value: 2\n :ref/default-open-blocks-level 2\n\n ;; Mobile photo upload configuration.\n ;; :mobile/photo\n ;; {:allow-editing? true\n ;;  :quality        80}\n\n ;; Mobile features options\n ;; Gestures\n ;; Example usage:\n ;; :mobile\n ;; {:gestures/disabled-in-block-with-tags [\"kanban\"]}\n\n ;; Extra CodeMirror options\n ;; See https://codemirror.net/5/doc/manual.html#config for possible options\n ;; Example usage:\n ;; :editor/extra-codemirror-options\n ;; {:lineWrapping  false  ; Default value: false\n ;;  :lineNumbers   true   ; Default value: true\n ;;  :readOnly      false} ; Default value: false\n\n ;; Enable logical outdenting\n ;; Default value: false\n ;; :editor/logical-outdenting? false\n\n ;; Prefer pasting the file when text and a file are in the clipboard.\n ;; Default value: false\n ;; :editor/preferred-pasting-file? false\n\n ;; Quick capture templates for receiving content from other apps.\n ;; Each template contains three elements {time}, {text} and {url}, which can be auto-expanded\n ;; by receiving content from other apps. Note: the {} cannot be omitted.\n ;; - {time}: capture time\n ;; - {date}: capture date using current date format, use `[[{date}]]` to get a page reference\n ;; - {text}: text that users selected before sharing.\n ;; - {url}: URL or assets path for media files stored in Logseq.\n ;; You can also reorder them or use only one or two of them in the template.\n ;; You can also insert or format any text in the template, as shown in the following examples.\n ;; :quick-capture-templates\n ;; {:text \"[[quick capture]] **{time}**: {text} from {url}\"\n ;;  :media \"[[quick capture]] **{time}**: {url}\"}\n\n ;; Quick capture options.\n ;; - insert-today?   Insert the capture at the end of today's journal page (boolean).\n ;; - redirect-page?  Redirect to the quick capture page after capturing (boolean).\n ;; - default-page    The default page to capture to if insert-today? is false (string).\n ;; - prettify-url?   Whether urls to YouTube or X should be wrapped with {{video ...}} or {{twitter ...}}\n ;; :quick-capture-options\n ;; {:insert-today? false           ;; Default value: true\n ;;  :redirect-page? false          ;; Default value: false\n ;;  :default-page \"quick capture\"  ;; Default page: \"quick capture\"\n ;;  :prettify-url? true}           ;; Default value: true\n\n }\n\n;; ISSUE12-CI37203268496-logseq/config.edn\n",
+    "logseq/custom.css": "\n/* ISSUE12-CI37203268496-logseq/custom.css */\n",
+    "logseq/custom.js": "\n// ISSUE12-CI37203268496-logseq/custom.js\n",
+    "logseq/publish.css": "\n/* ISSUE12-CI37203268496-logseq/publish.css */\n",
+    "logseq/publish.js": "\n// ISSUE12-CI37203268496-logseq/publish.js\n"
+  },
+  "before_counts": [
+    [
+      "logseq/config.edn",
+      1
+    ],
+    [
+      "logseq/custom.css",
+      1
+    ],
+    [
+      "logseq/custom.js",
+      1
+    ],
+    [
+      "logseq/publish.css",
+      1
+    ],
+    [
+      "logseq/publish.js",
+      1
+    ]
+  ],
+  "before_nodes": [
+    [
+      1,
+      "00000002-2737-8382-7000-000000000000",
+      "Root Tag"
+    ],
+    [
+      100,
+      "00000002-1984-2972-8100-000000000000",
+      "Repeating type"
+    ],
+    [
+      101,
+      "00000002-1406-5331-0600-000000000000",
+      "Advance from completion"
+    ],
+    [
+      102,
+      "00000002-1646-4063-5900-000000000000",
+      "Advance from scheduled"
+    ],
+    [
+      103,
+      "00000002-7441-9615-3000-000000000000",
+      "Advance from scheduled, skip to future"
+    ],
+    [
+      104,
+      "00000002-8346-1078-4000-000000000000",
+      "Repeating Temporal Property"
+    ],
+    [
+      105,
+      "00000002-1866-3655-5300-000000000000",
+      "Repeating Checked Property"
+    ],
+    [
+      106,
+      "00000002-2190-1503-4000-000000000000",
+      "Assignee"
+    ],
+    [
+      107,
+      "00000002-5891-2328-5000-000000000000",
+      "Icon"
+    ],
+    [
+      108,
+      "00000002-1094-6579-3900-000000000000",
+      "Publishing Public?"
+    ],
+    [
+      109,
+      "00000002-2045-1825-0100-000000000000",
+      "Published URL"
+    ],
+    [
+      110,
+      "00000002-4524-3306-5000-000000000000",
+      "Excluded from Graph view?"
+    ],
+    [
+      111,
+      "00000002-2182-3760-7000-000000000000",
+      "View Type"
+    ],
+    [
+      112,
+      "00000002-1942-5424-0000-000000000000",
+      "Table View"
+    ],
+    [
+      113,
+      "00000002-1164-8285-0200-000000000000",
+      "List View"
+    ],
+    [
+      114,
+      "00000002-1506-0511-2000-000000000000",
+      "Gallery View"
+    ],
+    [
+      115,
+      "00000002-9391-4187-1000-000000000000",
+      "View Feature Type"
+    ],
+    [
+      116,
+      "00000002-8092-1623-6000-000000000000",
+      "View group by property"
+    ],
+    [
+      117,
+      "00000002-1668-3468-9000-000000000000",
+      "Gallery asset property"
+    ],
+    [
+      118,
+      "00000002-1806-7066-8800-000000000000",
+      "Gallery display properties"
+    ],
+    [
+      119,
+      "00000002-2012-8168-3300-000000000000",
+      "Gallery card size"
+    ],
+    [
+      12,
+      "00000002-8384-2404-0000-000000000000",
+      "Property type"
+    ],
+    [
+      120,
+      "00000002-1403-2963-9500-000000000000",
+      "Gallery card width"
+    ],
+    [
+      121,
+      "00000002-4342-2083-2000-000000000000",
+      "Gallery card height"
+    ],
+    [
+      122,
+      "00000002-6253-4002-1000-000000000000",
+      "View sort groups by"
+    ],
+    [
+      123,
+      "00000002-1081-4073-8700-000000000000",
+      "View sort groups DESC"
+    ],
+    [
+      124,
+      "00000002-2081-0259-4000-000000000000",
+      "View sorting"
+    ],
+    [
+      125,
+      "00000002-1702-3936-3300-000000000000",
+      "View filters"
+    ],
+    [
+      126,
+      "00000002-9750-5719-2000-000000000000",
+      "View hidden columns"
+    ],
+    [
+      127,
+      "00000002-1485-5871-0000-000000000000",
+      "View ordered columns"
+    ],
+    [
+      128,
+      "00000002-1675-5105-5500-000000000000",
+      "View columns settings"
+    ],
+    [
+      129,
+      "00000002-2673-7513-8000-000000000000",
+      "Table view pinned columns"
+    ],
+    [
+      13,
+      "00000002-1125-9581-6000-000000000000",
+      "Built in?"
+    ],
+    [
+      130,
+      "00000002-3627-4319-0000-000000000000",
+      "This view belongs to"
+    ],
+    [
+      131,
+      "00000002-1142-0830-9800-000000000000",
+      "File Type"
+    ],
+    [
+      132,
+      "00000002-1364-7751-6300-000000000000",
+      "External URL"
+    ],
+    [
+      133,
+      "00000002-3995-2972-0000-000000000000",
+      "External file name"
+    ],
+    [
+      134,
+      "00000002-1167-8621-9000-000000000000",
+      "File Size"
+    ],
+    [
+      135,
+      "00000002-1857-8658-3900-000000000000",
+      "Image width"
+    ],
+    [
+      136,
+      "00000002-3306-1650-4000-000000000000",
+      "Image height"
+    ],
+    [
+      137,
+      "00000002-1011-4169-7900-000000000000",
+      "File checksum"
+    ],
+    [
+      138,
+      "00000002-2107-8035-3500-000000000000",
+      "Last visit page"
+    ],
+    [
+      139,
+      "00000002-9907-5046-9000-000000000000",
+      "File remote metadata"
+    ],
+    [
+      14,
+      "00000002-6836-5746-0000-000000000000",
+      "Hide this property or page"
+    ],
+    [
+      140,
+      "00000004-5450-2102-9000-000000000000",
+      "Metadata of asset in remote storage"
+    ],
+    [
+      141,
+      "00000002-1297-5230-5500-000000000000",
+      "Asset resize metadata"
+    ],
+    [
+      142,
+      "00000002-7135-0412-8000-000000000000",
+      "Asset alignment"
+    ],
+    [
+      143,
+      "00000002-1089-0805-4900-000000000000",
+      "Due"
+    ],
+    [
+      144,
+      "00000002-1165-1650-8700-000000000000",
+      "State"
+    ],
+    [
+      145,
+      "00000002-1360-0260-1600-000000000000",
+      "User Name"
+    ],
+    [
+      146,
+      "00000002-1655-2060-6300-000000000000",
+      "User Email"
+    ],
+    [
+      147,
+      "00000002-4165-4885-8000-000000000000",
+      "User Avatar"
+    ],
+    [
+      148,
+      "00000002-8058-5960-2000-000000000000",
+      "Enable property history"
+    ],
+    [
+      149,
+      "00000004-1438-1481-0000-000000000000",
+      "Records history anytime a property's value changes on a node."
+    ],
+    [
+      15,
+      "00000002-8618-9226-7000-000000000000",
+      "Created from property"
+    ],
+    [
+      150,
+      "00000002-1142-5541-6000-000000000000",
+      "History block"
+    ],
+    [
+      151,
+      "00000002-1600-4090-8200-000000000000",
+      "History property"
+    ],
+    [
+      152,
+      "00000002-5131-3603-7000-000000000000",
+      "History value"
+    ],
+    [
+      153,
+      "00000002-2393-3777-5000-000000000000",
+      "History scalar value"
+    ],
+    [
+      154,
+      "00000002-8544-3390-8000-000000000000",
+      "Node created by"
+    ],
+    [
+      155,
+      "00000002-6852-1375-1000-000000000000",
+      "Deleted at"
+    ],
+    [
+      156,
+      "00000002-1998-0431-1200-000000000000",
+      "Deleted by"
+    ],
+    [
+      157,
+      "00000002-4970-0399-4000-000000000000",
+      "Recycle original parent"
+    ],
+    [
+      158,
+      "00000002-1658-7897-9900-000000000000",
+      "Recycle original page"
+    ],
+    [
+      159,
+      "00000002-8699-2537-0000-000000000000",
+      "Recycle original order"
+    ],
+    [
+      16,
+      "00000002-1843-0851-4900-000000000000",
+      "Property public?"
+    ],
+    [
+      160,
+      "00000002-9877-5864-5000-000000000000",
+      "Reaction emoji"
+    ],
+    [
+      161,
+      "00000002-1127-5718-5000-000000000000",
+      "Reaction target"
+    ],
+    [
+      162,
+      "00000002-1783-0312-6200-000000000000",
+      "Agent Session ID"
+    ],
+    [
+      163,
+      "00000004-1209-4784-1500-000000000000",
+      "Stores the AgentBridge session ID for a routed task."
+    ],
+    [
+      164,
+      "00000002-9803-6990-6000-000000000000",
+      "Used template"
+    ],
+    [
+      165,
+      "00000002-4291-2432-2000-000000000000",
+      "Apply template to tags"
+    ],
+    [
+      166,
+      "00000002-1044-8271-6500-000000000000",
+      "Reference to large block title stored in remote object storage"
+    ],
+    [
+      167,
+      "00000002-1979-7410-8100-000000000000",
+      "Journal"
+    ],
+    [
+      168,
+      "00000002-1013-6984-5200-000000000000",
+      "Whiteboard"
+    ],
+    [
+      169,
+      "00000002-1282-1814-5700-000000000000",
+      "Task"
+    ],
+    [
+      17,
+      "00000002-1547-3958-2800-000000000000",
+      "Property view context"
+    ],
+    [
+      170,
+      "00000002-2556-9161-5000-000000000000",
+      "Comments"
+    ],
+    [
+      171,
+      "00000002-1323-0695-4000-000000000000",
+      "Comment"
+    ],
+    [
+      172,
+      "00000002-2324-8016-6000-000000000000",
+      "Query"
+    ],
+    [
+      173,
+      "00000002-1358-2811-0900-000000000000",
+      "Card"
+    ],
+    [
+      174,
+      "00000002-1284-2651-6700-000000000000",
+      "Cards"
+    ],
+    [
+      175,
+      "00000002-7975-0297-0000-000000000000",
+      "Asset"
+    ],
+    [
+      176,
+      "00000002-1454-9866-4100-000000000000",
+      "Code"
+    ],
+    [
+      177,
+      "00000002-1176-1666-1700-000000000000",
+      "Quote"
+    ],
+    [
+      178,
+      "00000002-2038-9631-2100-000000000000",
+      "Math"
+    ],
+    [
+      179,
+      "00000002-5049-5962-0000-000000000000",
+      "PDF Annotation"
+    ],
+    [
+      18,
+      "00000002-1869-2008-6400-000000000000",
+      "Property position"
+    ],
+    [
+      185,
+      "00000004-1294-7765-6000-000000000000",
+      "Library"
+    ],
+    [
+      186,
+      "00000004-1690-2597-3200-000000000000",
+      "Contents"
+    ],
+    [
+      187,
+      "00000004-7336-8251-3000-000000000000",
+      "Quick add"
+    ],
+    [
+      188,
+      "00000004-1906-3437-5800-000000000000",
+      "$$$views"
+    ],
+    [
+      189,
+      "00000004-1018-5888-4100-000000000000",
+      "$$$favorites"
+    ],
+    [
+      19,
+      "00000002-9137-5048-6000-000000000000",
+      "Property classes"
+    ],
+    [
+      190,
+      "00000004-7238-1304-3000-000000000000",
+      "Recycle"
+    ],
+    [
+      2,
+      "00000002-5389-0208-3000-000000000000",
+      "Tag"
+    ],
+    [
+      20,
+      "00000002-1396-5248-6500-000000000000",
+      "Property value"
+    ],
+    [
+      21,
+      "00000002-2112-6446-9900-000000000000",
+      "Alias"
+    ],
+    [
+      22,
+      "00000002-1814-9483-4000-000000000000",
+      "Tags"
+    ],
+    [
+      23,
+      "00000002-9183-0906-4000-000000000000",
+      "Node parent"
+    ],
+    [
+      24,
+      "00000002-1429-2824-3700-000000000000",
+      "Node order"
+    ],
+    [
+      25,
+      "00000002-2140-2109-9100-000000000000",
+      "Node collapsed?"
+    ],
+    [
+      26,
+      "00000002-8223-1410-8000-000000000000",
+      "Node page"
+    ],
+    [
+      27,
+      "00000002-1214-4953-4900-000000000000",
+      "Node references"
+    ],
+    [
+      28,
+      "00000002-1872-3999-9300-000000000000",
+      "Node links to"
+    ],
+    [
+      29,
+      "00000002-7104-4568-4000-000000000000",
+      "Node title"
+    ],
+    [
+      3,
+      "00000002-1038-7670-4800-000000000000",
+      "Property"
+    ],
+    [
+      30,
+      "00000002-1157-7928-1300-000000000000",
+      "Closed value property"
+    ],
+    [
+      31,
+      "00000002-1457-4836-6000-000000000000",
+      "Journal date"
+    ],
+    [
+      32,
+      "00000002-1440-0150-0000-000000000000",
+      "Node created at"
+    ],
+    [
+      33,
+      "00000002-1516-5505-5100-000000000000",
+      "Node updated at"
+    ],
+    [
+      34,
+      "00000002-4424-4618-9000-000000000000",
+      "Node Display Type"
+    ],
+    [
+      35,
+      "00000002-3362-3620-0000-000000000000",
+      "Description"
+    ],
+    [
+      36,
+      "00000002-8578-9716-5000-000000000000",
+      "Code Mode"
+    ],
+    [
+      37,
+      "00000002-8920-7966-2000-000000000000",
+      "Default value"
+    ],
+    [
+      38,
+      "00000002-1595-7230-1400-000000000000",
+      "Non ref type default value"
+    ],
+    [
+      39,
+      "00000002-7475-9380-3000-000000000000",
+      "Extends"
+    ],
+    [
+      4,
+      "00000002-1484-3403-2900-000000000000",
+      "Page"
+    ],
+    [
+      40,
+      "00000004-4485-6574-6000-000000000000",
+      "This enables tags to inherit properties from other tags"
+    ],
+    [
+      41,
+      "00000002-2123-7120-5000-000000000000",
+      "Tag Properties"
+    ],
+    [
+      42,
+      "00000002-6050-5418-7000-000000000000",
+      "Bidirectional property title"
+    ],
+    [
+      43,
+      "00000002-2917-8613-8000-000000000000",
+      "Enable bidirectional properties"
+    ],
+    [
+      44,
+      "00000004-1830-0481-2500-000000000000",
+      "When enabled, this tag will show reverse nodes that link to the current node via properties."
+    ],
+    [
+      45,
+      "00000002-2062-3258-9900-000000000000",
+      "Hide empty value"
+    ],
+    [
+      46,
+      "00000004-1118-8585-8000-000000000000",
+      "Hides a property's value on any node when empty e.g. when a property appears on a node through a tag."
+    ],
+    [
+      47,
+      "00000002-2610-3727-0000-000000000000",
+      "Hide from Node"
+    ],
+    [
+      48,
+      "00000002-9741-4126-0000-000000000000",
+      "Query"
+    ],
+    [
+      49,
+      "00000002-2133-5311-8500-000000000000",
+      "Page Tags"
+    ],
+    [
+      5,
+      "00000002-1720-8548-4600-000000000000",
+      "Template"
+    ],
+    [
+      50,
+      "00000004-1223-8671-8000-000000000000",
+      "Provides a way for a page to associate to another page i.e. backward compatible tagging."
+    ],
+    [
+      51,
+      "00000002-5191-2660-6000-000000000000",
+      "Background color"
+    ],
+    [
+      52,
+      "00000002-1858-7494-1500-000000000000",
+      "Heading"
+    ],
+    [
+      53,
+      "00000002-8768-5679-0000-000000000000",
+      "Asset"
+    ],
+    [
+      54,
+      "00000002-3269-7934-5000-000000000000",
+      "ls-type"
+    ],
+    [
+      55,
+      "00000002-9984-3783-2000-000000000000",
+      "Annotation type"
+    ],
+    [
+      56,
+      "00000002-6747-9388-7000-000000000000",
+      "Annotation color"
+    ],
+    [
+      57,
+      "00000002-1752-1030-0200-000000000000",
+      "yellow"
+    ],
+    [
+      58,
+      "00000002-4136-2216-2000-000000000000",
+      "red"
+    ],
+    [
+      59,
+      "00000002-1992-2016-2600-000000000000",
+      "green"
+    ],
+    [
+      60,
+      "00000002-1836-0512-4100-000000000000",
+      "blue"
+    ],
+    [
+      61,
+      "00000002-1104-3848-5600-000000000000",
+      "purple"
+    ],
+    [
+      62,
+      "00000002-7532-8459-6000-000000000000",
+      "Annotation page"
+    ],
+    [
+      63,
+      "00000002-1377-6700-9000-000000000000",
+      "Annotation image"
+    ],
+    [
+      64,
+      "00000002-5458-2940-2000-000000000000",
+      "Annotation data"
+    ],
+    [
+      65,
+      "00000002-6078-1711-1000-000000000000",
+      "List type"
+    ],
+    [
+      66,
+      "00000002-1680-5777-0300-000000000000",
+      "Included references"
+    ],
+    [
+      67,
+      "00000002-2426-7588-9000-000000000000",
+      "Excluded references"
+    ],
+    [
+      68,
+      "00000002-2143-9561-0900-000000000000",
+      "Commented blocks"
+    ],
+    [
+      69,
+      "00000002-1536-4979-5400-000000000000",
+      "Title Format"
+    ],
+    [
+      70,
+      "00000002-1272-4228-6300-000000000000",
+      "Choice checkbox state"
+    ],
+    [
+      71,
+      "00000002-7629-6621-9000-000000000000",
+      "Choice classes"
+    ],
+    [
+      72,
+      "00000002-1233-5229-4600-000000000000",
+      "Choice exclusions"
+    ],
+    [
+      73,
+      "00000002-3215-3256-9000-000000000000",
+      "Properties displayed as checkbox"
+    ],
+    [
+      74,
+      "00000002-9072-1685-3000-000000000000",
+      "Status"
+    ],
+    [
+      75,
+      "00000002-7233-3491-0000-000000000000",
+      "Backlog"
+    ],
+    [
+      76,
+      "00000002-1615-5853-7700-000000000000",
+      "Todo"
+    ],
+    [
+      77,
+      "00000002-1840-1229-0800-000000000000",
+      "Doing"
+    ],
+    [
+      78,
+      "00000002-1870-0014-4300-000000000000",
+      "In Review"
+    ],
+    [
+      79,
+      "00000002-1827-5820-8200-000000000000",
+      "Done"
+    ],
+    [
+      80,
+      "00000002-7526-4326-2000-000000000000",
+      "Canceled"
+    ],
+    [
+      81,
+      "00000002-2392-2841-1000-000000000000",
+      "Priority"
+    ],
+    [
+      82,
+      "00000002-2107-4537-4800-000000000000",
+      "Low"
+    ],
+    [
+      83,
+      "00000002-1829-3222-7800-000000000000",
+      "Medium"
+    ],
+    [
+      84,
+      "00000002-5672-2766-8000-000000000000",
+      "High"
+    ],
+    [
+      85,
+      "00000002-1996-4346-6700-000000000000",
+      "Urgent"
+    ],
+    [
+      86,
+      "00000002-1685-9016-0400-000000000000",
+      "Deadline"
+    ],
+    [
+      87,
+      "00000004-1356-3664-2200-000000000000",
+      "Use it to finish something at a specific date(time)."
+    ],
+    [
+      88,
+      "00000002-1644-5209-4300-000000000000",
+      "Scheduled"
+    ],
+    [
+      89,
+      "00000004-9817-6380-0000-000000000000",
+      "Use it to plan something to start at a specific date(time)."
+    ],
+    [
+      90,
+      "00000002-8716-1592-2000-000000000000",
+      "Repeating recur frequency"
+    ],
+    [
+      92,
+      "00000002-6903-0624-7000-000000000000",
+      "Repeating recur unit"
+    ],
+    [
+      93,
+      "00000002-1513-6550-8500-000000000000",
+      "Minute"
+    ],
+    [
+      94,
+      "00000002-1438-8849-5400-000000000000",
+      "Hour"
+    ],
+    [
+      95,
+      "00000002-3924-1785-8000-000000000000",
+      "Day"
+    ],
+    [
+      96,
+      "00000002-2130-9244-4900-000000000000",
+      "Week"
+    ],
+    [
+      97,
+      "00000002-2073-3937-9700-000000000000",
+      "Month"
+    ],
+    [
+      98,
+      "00000002-1520-4385-2400-000000000000",
+      "Year"
+    ],
+    [
+      99,
+      "00000002-1908-1217-8900-000000000000",
+      "Node Repeats?"
+    ]
+  ],
+  "target_before_sha256": "831370c39f3fe22058815a1878b2b4e8069b1edeebe4a6007a84b9db9e40c612",
+  "after_removal": {
+    "logseq/config.edn": "{:meta/version 1\n\n ;; Hide empty block properties\n ;; Default value: false\n ;; :ui/hide-empty-properties? false\n\n ;; Enable tooltip preview on hover.\n ;; Default value: true\n :ui/enable-tooltip? true\n\n ;; Display brackets [[]] around page references.\n ;; Default value: true\n ;; :ui/show-brackets? true\n\n ;; Display all lines of a block when referencing ((block)).\n ;; Default value: false\n :ui/show-full-blocks? false\n\n ;; Automatically expand block references when zooming in.\n ;; Default value: true\n :ui/auto-expand-block-refs? true\n\n ;; Disable accent marks when searching.\n ;; After changing this setting, rebuild the search index by pressing (^C ^S).\n ;; Default value: true\n :feature/enable-search-remove-accents? true\n\n ;; Enable flashcards.\n ;; Default value: true\n ;; :feature/enable-flashcards? true\n\n ;; Disable the journal's built-in 'Scheduled tasks and deadlines' query.\n ;; Default value: false\n ;; :feature/disable-scheduled-and-deadline-query? false\n\n ;; Specify the number of days displayed in the future for\n ;; the 'scheduled tasks and deadlines' query.\n ;; Example usage:\n ;; Display all scheduled and deadline blocks for the next 14 days:\n ;; :scheduled/future-days 14\n ;; Default value: 7\n ;; :scheduled/future-days 7\n\n ;; Specify the first day of the week.\n ;; Available options:\n ;;  - integer from 0 to 6 (Monday to Sunday)\n ;; Default value: 6 (Sunday)\n :start-of-week 6\n\n ;; Specify a custom CSS import.\n ;; This option takes precedence over the local `logseq/custom.css` file.\n ;; Example usage:\n ;; :custom-css-url \"@import url('https://cdn.jsdelivr.net/gh/dracula/logseq@master/custom.css');\"\n\n ;; Specify a custom JS import.\n ;; This option takes precedence over the local `logseq/custom.js` file.\n ;; Example usage:\n ;; :custom-js-url \"https://cdn.logseq.com/custom.js\"\n\n ;; Set bullet indentation when exporting\n ;; Available options:\n ;;  - `:eight-spaces` as eight spaces\n ;;  - `:four-spaces` as four spaces\n ;;  - `:two-spaces` as two spaces\n ;;  - `:tab` as a tab character (default)\n ;; :export/bullet-indentation :tab\n\n ;; Publish all pages within the Graph\n ;; Regardless of whether individual pages have been marked as public.\n ;; Default value: false\n ;; :publishing/all-pages-public? false\n\n ;; Define the default home page and sidebar status.\n ;; If unspecified, the journal page will be loaded on startup and the right sidebar will stay hidden.\n ;; The `:page` value represents the name of the page displayed at startup.\n ;; Available options for `:sidebar` are:\n ;; - \"Contents\" to display the Contents page in the right sidebar.\n ;; - A specific page name to display in the right sidebar.\n ;; - An array of multiple pages, e.g., [\"Contents\" \"Page A\" \"Page B\"].\n ;; If `:sidebar` remains unset, the right sidebar will stay hidden.\n ;; Examples:\n ;; 1. Set \"Changelog\" as the home page and display \"Contents\" in the right sidebar:\n ;; :default-home {:page \"Changelog\", :sidebar \"Contents\"}\n ;; 2. Set \"Jun 3rd, 2021\" as the home page without the right sidebar:\n ;; :default-home {:page \"Jun 3rd, 2021\"}\n ;; 3. Set \"home\" as the home page and display multiple pages in the right sidebar:\n ;; :default-home {:page \"home\", :sidebar [\"Page A\" \"Page B\"]}\n\n ;; Configure custom shortcuts.\n ;; Syntax:\n ;; 1. + indicates simultaneous key presses, e.g., `Ctrl+Shift+a`.\n ;; 2. A space between keys represents key chords, e.g., `t s` means\n ;;    pressing `t` followed by `s`.\n ;; 3. mod refers to `Ctrl` for Windows/Linux and `Command` for Mac.\n ;; 4. Use false to disable a specific shortcut.\n ;; 5. You can define multiple bindings for a single action, e.g., [\"ctrl+j\" \"down\"].\n ;; The full list of configurable shortcuts is available at:\n ;; https://github.com/logseq/logseq/blob/master/src/main/frontend/modules/shortcut/config.cljs\n ;; Example:\n ;; :shortcuts\n ;; {:editor/new-block       \"enter\"\n ;;  :editor/new-line        \"shift+enter\"\n ;;  :editor/insert-link     \"mod+shift+k\"\n ;;  :editor/highlight       false\n ;;  :ui/toggle-settings     \"t s\"\n ;;  :editor/up              [\"ctrl+k\" \"up\"]\n ;;  :editor/down            [\"ctrl+j\" \"down\"]\n ;;  :editor/left            [\"ctrl+h\" \"left\"]\n ;;  :editor/right           [\"ctrl+l\" \"right\"]}\n :shortcuts {}\n\n ;; Configure the behavior of pressing Enter in document mode.\n ;; if set to true, pressing Enter will create a new block.\n ;; Default value: false\n :shortcut/doc-mode-enter-for-new-block? false\n\n ;; Block content larger than `block/title-max-length` will not be searchable\n ;; or editable for performance.\n ;; Default value: 10000\n :block/title-max-length 10000\n\n ;; Display command documentation on hover.\n ;; Default value: true\n :ui/show-command-doc? true\n\n ;; Display empty bullet points.\n ;; Default value: false\n :ui/show-empty-bullets? false\n\n ;; Pre-defined :view function to use with advanced queries.\n :query/views\n {:pprint\n  (fn [r] [:pre.code (pprint r)])}\n\n ;; Advanced queries `:result-transform` function.\n ;; Transform the query result before displaying it.\n ;; Example usage for DB graphs:\n;;  :query/result-transforms\n;;  {:sort-by-priority\n;;   (fn [result] (sort-by (fn [h] (get h :logseq.property/priority \"Z\")) result))}\n\n;; Queries will be displayed at the bottom of today's journal page.\n;; Example usage:\n;; :default-queries\n;; {:journals []}\n\n ;; Add custom commands to the command palette\n ;; Example usage:\n ;; :commands\n ;; [\n ;;  [\"js\" \"Javascript\"]\n ;;  [\"md\" \"Markdown\"]\n ;;  ]\n :commands []\n\n ;; Enable collapsing blocks with titles but no children.\n ;; By default, only blocks with children can be collapsed.\n ;; Setting `:outliner/block-title-collapse-enabled?` to true allows collapsing\n ;; blocks with titles (multiple lines) and content. For example:\n ;; - block title\n ;;   block content\n ;; Default value: false\n :outliner/block-title-collapse-enabled? false\n\n ;; Macros replace texts and will make you more productive.\n ;; Example usage:\n ;; Change the :macros value below to:\n ;; {\"poem\" \"Rose is $1, violet's $2. Life's ordered: Org assists you.\"}\n ;; input \"{{poem red,blue}}\"\n ;; becomes\n ;; Rose is red, violet's blue. Life's ordered: Org assists you.\n :macros {}\n\n ;; Configure the default expansion level for linked references.\n ;; For example, consider the following block hierarchy:\n ;; - a [[page]] (level 1)\n ;;   - b        (level 2)\n ;;     - c      (level 3)\n ;;       - d    (level 4)\n ;;\n ;; With the default value of level 2, block b will be collapsed.\n ;; If the level's value is set to 3, block c will be collapsed.\n ;; Default value: 2\n :ref/default-open-blocks-level 2\n\n ;; Mobile photo upload configuration.\n ;; :mobile/photo\n ;; {:allow-editing? true\n ;;  :quality        80}\n\n ;; Mobile features options\n ;; Gestures\n ;; Example usage:\n ;; :mobile\n ;; {:gestures/disabled-in-block-with-tags [\"kanban\"]}\n\n ;; Extra CodeMirror options\n ;; See https://codemirror.net/5/doc/manual.html#config for possible options\n ;; Example usage:\n ;; :editor/extra-codemirror-options\n ;; {:lineWrapping  false  ; Default value: false\n ;;  :lineNumbers   true   ; Default value: true\n ;;  :readOnly      false} ; Default value: false\n\n ;; Enable logical outdenting\n ;; Default value: false\n ;; :editor/logical-outdenting? false\n\n ;; Prefer pasting the file when text and a file are in the clipboard.\n ;; Default value: false\n ;; :editor/preferred-pasting-file? false\n\n ;; Quick capture templates for receiving content from other apps.\n ;; Each template contains three elements {time}, {text} and {url}, which can be auto-expanded\n ;; by receiving content from other apps. Note: the {} cannot be omitted.\n ;; - {time}: capture time\n ;; - {date}: capture date using current date format, use `[[{date}]]` to get a page reference\n ;; - {text}: text that users selected before sharing.\n ;; - {url}: URL or assets path for media files stored in Logseq.\n ;; You can also reorder them or use only one or two of them in the template.\n ;; You can also insert or format any text in the template, as shown in the following examples.\n ;; :quick-capture-templates\n ;; {:text \"[[quick capture]] **{time}**: {text} from {url}\"\n ;;  :media \"[[quick capture]] **{time}**: {url}\"}\n\n ;; Quick capture options.\n ;; - insert-today?   Insert the capture at the end of today's journal page (boolean).\n ;; - redirect-page?  Redirect to the quick capture page after capturing (boolean).\n ;; - default-page    The default page to capture to if insert-today? is false (string).\n ;; - prettify-url?   Whether urls to YouTube or X should be wrapped with {{video ...}} or {{twitter ...}}\n ;; :quick-capture-options\n ;; {:insert-today? false           ;; Default value: true\n ;;  :redirect-page? false          ;; Default value: false\n ;;  :default-page \"quick capture\"  ;; Default page: \"quick capture\"\n ;;  :prettify-url? true}           ;; Default value: true\n\n }\n\n;; ISSUE12-CI37203268496-logseq/config.edn\n",
+    "logseq/custom.css": null,
+    "logseq/custom.js": "\n// ISSUE12-CI37203268496-logseq/custom.js\n",
+    "logseq/publish.css": "\n/* ISSUE12-CI37203268496-logseq/publish.css */\n",
+    "logseq/publish.js": "\n// ISSUE12-CI37203268496-logseq/publish.js\n"
+  },
+  "after_removal_counts": [
+    [
+      "logseq/config.edn",
+      1
+    ],
+    [
+      "logseq/custom.js",
+      1
+    ],
+    [
+      "logseq/publish.css",
+      1
+    ],
+    [
+      "logseq/publish.js",
+      1
+    ]
+  ],
+  "after_reopen": {
+    "logseq/config.edn": "{:meta/version 1\n\n ;; Hide empty block properties\n ;; Default value: false\n ;; :ui/hide-empty-properties? false\n\n ;; Enable tooltip preview on hover.\n ;; Default value: true\n :ui/enable-tooltip? true\n\n ;; Display brackets [[]] around page references.\n ;; Default value: true\n ;; :ui/show-brackets? true\n\n ;; Display all lines of a block when referencing ((block)).\n ;; Default value: false\n :ui/show-full-blocks? false\n\n ;; Automatically expand block references when zooming in.\n ;; Default value: true\n :ui/auto-expand-block-refs? true\n\n ;; Disable accent marks when searching.\n ;; After changing this setting, rebuild the search index by pressing (^C ^S).\n ;; Default value: true\n :feature/enable-search-remove-accents? true\n\n ;; Enable flashcards.\n ;; Default value: true\n ;; :feature/enable-flashcards? true\n\n ;; Disable the journal's built-in 'Scheduled tasks and deadlines' query.\n ;; Default value: false\n ;; :feature/disable-scheduled-and-deadline-query? false\n\n ;; Specify the number of days displayed in the future for\n ;; the 'scheduled tasks and deadlines' query.\n ;; Example usage:\n ;; Display all scheduled and deadline blocks for the next 14 days:\n ;; :scheduled/future-days 14\n ;; Default value: 7\n ;; :scheduled/future-days 7\n\n ;; Specify the first day of the week.\n ;; Available options:\n ;;  - integer from 0 to 6 (Monday to Sunday)\n ;; Default value: 6 (Sunday)\n :start-of-week 6\n\n ;; Specify a custom CSS import.\n ;; This option takes precedence over the local `logseq/custom.css` file.\n ;; Example usage:\n ;; :custom-css-url \"@import url('https://cdn.jsdelivr.net/gh/dracula/logseq@master/custom.css');\"\n\n ;; Specify a custom JS import.\n ;; This option takes precedence over the local `logseq/custom.js` file.\n ;; Example usage:\n ;; :custom-js-url \"https://cdn.logseq.com/custom.js\"\n\n ;; Set bullet indentation when exporting\n ;; Available options:\n ;;  - `:eight-spaces` as eight spaces\n ;;  - `:four-spaces` as four spaces\n ;;  - `:two-spaces` as two spaces\n ;;  - `:tab` as a tab character (default)\n ;; :export/bullet-indentation :tab\n\n ;; Publish all pages within the Graph\n ;; Regardless of whether individual pages have been marked as public.\n ;; Default value: false\n ;; :publishing/all-pages-public? false\n\n ;; Define the default home page and sidebar status.\n ;; If unspecified, the journal page will be loaded on startup and the right sidebar will stay hidden.\n ;; The `:page` value represents the name of the page displayed at startup.\n ;; Available options for `:sidebar` are:\n ;; - \"Contents\" to display the Contents page in the right sidebar.\n ;; - A specific page name to display in the right sidebar.\n ;; - An array of multiple pages, e.g., [\"Contents\" \"Page A\" \"Page B\"].\n ;; If `:sidebar` remains unset, the right sidebar will stay hidden.\n ;; Examples:\n ;; 1. Set \"Changelog\" as the home page and display \"Contents\" in the right sidebar:\n ;; :default-home {:page \"Changelog\", :sidebar \"Contents\"}\n ;; 2. Set \"Jun 3rd, 2021\" as the home page without the right sidebar:\n ;; :default-home {:page \"Jun 3rd, 2021\"}\n ;; 3. Set \"home\" as the home page and display multiple pages in the right sidebar:\n ;; :default-home {:page \"home\", :sidebar [\"Page A\" \"Page B\"]}\n\n ;; Configure custom shortcuts.\n ;; Syntax:\n ;; 1. + indicates simultaneous key presses, e.g., `Ctrl+Shift+a`.\n ;; 2. A space between keys represents key chords, e.g., `t s` means\n ;;    pressing `t` followed by `s`.\n ;; 3. mod refers to `Ctrl` for Windows/Linux and `Command` for Mac.\n ;; 4. Use false to disable a specific shortcut.\n ;; 5. You can define multiple bindings for a single action, e.g., [\"ctrl+j\" \"down\"].\n ;; The full list of configurable shortcuts is available at:\n ;; https://github.com/logseq/logseq/blob/master/src/main/frontend/modules/shortcut/config.cljs\n ;; Example:\n ;; :shortcuts\n ;; {:editor/new-block       \"enter\"\n ;;  :editor/new-line        \"shift+enter\"\n ;;  :editor/insert-link     \"mod+shift+k\"\n ;;  :editor/highlight       false\n ;;  :ui/toggle-settings     \"t s\"\n ;;  :editor/up              [\"ctrl+k\" \"up\"]\n ;;  :editor/down            [\"ctrl+j\" \"down\"]\n ;;  :editor/left            [\"ctrl+h\" \"left\"]\n ;;  :editor/right           [\"ctrl+l\" \"right\"]}\n :shortcuts {}\n\n ;; Configure the behavior of pressing Enter in document mode.\n ;; if set to true, pressing Enter will create a new block.\n ;; Default value: false\n :shortcut/doc-mode-enter-for-new-block? false\n\n ;; Block content larger than `block/title-max-length` will not be searchable\n ;; or editable for performance.\n ;; Default value: 10000\n :block/title-max-length 10000\n\n ;; Display command documentation on hover.\n ;; Default value: true\n :ui/show-command-doc? true\n\n ;; Display empty bullet points.\n ;; Default value: false\n :ui/show-empty-bullets? false\n\n ;; Pre-defined :view function to use with advanced queries.\n :query/views\n {:pprint\n  (fn [r] [:pre.code (pprint r)])}\n\n ;; Advanced queries `:result-transform` function.\n ;; Transform the query result before displaying it.\n ;; Example usage for DB graphs:\n;;  :query/result-transforms\n;;  {:sort-by-priority\n;;   (fn [result] (sort-by (fn [h] (get h :logseq.property/priority \"Z\")) result))}\n\n;; Queries will be displayed at the bottom of today's journal page.\n;; Example usage:\n;; :default-queries\n;; {:journals []}\n\n ;; Add custom commands to the command palette\n ;; Example usage:\n ;; :commands\n ;; [\n ;;  [\"js\" \"Javascript\"]\n ;;  [\"md\" \"Markdown\"]\n ;;  ]\n :commands []\n\n ;; Enable collapsing blocks with titles but no children.\n ;; By default, only blocks with children can be collapsed.\n ;; Setting `:outliner/block-title-collapse-enabled?` to true allows collapsing\n ;; blocks with titles (multiple lines) and content. For example:\n ;; - block title\n ;;   block content\n ;; Default value: false\n :outliner/block-title-collapse-enabled? false\n\n ;; Macros replace texts and will make you more productive.\n ;; Example usage:\n ;; Change the :macros value below to:\n ;; {\"poem\" \"Rose is $1, violet's $2. Life's ordered: Org assists you.\"}\n ;; input \"{{poem red,blue}}\"\n ;; becomes\n ;; Rose is red, violet's blue. Life's ordered: Org assists you.\n :macros {}\n\n ;; Configure the default expansion level for linked references.\n ;; For example, consider the following block hierarchy:\n ;; - a [[page]] (level 1)\n ;;   - b        (level 2)\n ;;     - c      (level 3)\n ;;       - d    (level 4)\n ;;\n ;; With the default value of level 2, block b will be collapsed.\n ;; If the level's value is set to 3, block c will be collapsed.\n ;; Default value: 2\n :ref/default-open-blocks-level 2\n\n ;; Mobile photo upload configuration.\n ;; :mobile/photo\n ;; {:allow-editing? true\n ;;  :quality        80}\n\n ;; Mobile features options\n ;; Gestures\n ;; Example usage:\n ;; :mobile\n ;; {:gestures/disabled-in-block-with-tags [\"kanban\"]}\n\n ;; Extra CodeMirror options\n ;; See https://codemirror.net/5/doc/manual.html#config for possible options\n ;; Example usage:\n ;; :editor/extra-codemirror-options\n ;; {:lineWrapping  false  ; Default value: false\n ;;  :lineNumbers   true   ; Default value: true\n ;;  :readOnly      false} ; Default value: false\n\n ;; Enable logical outdenting\n ;; Default value: false\n ;; :editor/logical-outdenting? false\n\n ;; Prefer pasting the file when text and a file are in the clipboard.\n ;; Default value: false\n ;; :editor/preferred-pasting-file? false\n\n ;; Quick capture templates for receiving content from other apps.\n ;; Each template contains three elements {time}, {text} and {url}, which can be auto-expanded\n ;; by receiving content from other apps. Note: the {} cannot be omitted.\n ;; - {time}: capture time\n ;; - {date}: capture date using current date format, use `[[{date}]]` to get a page reference\n ;; - {text}: text that users selected before sharing.\n ;; - {url}: URL or assets path for media files stored in Logseq.\n ;; You can also reorder them or use only one or two of them in the template.\n ;; You can also insert or format any text in the template, as shown in the following examples.\n ;; :quick-capture-templates\n ;; {:text \"[[quick capture]] **{time}**: {text} from {url}\"\n ;;  :media \"[[quick capture]] **{time}**: {url}\"}\n\n ;; Quick capture options.\n ;; - insert-today?   Insert the capture at the end of today's journal page (boolean).\n ;; - redirect-page?  Redirect to the quick capture page after capturing (boolean).\n ;; - default-page    The default page to capture to if insert-today? is false (string).\n ;; - prettify-url?   Whether urls to YouTube or X should be wrapped with {{video ...}} or {{twitter ...}}\n ;; :quick-capture-options\n ;; {:insert-today? false           ;; Default value: true\n ;;  :redirect-page? false          ;; Default value: false\n ;;  :default-page \"quick capture\"  ;; Default page: \"quick capture\"\n ;;  :prettify-url? true}           ;; Default value: true\n\n }\n\n;; ISSUE12-CI37203268496-logseq/config.edn\n",
+    "logseq/custom.css": null,
+    "logseq/custom.js": "\n// ISSUE12-CI37203268496-logseq/custom.js\n",
+    "logseq/publish.css": "\n/* ISSUE12-CI37203268496-logseq/publish.css */\n",
+    "logseq/publish.js": "\n// ISSUE12-CI37203268496-logseq/publish.js\n"
+  },
+  "after_reopen_counts": [
+    [
+      "logseq/config.edn",
+      1
+    ],
+    [
+      "logseq/custom.js",
+      1
+    ],
+    [
+      "logseq/publish.css",
+      1
+    ],
+    [
+      "logseq/publish.js",
+      1
+    ]
+  ],
+  "other_four_preserved": true,
+  "existing_uuid_title_rows_preserved": true,
+  "missing_default_recreated": false
+}

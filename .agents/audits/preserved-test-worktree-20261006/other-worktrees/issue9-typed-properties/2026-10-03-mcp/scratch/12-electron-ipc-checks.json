@@ -1,0 +1,679 @@
+[
+  {
+    "name": "A: disposable graph opened from worktree-local graphs dir",
+    "ok": true,
+    "detail": {
+      "url": "logseq_db_Demo",
+      "name": "logseq_db_Demo",
+      "path": "D:/orca/workspaces/logseq/issue9-typed-properties/.tmp-electron-ipc/graphs/Demo"
+    }
+  },
+  {
+    "name": "A: all required tool names are registered",
+    "ok": true,
+    "detail": [
+      "getBlock",
+      "getPage",
+      "getRecycledBlock",
+      "listPages",
+      "listProperties",
+      "listTags",
+      "recycleBlock",
+      "restoreBlock",
+      "searchBlocks",
+      "upsertNodes"
+    ]
+  },
+  {
+    "name": "A: recycleBlock inputSchema requires blockUuid",
+    "ok": true,
+    "detail": [
+      "blockUuid"
+    ]
+  },
+  {
+    "name": "A: restoreBlock inputSchema requires blockUuid",
+    "ok": true,
+    "detail": [
+      "blockUuid"
+    ]
+  },
+  {
+    "name": "A: getRecycledBlock inputSchema requires blockUuid",
+    "ok": true,
+    "detail": [
+      "blockUuid"
+    ]
+  },
+  {
+    "name": "A: getBlock inputSchema requires uuid",
+    "ok": true,
+    "detail": [
+      "uuid"
+    ]
+  },
+  {
+    "name": "A: page add receipt is verified with title",
+    "ok": true,
+    "detail": {
+      "mode": "verified",
+      "operations": [
+        {
+          "index": 0,
+          "operation": "add",
+          "entity-type": "page",
+          "status": "verified",
+          "op-id": "temp-mcp-page",
+          "uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+          "entity": {
+            "uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+            "title": "MCP IPC Page"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "A: block add receipts are verified and parent chain matches requested hierarchy",
+    "ok": true,
+    "detail": [
+      {
+        "op": "temp-root",
+        "uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+      },
+      {
+        "op": "temp-child",
+        "uuid": "f74e5758-803d-43d4-9f2b-8371a7abcd44",
+        "parent": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c"
+      },
+      {
+        "op": "temp-ordered",
+        "uuid": "730a1847-9af2-49f3-8f80-73caaba907ac",
+        "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+      },
+      {
+        "op": "temp-task",
+        "uuid": "28ad0e97-a6ed-4c07-b9f7-5f2f9f60a9b9",
+        "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+      }
+    ]
+  },
+  {
+    "name": "A: getPage includeChildren nests root->child and returns real budget",
+    "ok": true,
+    "detail": {
+      "child": true
+    }
+  },
+  {
+    "name": "A: ordered item exposes the real numbered-list marker (no literal prefix)",
+    "ok": true,
+    "detail": {
+      "title": "number",
+      "uuid": "6ac0da36-7953-41f7-89c0-34fecd880406"
+    }
+  },
+  {
+    "name": "A: task item exposes the real Task status closed value Done",
+    "ok": true,
+    "detail": {
+      "title": "Done",
+      "uuid": "00000002-1827-5820-8200-000000000000",
+      "ident": "logseq.property/status.done"
+    }
+  },
+  {
+    "name": "A: getBlock reads root title/parent/page",
+    "ok": true,
+    "detail": {
+      "created-at": 1791023670293,
+      "order": "b1V",
+      "title": "mcp root",
+      "updated-at": 1791023670293,
+      "uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "page": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+    }
+  },
+  {
+    "name": "A: getBlock reads numbered-list marker",
+    "ok": true,
+    "detail": {
+      "title": "number",
+      "uuid": "6ac0da36-7953-41f7-89c0-34fecd880406"
+    }
+  },
+  {
+    "name": "A: getBlock reads Task status Done",
+    "ok": true,
+    "detail": {
+      "title": "Done",
+      "uuid": "00000002-1827-5820-8200-000000000000",
+      "ident": "logseq.property/status.done"
+    }
+  },
+  {
+    "name": "A: listProperties discovers all six disposable typed user properties with real metadata",
+    "ok": true,
+    "detail": {
+      "cv": {
+        "found": true,
+        "uuid": "00000002-4121-4272-5000-000000000000",
+        "ident": "MCPCV-UcMgoWSW",
+        "type": "url",
+        "cardinality": "one",
+        "match": true
+      },
+      "orcid": {
+        "found": true,
+        "uuid": "00000002-1751-3470-8200-000000000000",
+        "ident": "MCPORCID-ZpiXoA3w",
+        "type": "default",
+        "cardinality": "one",
+        "match": true
+      },
+      "description": {
+        "found": true,
+        "uuid": "00000002-1901-0700-1700-000000000000",
+        "ident": "MCPDescription-UWiY6zof",
+        "type": "default",
+        "cardinality": "one",
+        "match": true
+      },
+      "topics": {
+        "found": true,
+        "uuid": "00000002-1031-1088-4200-000000000000",
+        "ident": "MCPTopics-Wm9BBoUs",
+        "type": "node",
+        "cardinality": "many",
+        "match": true
+      },
+      "score": {
+        "found": true,
+        "uuid": "00000002-6745-0089-8000-000000000000",
+        "ident": "MCPScore-CqWMckTM",
+        "type": "number",
+        "cardinality": "one",
+        "match": true
+      },
+      "enabled": {
+        "found": true,
+        "uuid": "00000002-3045-3199-4000-000000000000",
+        "ident": "MCPEnabled-WroBd6E6",
+        "type": "checkbox",
+        "cardinality": "one",
+        "match": true
+      }
+    }
+  },
+  {
+    "name": "A: person page add returns verified receipt with typed url/default/node-many values",
+    "ok": true,
+    "detail": {
+      "user.property/MCPCV-UcMgoWSW": "https://example.org/people/alpha",
+      "user.property/MCPORCID-ZpiXoA3w": "0000-0002-1825-0097",
+      "user.property/MCPDescription-UWiY6zof": "Researcher",
+      "user.property/MCPTopics-Wm9BBoUs": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d"
+      ]
+    }
+  },
+  {
+    "name": "A: getPage exposes typed cv/orcid/topics on the entity",
+    "ok": true,
+    "detail": {
+      "title": "Person Alpha",
+      "cv": "https://example.org/people/alpha",
+      "orcid": "0000-0002-1825-0097",
+      "topics": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d"
+      ]
+    }
+  },
+  {
+    "name": "A: person block add returns verified receipt",
+    "ok": true,
+    "detail": {
+      "mode": "verified"
+    }
+  },
+  {
+    "name": "A: getBlock exposes typed description, number, checkbox and many node refs",
+    "ok": true,
+    "detail": {
+      "description": "Block level description",
+      "score": {
+        "value": 0,
+        "uuid": "6ac0da36-f3c5-4a91-ae54-cdf25111d2ed"
+      },
+      "enabled": false,
+      "topics": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d",
+        "5a23b360-aade-4137-b74c-01ae6ba8bcb1"
+      ]
+    }
+  },
+  {
+    "name": "A: many node refs are additive: editing one ref retains existing refs",
+    "ok": true,
+    "detail": {
+      "user.property/MCPDescription-UWiY6zof": "Senior Researcher",
+      "user.property/MCPTopics-Wm9BBoUs": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d",
+        "5a23b360-aade-4137-b74c-01ae6ba8bcb1"
+      ]
+    }
+  },
+  {
+    "name": "A: property-only page edit unions refs and retains entity title",
+    "ok": true,
+    "detail": {
+      "title": "Person Alpha",
+      "description": "Senior Researcher",
+      "topics": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d",
+        "5a23b360-aade-4137-b74c-01ae6ba8bcb1"
+      ]
+    }
+  },
+  {
+    "name": "A: dry-run typed property edit reports dry-run and does not mutate",
+    "ok": true,
+    "detail": {
+      "mode": "dry-run",
+      "score": {
+        "value": 0,
+        "uuid": "6ac0da36-f3c5-4a91-ae54-cdf25111d2ed"
+      }
+    }
+  },
+  {
+    "name": "A: wrong-typed scalar is rejected",
+    "ok": true,
+    "detail": "API Error: Numeric property :00000002-6745-0089-8000-000000000000 value must be a finite JSON number"
+  },
+  {
+    "name": "A: malformed node ref is rejected",
+    "ok": true,
+    "detail": "API Error: Reference property :00000002-1031-1088-4200-000000000000 requires an unambiguous {\"uuid\" \"...\"} reference envelope"
+  },
+  {
+    "name": "A: mixed batch with a wrong-typed property is rejected",
+    "ok": true,
+    "detail": "API Error: Numeric property :00000002-6745-0089-8000-000000000000 value must be a finite JSON number"
+  },
+  {
+    "name": "A: rejected mixed batch preserves page metadata and creates no partial block",
+    "ok": true,
+    "detail": {
+      "partial": false,
+      "description": "Senior Researcher",
+      "topics": [
+        "7b663d47-7123-4770-ac91-16e11ea1b94d",
+        "5a23b360-aade-4137-b74c-01ae6ba8bcb1"
+      ]
+    }
+  },
+  {
+    "name": "A: rejected scalar/ref writes preserve block metadata",
+    "ok": true,
+    "detail": {
+      "score": {
+        "value": 0,
+        "uuid": "6ac0da36-f3c5-4a91-ae54-cdf25111d2ed"
+      }
+    }
+  },
+  {
+    "name": "A: upsertNodes block closed-value write returns a verified receipt",
+    "ok": true,
+    "detail": {
+      "mode": "verified"
+    }
+  },
+  {
+    "name": "A: verified block receipt reports the observed closed-value ref",
+    "ok": true,
+    "detail": "00000002-1827-5820-8200-000000000000"
+  },
+  {
+    "name": "A: getBlock exposes the written closed value",
+    "ok": true,
+    "detail": {
+      "title": "Done",
+      "uuid": "00000002-1827-5820-8200-000000000000",
+      "ident": "logseq.property/status.done"
+    }
+  },
+  {
+    "name": "A: upsertNodes page closed-value write returns a verified receipt",
+    "ok": true,
+    "detail": {
+      "mode": "verified"
+    }
+  },
+  {
+    "name": "A: getPage exposes the page property on the entity",
+    "ok": true,
+    "detail": {
+      "title": "Doing",
+      "uuid": "00000002-1840-1229-0800-000000000000",
+      "ident": "logseq.property/status.doing"
+    }
+  },
+  {
+    "name": "A: dry-run closed-value write reports dry-run and does not write",
+    "ok": true,
+    "detail": {
+      "mode": "dry-run"
+    }
+  },
+  {
+    "name": "A: malformed closed-value type is rejected",
+    "ok": true,
+    "detail": "API Error: Status value must be an existing closed value: its stable uuid, its identity (e.g. \"logseq.property/status.done\"), or its display value (e.g. \"Done\")"
+  },
+  {
+    "name": "A: invalid mixed batch fails without partial writes",
+    "ok": true,
+    "detail": {
+      "error": "API Error: Property :user.property/does-not-exist must be an existing property UUID or exact qualified ident (e.g. \"logseq.property/status\", \"user.property/foo\"); a bare title is not accepted",
+      "titles": [
+        "mcp root",
+        "ordered item",
+        "task item"
+      ]
+    }
+  },
+  {
+    "name": "A: getBlock before recycle is visible",
+    "ok": true,
+    "detail": {
+      "uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "updated-at": 1791023670722,
+      "status": {
+        "title": "Done",
+        "uuid": "00000002-1827-5820-8200-000000000000",
+        "ident": "logseq.property/status.done"
+      },
+      "refs": [
+        {
+          "title": "Status",
+          "uuid": "00000002-9072-1685-3000-000000000000",
+          "ident": "logseq.property/status"
+        }
+      ],
+      "created-at": 1791023670293,
+      "title": "mcp root",
+      "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "order": "b1V",
+      "page": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+    }
+  },
+  {
+    "name": "A: recycle reports recycled state and no-op false",
+    "ok": true,
+    "detail": {
+      "operation": "recycle",
+      "state": "recycled",
+      "no-op": false,
+      "root-uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "affected-uuids": [
+        "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+      ],
+      "affected-count": 2,
+      "deleted-at": 1791023670851,
+      "page-uuid": "00000004-7238-1304-3000-000000000000"
+    }
+  },
+  {
+    "name": "A: recycle root uuid matches",
+    "ok": true,
+    "detail": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c"
+  },
+  {
+    "name": "A: recycle affected root-first root + child",
+    "ok": true,
+    "detail": [
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+    ]
+  },
+  {
+    "name": "A: recycle stamps deleted-at",
+    "ok": true,
+    "detail": 1791023670851
+  },
+  {
+    "name": "A: recycled root is hidden from getBlock",
+    "ok": true,
+    "detail": {
+      "raw": "API Error: Block uuid 612f4ef4-e6ab-4795-8cd2-f9f1650d601c is hidden and is not returned by getBlock"
+    }
+  },
+  {
+    "name": "A: getRecycledBlock returns recycled root-first subtree",
+    "ok": true,
+    "detail": {
+      "subtree": [
+        "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+      ],
+      "subtree-count": 2,
+      "original-page-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "operation": "get-recycled",
+      "state": "recycled",
+      "deleted-at": 1791023670851,
+      "original-order": "b1V",
+      "page-uuid": "00000004-7238-1304-3000-000000000000",
+      "root-uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "original-parent-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+    }
+  },
+  {
+    "name": "A: getRecycledBlock retains original page location",
+    "ok": true,
+    "detail": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+  },
+  {
+    "name": "A: getRecycledBlock retains original parent",
+    "ok": true,
+    "detail": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+  },
+  {
+    "name": "A: re-recycle is a no-op preserving deleted-at",
+    "ok": true,
+    "detail": {
+      "affected-uuids": [
+        "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+      ],
+      "operation": "recycle",
+      "state": "recycled",
+      "deleted-at": 1791023670851,
+      "affected-count": 2,
+      "no-op": true,
+      "reason": "already-recycled",
+      "page-uuid": "00000004-7238-1304-3000-000000000000",
+      "root-uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c"
+    }
+  },
+  {
+    "name": "A: restore reports active state and no-op false",
+    "ok": true,
+    "detail": {
+      "affected-uuids": [
+        "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+      ],
+      "operation": "restore",
+      "state": "active",
+      "affected-count": 2,
+      "no-op": false,
+      "page-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "root-uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "parent-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "position": "original",
+      "order": "original"
+    }
+  },
+  {
+    "name": "A: restore returns to original page and root",
+    "ok": true,
+    "detail": {
+      "affected-uuids": [
+        "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+        "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+      ],
+      "operation": "restore",
+      "state": "active",
+      "affected-count": 2,
+      "no-op": false,
+      "page-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "root-uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "parent-uuid": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "position": "original",
+      "order": "original"
+    }
+  },
+  {
+    "name": "A: restore reuses original parent, position and order",
+    "ok": true,
+    "detail": {
+      "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "position": "original",
+      "order": "original"
+    }
+  },
+  {
+    "name": "A: restore affected root-first root + child",
+    "ok": true,
+    "detail": [
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+    ]
+  },
+  {
+    "name": "A: restored block is visible to getBlock again",
+    "ok": true,
+    "detail": {
+      "uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "updated-at": 1791023670722,
+      "status": {
+        "title": "Done",
+        "uuid": "00000002-1827-5820-8200-000000000000",
+        "ident": "logseq.property/status.done"
+      },
+      "refs": [
+        {
+          "title": "Status",
+          "uuid": "00000002-9072-1685-3000-000000000000",
+          "ident": "logseq.property/status"
+        }
+      ],
+      "created-at": 1791023670293,
+      "title": "mcp root",
+      "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "order": "b1V",
+      "page": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+    }
+  },
+  {
+    "name": "A: malformed uuid is rejected by the SDK input schema",
+    "ok": true,
+    "detail": "MCP error -32602: Input validation error: Invalid arguments for tool recycleBlock: [\n  {\n    \"validation\": \"uuid\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid uuid\",\n    \"path\": [\n      \"blockUuid\"\n    ]\n  }\n]"
+  },
+  {
+    "name": "A: corrupted-result negative control produces failures",
+    "ok": true,
+    "detail": {
+      "negativeControlFailures": 25
+    }
+  },
+  {
+    "name": "Phase B: persisted graph reopen retains seeded blocks (real close/reopen)",
+    "ok": true,
+    "detail": {
+      "uuid": "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "updated-at": 1791023670722,
+      "status": {
+        "title": "Done",
+        "uuid": "00000002-1827-5820-8200-000000000000",
+        "ident": "logseq.property/status.done"
+      },
+      "refs": [
+        {
+          "title": "Status",
+          "uuid": "00000002-9072-1685-3000-000000000000",
+          "ident": "logseq.property/status"
+        }
+      ],
+      "created-at": 1791023670293,
+      "title": "mcp root",
+      "parent": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "order": "b1V",
+      "page": "7eb2cac3-e091-4cc3-b993-92d8cf7eea99"
+    }
+  },
+  {
+    "name": "Phase B: full search-index rebuild indexes seeded page + blocks",
+    "ok": true,
+    "detail": [
+      "00000002-4121-4272-5000-000000000000",
+      "00000002-1751-3470-8200-000000000000",
+      "00000002-6745-0089-8000-000000000000",
+      "00000002-1031-1088-4200-000000000000",
+      "00000002-3045-3199-4000-000000000000",
+      "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "00000002-1901-0700-1700-000000000000",
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+    ]
+  },
+  {
+    "name": "Phase B: pageUuid scope returns page blocks",
+    "ok": true,
+    "detail": [
+      "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+    ]
+  },
+  {
+    "name": "Phase B: blockUuid scope is exact and excludes descendants",
+    "ok": true,
+    "detail": [
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c"
+    ]
+  },
+  {
+    "name": "Phase B: recycle makes the subtree invisible to search",
+    "ok": true,
+    "detail": [
+      "00000002-4121-4272-5000-000000000000",
+      "00000002-1751-3470-8200-000000000000",
+      "00000002-6745-0089-8000-000000000000",
+      "00000002-1031-1088-4200-000000000000",
+      "00000002-3045-3199-4000-000000000000",
+      "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "00000002-1901-0700-1700-000000000000"
+    ]
+  },
+  {
+    "name": "Phase B: restore returns the subtree to search results",
+    "ok": true,
+    "detail": [
+      "00000002-4121-4272-5000-000000000000",
+      "00000002-1751-3470-8200-000000000000",
+      "00000002-6745-0089-8000-000000000000",
+      "00000002-1031-1088-4200-000000000000",
+      "00000002-3045-3199-4000-000000000000",
+      "7eb2cac3-e091-4cc3-b993-92d8cf7eea99",
+      "00000002-1901-0700-1700-000000000000",
+      "612f4ef4-e6ab-4795-8cd2-f9f1650d601c",
+      "f74e5758-803d-43d4-9f2b-8371a7abcd44"
+    ]
+  }
+]

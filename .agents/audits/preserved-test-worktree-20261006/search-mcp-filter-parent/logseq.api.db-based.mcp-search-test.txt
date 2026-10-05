@@ -1,0 +1,4 @@
+Testing logseq.api.db-based.mcp-search-test
+
+Ran 1 tests containing 3 assertions.
+0 failures, 0 errors.

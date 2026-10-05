@@ -1,0 +1,14 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 1420,
+    "y": 25
+  },
+  "started_at": "2026-10-04T22:58:36.899166+08:00",
+  "finished_at": "2026-10-04T22:58:37.680279+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"code\": \"window_target_not_found\",\n  \"effect\": \"refused\",\n  \"pid\": 45964,\n  \"window_id\": 5770950\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,144 @@
+{
+  "target": "desktop HTTP MCP http://127.0.0.1:12315/mcp",
+  "case": "A04 receipt=true with same-batch temporary page and block adds",
+  "status": "BLOCKED",
+  "payload": {
+    "operations": [
+      {
+        "operation": "add",
+        "entityType": "page",
+        "id": "test-page",
+        "data": {
+          "title": "TEST-BUILD-20261004-A",
+          "properties": {
+            "00000002-3362-3620-0000-000000000000": "本轮 build 验收测试页，仅含新增测试数据"
+          }
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "intro",
+        "data": {
+          "page-id": "test-page",
+          "title": "验收：查看真实编号、任务状态、三级嵌套和属性；未测试回收或重开。"
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "list-section",
+        "data": {
+          "page-id": "test-page",
+          "title": "编号列表测试（下方应为三个真正编号项）"
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "number-0",
+        "data": {
+          "page-id": "test-page",
+          "title": "编号项目甲",
+          "parent-id": "list-section",
+          "properties": {
+            "00000002-6078-1711-1000-000000000000": "number"
+          }
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "number-1",
+        "data": {
+          "page-id": "test-page",
+          "title": "编号项目乙",
+          "parent-id": "list-section",
+          "properties": {
+            "00000002-6078-1711-1000-000000000000": "number"
+          }
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "number-2",
+        "data": {
+          "page-id": "test-page",
+          "title": "编号项目丙",
+          "parent-id": "list-section",
+          "properties": {
+            "00000002-6078-1711-1000-000000000000": "number"
+          }
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "parent",
+        "data": {
+          "page-id": "test-page",
+          "title": "嵌套父块 LQTEST20261004NESTTOKEN"
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "child",
+        "data": {
+          "page-id": "test-page",
+          "title": "嵌套子块 LQTEST20261004NESTTOKEN",
+          "parent-id": "parent"
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "grandchild",
+        "data": {
+          "page-id": "test-page",
+          "title": "嵌套孙块 LQTEST20261004NESTTOKEN",
+          "parent-id": "child"
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "task",
+        "data": {
+          "page-id": "test-page",
+          "title": "真正任务：检查 Task 视图",
+          "properties": {
+            "00000002-9072-1685-3000-000000000000": "Todo"
+          },
+          "tags": [
+            "00000002-1282-1814-5700-000000000000"
+          ]
+        }
+      },
+      {
+        "operation": "add",
+        "entityType": "block",
+        "id": "metadata",
+        "data": {
+          "page-id": "test-page",
+          "title": "属性测试：标题应保持不变",
+          "properties": {
+            "6a731ba2-60b2-4048-b3e0-abc204174ba9": "TEST-ORCID-NOT-A-REAL-ID",
+            "6a731ba3-80b6-4488-b05d-d97757f48f79": "https://example.org/test-build-cv",
+            "6a731bc2-cf6d-4dce-8bc9-cf00baf28217": "TEST-TOPIC",
+            "00000002-3362-3620-0000-000000000000": "测试描述，不修改既有属性定义"
+          }
+        }
+      }
+    ],
+    "receipt": true
+  },
+  "response": {
+    "_text": "API Error: Receipt mode block adds require an existing page UUID"
+  },
+  "readback": {
+    "_text": "API Error: Page \"TEST-BUILD-20261004-A\" not found"
+  },
+  "interpretation": "Receipt mode rejects block adds referencing a same-batch temporary page; no test page found afterwards. Other behavior not tested."
+}

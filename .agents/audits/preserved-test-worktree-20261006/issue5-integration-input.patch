@@ -1,0 +1,306 @@
+From dd62f90d80ea8d4ab7cd60c8f56163d25477769d Mon Sep 17 00:00:00 2001
+From: e-zz <e-zz@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 22:46:41 +0800
+Subject: [PATCH] wip: tolerate missing child order during render
+
+---
+ src/main/frontend/worker/handler/block.cljs   |  42 +++++-
+ .../frontend/worker/handler/block_test.cljs   | 131 ++++++++++++++++++
+ .../worker/handler/render_resource_test.cljs  |  64 +++++++++
+ 3 files changed, 232 insertions(+), 5 deletions(-)
+
+diff --git a/src/main/frontend/worker/handler/block.cljs b/src/main/frontend/worker/handler/block.cljs
+index 5be9473312..069ef2b16e 100644
+--- a/src/main/frontend/worker/handler/block.cljs
++++ b/src/main/frontend/worker/handler/block.cljs
+@@ -12,6 +12,7 @@
+    [frontend.worker.plain-value :as worker-plain]
+    [frontend.worker.state :as worker-state]
+    [frontend.worker.sync.client-op :as client-op]
++   [lambdaisland.glogi :as log]
+    [logseq.common.util :as common-util]
+    [logseq.db :as ldb]
+    [logseq.db.common.initial-data :as common-initial-data]
+@@ -293,6 +294,12 @@
+       :else (recur (eavt-scalar db eid :block/parent) (conj seen eid)))))
+ 
+ (defn- membership-row
++  "One direct child of `parent-uuid` in render order.
++
++   A legacy child that has a UUID and a parent but no `:block/order`
++   (issue #5) must not fail the whole page render: it is emitted with
++   `:block/order nil` and sorts deterministically last. All other
++   invariant violations (missing/invalid UUID, missing parent) still fail fast."
+   [db parent-uuid parent-recycled? {:keys [e]}]
+   (let [attrs (membership-row-attr-map db e)]
+     (when-not (or parent-recycled?
+@@ -306,10 +313,11 @@
+                              {:parent-uuid parent-uuid
+                               :block-uuid child-uuid}))
+         (when-not (string? order)
+-          (fail-render-read! "Invalid direct-child order"
+-                             {:parent-uuid parent-uuid
+-                              :block-uuid child-uuid
+-                              :block-order order}))
++          (log/warn :render/malformed-direct-child-order
++                    {:msg "Direct child lacks :block/order; rendering it last"
++                     :parent-uuid parent-uuid
++                     :block-uuid child-uuid
++                     :block-order order}))
+         {:db/id e
+          :block/uuid child-uuid
+          :block/order order
+@@ -323,6 +331,30 @@
+                          {:parent-uuid parent-uuid}))
+     parent-id))
+ 
++(defn- direct-child-render-cmp
++  "Order direct children for render: children with a real :block/order come
++   first in order-key sequence; children missing :block/order (legacy rows,
++   issue #5) sort deterministically last, tied by ascending UUID. The old
++   \"zzz-malformed-last\" sentinel was itself a valid order key (the domain
++   is base-62 fractional indexing — a real key such as \"z0\" sorts after
++   it) and was not injective, so it neither guaranteed missing-last nor
++   stabilized ties."
++  [a b]
++  (let [order-a (:block/order a)
++        order-b (:block/order b)]
++    (cond
++      (and order-a order-b)
++      (compare order-a order-b)
++
++      (and (not order-a) (not order-b))
++      (compare (str (:block/uuid a)) (str (:block/uuid b)))
++
++      (not order-a)
++      1
++
++      :else
++      -1)))
++
+ (defn- parent-membership
+   [db parent-uuid parent-id parent-recycled?]
+   (let [parent-tx-id (block-revision db parent-id)]
+@@ -333,7 +365,7 @@
+     {:parent-tx-id parent-tx-id
+      :rows (->> (d/datoms db :avet :block/parent parent-id)
+                 (keep #(membership-row db parent-uuid parent-recycled? %))
+-                (sort-by :block/order)
++                (sort direct-child-render-cmp)
+                 vec)}))
+ 
+ (defn direct-children-membership
+diff --git a/src/test/frontend/worker/handler/block_test.cljs b/src/test/frontend/worker/handler/block_test.cljs
+index 410813f0db..92c82b33a7 100644
+--- a/src/test/frontend/worker/handler/block_test.cljs
++++ b/src/test/frontend/worker/handler/block_test.cljs
+@@ -1272,3 +1272,134 @@
+         "Default children omit property-value blocks")
+     (is (= #{"child" "value"} (titles included))
+         "include-property-block? true returns property-value children used by cut/copy")))
++
++(deftest direct-children-membership-keeps-page-renderable-when-a-child-lacks-order-test
++  "A legacy child with a UUID and a parent but no :block/order must not
++   fail the whole direct-children membership read (page-wide 500).
++   It is rendered deterministically last; healthy siblings keep their
++   order. Unrelated invariant violations (bad UUID, missing parent) still fail."
++  (when-let [direct-children-membership
++             (direct-children-membership-api)]
++    (let [conn (db-test/create-conn)
++          page-uuid (random-uuid)
++          healthy-uuid (random-uuid)
++          malformed-uuid (random-uuid)]
++      (d/transact! conn
++                   [{:db/id -1
++                     :block/uuid page-uuid
++                     :block/tx-id 10
++                     :block/title "Page"
++                     :block/name "page"
++                     :block/tags :logseq.class/Page}
++                    {:db/id -2
++                     :block/uuid healthy-uuid
++                     :block/tx-id 11
++                     :block/title "Healthy child"
++                     :block/page -1
++                     :block/parent -1
++                     :block/order "a0"}
++                    ;; Legacy malformed child: has UUID and parent, but no
++                    ;; :block/order (and no :block/page — the issue reports
++                    ;; such legacy rows). Must not fail the page render.
++                    {:db/id -3
++                     :block/uuid malformed-uuid
++                     :block/tx-id 11
++                     :block/title "Malformed child"
++                     :block/parent -1}])
++      (let [db @conn
++            response (direct-children-membership db page-uuid)]
++        ;; Both children appear; the malformed one is deterministically last.
++        (is (= 2 (count (:items response)))
++            "Both children must be present in membership")
++        (is (= [[healthy-uuid "a0"]
++                [malformed-uuid nil]]
++               (:items response))
++            "Healthy sibling keeps its order; malformed child renders last
++             without a fabricated persisted order")))
++    ;; Unrelated invariant violations still fail fast.
++    (let [conn (db-test/create-conn)
++          page-uuid (random-uuid)]
++      (d/transact! conn
++                   [{:db/id -1
++                     :block/uuid page-uuid
++                     :block/tx-id 10
++                     :block/title "Page2"
++                     :block/name "page2"
++                     :block/tags :logseq.class/Page}
++                    ;; Child with a non-UUID :block/uuid — still a hard fail.
++                    {:db/id -2
++                     :block/uuid "not-a-uuid"
++                     :block/tx-id 11
++                     :block/title "Bad UUID child"
++                     :block/page -1
++                     :block/parent -1
++                     :block/order "a0"}])
++      (is (thrown? js/Error
++                   (direct-children-membership @conn page-uuid))
++          "A child with an invalid UUID must still fail the render read"))))
++
++(deftest direct-children-membership-keeps-real-order-above-missing-order-test
++  "A child with a real :block/order must always render before any child
++   lacking :block/order - for every valid order key, including keys that
++   compare AFTER the previous sentinel. The order domain is base-62
++   fractional indexing (db-order/gen-key produces \"a0\", \"a04\", ... and
++   \"z0\" is a valid key sorting after every \"a*\" key and also after the
++   old \"zzz-malformed-last\" sentinel, so that sentinel cannot guarantee
++   missing-order-last). Missing-order children sort deterministically
++   last, tied by UUID."
++  (when-let [direct-children-membership
++             (direct-children-membership-api)]
++    (let [conn (db-test/create-conn)
++          page-uuid (random-uuid)
++          late-uuid (random-uuid)]
++      (d/transact! conn
++                   [{:db/id -1
++                     :block/uuid page-uuid
++                     :block/tx-id 10
++                     :block/title "Late-order page"
++                     :block/name "late-order-page"
++                     :block/tags :logseq.class/Page}
++                    ;; Real order keys from the actual db-order domain. "z0"
++                    ;; is generated by db-order/gen-key (gen-key "z" nil) and
++                    ;; sorts AFTER the old "zzz-malformed-last" sentinel.
++                    {:db/id -2
++                     :block/uuid late-uuid
++                     :block/tx-id 11
++                     :block/title "Late order child"
++                     :block/page -1
++                     :block/parent -1
++                     :block/order "z0"}
++                    {:db/id -3
++                     :block/uuid #uuid "11111111-1111-1111-1111-111111111111"
++                     :block/tx-id 11
++                     :block/title "Earliest order child"
++                     :block/page -1
++                     :block/parent -1
++                     :block/order "a0"}
++                    ;; Two missing-order children, inserted reversed relative
++                    ;; to their UUID so insertion order and UUID order disagree.
++                    {:db/id -4
++                     :block/uuid #uuid "44444444-4444-4444-4444-444444444444"
++                     :block/tx-id 11
++                     :block/title "Malformed later-uuid"
++                     :block/parent -1}
++                    {:db/id -5
++                     :block/uuid #uuid "33333333-3333-3333-3333-333333333333"
++                     :block/tx-id 11
++                     :block/title "Malformed earlier-uuid"
++                     :block/parent -1}])
++      (let [items (:items (direct-children-membership @conn page-uuid))]
++        (is (= 4 (count items))
++            "All four children must be present")
++        (is (= #uuid "11111111-1111-1111-1111-111111111111"
++               (first (first items)))
++            "The earliest real order key renders first")
++        (is (= late-uuid (first (second items)))
++            "A real order key that compares after the old sentinel (z0)
++             still renders before missing-order children")
++        (is (every? nil? (map second (drop 2 items)))
++            "All missing-order children render with nil order")
++        (is (= (sort (map first (drop 2 items)))
++               (map first (drop 2 items)))
++            "Missing-order children are deterministic: tied by ascending
++             UUID, independent of insertion order")))))
+diff --git a/src/test/frontend/worker/handler/render_resource_test.cljs b/src/test/frontend/worker/handler/render_resource_test.cljs
+index d2c6485da7..7d80e79d54 100644
+--- a/src/test/frontend/worker/handler/render_resource_test.cljs
++++ b/src/test/frontend/worker/handler/render_resource_test.cljs
+@@ -2579,3 +2579,67 @@
+           (is (thrown? js/Error
+                        (call-resource-raw api conn resource-key))
+               (str "Expected fail-fast for " (pr-str resource-key))))))))
++
++
++(deftest render-snapshots-survives-child-lacking-block-order-test
++  "A parented child that lacks :block/order (and :block/page) — the issue #5
++   legacy row — must not fail the :thread-api/get-render-snapshots children
++   path. The response includes both children: the healthy sibling keeps its
++   order, the malformed child renders last with a nil order, and no throw
++   escapes. This exercises the real render path (render-engine/render-snapshots
++   -> block-handler/open-children-tree -> parent-membership), not a mock.
++   The fix lives in the direct-child comparator, so this is a regression guard
++   against reverting to the old sentinel sort."
++  (let [conn (db-test/create-conn)
++        page-uuid (random-uuid)
++        healthy-uuid (random-uuid)
++        malformed-uuid (random-uuid)]
++    (d/transact! conn
++                 [{:db/id -1
++                   :block/uuid page-uuid
++                   :block/tx-id 10
++                   :block/title "Render Page"
++                   :block/name "render page"
++                   :block/tags :logseq.class/Page}
++                  {:db/id -2
++                   :block/uuid healthy-uuid
++                   :block/tx-id 11
++                   :block/title "Healthy child"
++                   :block/page -1
++                   :block/parent -1
++                   :block/order "a0"}
++                  ;; Legacy malformed child: has a UUID and a parent but no
++                  ;; :block/order (and no :block/page). Must not fail the
++                  ;; render-snapshots children read.
++                  {:db/id -3
++                   :block/uuid malformed-uuid
++                   :block/tx-id 11
++                   :block/title "Malformed child"
++                   :block/parent -1}])
++    (let [response (render-engine/render-snapshots
++                    @conn
++                    {:blocks []
++                     :children [page-uuid]
++                     :resources []}
++                    {})
++          children-slot (get-in response [:slots [:children page-uuid]])
++          items (:items children-slot)]
++      (is (some? children-slot)
++          "The :children slot must be present for the requested parent")
++      (is (not (contains? (:slots response) [:error]))
++          "No error slot must be produced")
++      (is (= 2 (count items))
++          "Both children must appear in the snapshot")
++      (is (= healthy-uuid (first (first items)))
++          "Healthy sibling keeps its render position (first)")
++      (is (= "a0" (second (first items)))
++          "Healthy sibling keeps its real :block/order")
++      (is (= malformed-uuid (first (second items)))
++          "Malformed child renders last")
++      (is (nil? (second (second items)))
++          "Malformed child carries nil :block/order, never a fabricated key")
++      (is (some? (get-in response [:groups [:children page-uuid]]))
++          "The :children group is present for the requested parent")
++      ;; A transit round-trip must succeed with the nil order on the wire.
++      (is (= response
++             (-> response ldb/write-transit-str ldb/read-transit-str))))))
+-- 
+2.54.0.windows.1
+

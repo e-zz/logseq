@@ -1,0 +1,75 @@
+{
+  "scope": "read-only packaged CLI worker; no restart/transact/delete/GUI graph access",
+  "revision": "fb5eb4e",
+  "counts_command": [
+    "C:/Users/zhang/Downloads/logseq-ci-37203268496-x64/Logseq-win-x64-2.0.2/Logseq.exe",
+    "C:/Users/zhang/Downloads/logseq-ci-37203268496-x64/Logseq-win-x64-2.0.2/resources/app.asar/js/logseq-cli.js",
+    "--root-dir",
+    "C:/Users/zhang/AppData/Local/hermes/cache/scratch/logseq-issue12-ci37203268496",
+    "--output",
+    "json",
+    "query",
+    "--graph",
+    "issue12-preservation",
+    "--query",
+    "[:find ?path (count ?e) :where [?e :file/path ?path]]"
+  ],
+  "counts_exit": 0,
+  "counts_result": {
+    "status": "ok",
+    "data": {
+      "result": [
+        [
+          "logseq/config.edn",
+          1
+        ],
+        [
+          "logseq/custom.css",
+          1
+        ],
+        [
+          "logseq/custom.js",
+          1
+        ],
+        [
+          "logseq/publish.css",
+          1
+        ],
+        [
+          "logseq/publish.js",
+          1
+        ]
+      ]
+    }
+  },
+  "file_readback": {
+    "logseq/config.edn": {
+      "sha256": "c44a6f4eb720556d15ff703cd18bfabe02d56622c7db27b49d394add11feb1c3",
+      "content_equal": true,
+      "hash_equal": true
+    },
+    "logseq/custom.css": {
+      "sha256": "831370c39f3fe22058815a1878b2b4e8069b1edeebe4a6007a84b9db9e40c612",
+      "content_equal": true,
+      "hash_equal": true
+    },
+    "logseq/custom.js": {
+      "sha256": "aa5c761440b17bc14fdb51f9e0ea99ffb7140a1387d4a7d4b78d0cb7bedbec3c",
+      "content_equal": true,
+      "hash_equal": true
+    },
+    "logseq/publish.css": {
+      "sha256": "8d7ef461c025866f963e8d38e8cb8e128ba88e0e880c6f87982e7bf259e589de",
+      "content_equal": true,
+      "hash_equal": true
+    },
+    "logseq/publish.js": {
+      "sha256": "344ca5cebc6067b044f4f79a2e2dc9f88329605910640c5bfab4441aceb080ce",
+      "content_equal": true,
+      "hash_equal": true
+    }
+  },
+  "init_conn": "NOT EXERCISED; known callers are source scripts/tests; packaged CLI help does not expose classpath or init-conn entry",
+  "missing_file_repair": "NOT EXERCISED; fixture-specific deletion authorization not yet obtained",
+  "windows_semicolon_classpath": "NOT EXERCISED in package; classpath option belongs to legacy/source init-conn route"
+}

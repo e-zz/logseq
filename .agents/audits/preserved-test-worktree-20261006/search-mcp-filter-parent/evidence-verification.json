@@ -1,0 +1,66 @@
+{
+  "source_commit": "5c1b5e55740ff0e0979e153e24cb84a5f174f175",
+  "verification_kind": "saved independent test log reconciliation, not a new test run",
+  "suites": [
+    {
+      "namespace": "frontend.handler.search-test",
+      "tests": 13,
+      "assertions": 34,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.handler.search-test.txt",
+      "sha256": "0bd094bc6dfdf034e58868dd522281d40ebd19bf4b5227e7802b0c0a66fa02b5"
+    },
+    {
+      "namespace": "frontend.worker.search-test",
+      "tests": 79,
+      "assertions": 300,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.search-test.txt",
+      "sha256": "8b95d21eb291e4487bb1fb0e9fbbaa0fa17fce29ff34da4c50b3f2cdf5ec5974"
+    },
+    {
+      "namespace": "frontend.worker.handler.search-test",
+      "tests": 6,
+      "assertions": 19,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.handler.search-test.txt",
+      "sha256": "991600453b1c98b39912d60aa4b6f2118631bc428e922656ce2f95aff2e39f71"
+    },
+    {
+      "namespace": "logseq.api.db-based.mcp-search-test",
+      "tests": 1,
+      "assertions": 3,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/logseq.api.db-based.mcp-search-test.txt",
+      "sha256": "8b2f64ee127a802e42dd4b590b70b22490811a3e072836b690e12ed5ac783eff"
+    },
+    {
+      "namespace": "electron.mcp-server-test",
+      "tests": 5,
+      "assertions": 22,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/electron.mcp-server-test.txt",
+      "sha256": "8b6a0b6a74eb65f2a48e40b0969bbc638d600f22d349d1adfa47146e64131754"
+    },
+    {
+      "namespace": "frontend.worker.db-listener-test",
+      "tests": 15,
+      "assertions": 53,
+      "failures": 0,
+      "errors": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.db-listener-test.txt",
+      "sha256": "66878b998bfa982043270219abeb45d6f031a399066b28f48349f79b98c7a15e"
+    }
+  ],
+  "total_tests": 119,
+  "total_assertions": 431,
+  "total_failures": 0,
+  "total_errors": 0,
+  "reviewed_source_and_test_files_unchanged_since_commit": true,
+  "scope": "six focused source namespaces only; not full suite, compiled artifact freshness certification, packaged MCP IPC or GUI differential acceptance"
+}

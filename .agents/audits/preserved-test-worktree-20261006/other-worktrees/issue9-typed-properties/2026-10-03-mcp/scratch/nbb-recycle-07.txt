@@ -1,0 +1,8 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+Running tests in #{"test"}
+
+Testing logseq.outliner.recycle-test
+
+Ran 30 tests containing 142 assertions.
+0 failures, 0 errors.

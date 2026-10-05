@@ -1,0 +1,2 @@
+[:mcp-http-verify] Build completed. (558 files, 4 compiled, 11 warnings, 7.55s)
+[2m 158 |       (p/catch (fn [error] (str error)))))[0m

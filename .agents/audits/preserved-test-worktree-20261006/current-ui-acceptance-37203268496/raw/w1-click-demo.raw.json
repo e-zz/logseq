@@ -1,0 +1,15 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 90,
+    "y": 130,
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:56:31.492944+08:00",
+  "finished_at": "2026-10-04T22:56:32.352295+08:00",
+  "exit_code": 0,
+  "stdout": "foreground_unavailable: Windows did not activate exact target HWND 0x580ec6 (actual foreground HWND 0x1e0938); no mouse input was sent\n",
+  "stderr": ""
+}

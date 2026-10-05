@@ -1,0 +1,86 @@
+[
+  {
+    "args": [
+      "graph",
+      "create"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"message\":\"Created graph \\\"compat-pair-fixture\\\"\"}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "page",
+      "--page",
+      "Compat Page One"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[192]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "block",
+      "--target-page",
+      "Compat Page One",
+      "--blocks",
+      "- compatordinary45831\n- compatparent45831\n  - compatnested45831"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[193,194,195]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "page",
+      "--page",
+      "Compat Page Two"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[196]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "upsert",
+      "block",
+      "--target-page",
+      "Compat Page Two",
+      "--content",
+      "compatotherpage45831"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"result\":[197]}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "graph",
+      "switch"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"message\":\"switched to compat-pair-fixture\"}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "graph",
+      "info"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"graph\":\"compat-pair-fixture\",\"logseq.kv/graph-created-at\":1791202449026,\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"kv\":{\"logseq.kv/db-type\":\"db\",\"logseq.kv/schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-initial-schema-version\":{\"major\":65,\"minor\":34},\"logseq.kv/graph-created-at\":1791202449026,\"logseq.kv/local-graph-uuid\":\"00000000-44f0-4f81-88e0-56d3e51f5932\",\"logseq.kv/recycle-last-gc-at\":1791202449264}}}\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "server",
+      "stop"
+    ],
+    "exit": 0,
+    "stdout": "{\"status\":\"ok\",\"data\":{\"repo\":\"logseq_db_compat-pair-fixture\"}}\n",
+    "stderr": "[graph-lifecycle] {\"event\":\"worker-termination\",\"repo\":\"compat-pair-fixture\",\"graphsDir\":\"C:\\\\Users\\\\zhang\\\\AppData\\\\Local\\\\Temp\\\\ls-ub-20261005\\\\seed\\\\home\\\\logseq\\\\graphs\",\"generation\":\"a1a36496-4e54-4829-9430-b300d4377dc4\",\"ticket\":\"feb6b3da-2619-4471-b6b7-f9b926a99238\",\"pid\":17604,\"stage\":\"graceful\"}\n"
+  }
+]

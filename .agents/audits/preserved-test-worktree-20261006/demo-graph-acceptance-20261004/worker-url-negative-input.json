@@ -1,0 +1,1 @@
+{"operations":[{"operation":"edit","entityType":"block","id":"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706","data":{"title":"NEGATIVE-URL-SHOULD-NOT-COMMIT"}},{"operation":"edit","entityType":"block","id":"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706","data":{"properties":{"00000002-1190-2949-4400-000000000000":"not-a-url"}}}],"receipt":true}

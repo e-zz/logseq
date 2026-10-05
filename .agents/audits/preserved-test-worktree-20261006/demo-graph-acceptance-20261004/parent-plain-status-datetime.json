@@ -1,0 +1,37 @@
+{
+  "tool": "getBlock",
+  "input": {
+    "uuid": "dddcda42-ca26-48c4-8bf5-ad5e939d27b3"
+  },
+  "response": {
+    "uuid": "dddcda42-ca26-48c4-8bf5-ad5e939d27b3",
+    "updated-at": 1791111639713,
+    "status": {
+      "title": "Todo",
+      "uuid": "00000002-1615-5853-7700-000000000000",
+      "ident": "logseq.property/status.todo"
+    },
+    "refs": [
+      {
+        "title": "Status",
+        "uuid": "00000002-9072-1685-3000-000000000000",
+        "ident": "logseq.property/status"
+      },
+      {
+        "title": "Scheduled",
+        "uuid": "00000002-1644-5209-4300-000000000000",
+        "ident": "logseq.property/scheduled"
+      },
+      {
+        "title": "Oct 4th, 2026",
+        "uuid": "00000001-2026-1004-0000-000000000000"
+      }
+    ],
+    "created-at": 1791078193103,
+    "scheduled": 1791091897093,
+    "title": "编号列表标题 LQDEMO20261004NESTTOKEN",
+    "parent": "63bab91a-013d-44df-afb7-4c83026b03ef",
+    "order": "b1b",
+    "page": "63bab91a-013d-44df-afb7-4c83026b03ef"
+  }
+}

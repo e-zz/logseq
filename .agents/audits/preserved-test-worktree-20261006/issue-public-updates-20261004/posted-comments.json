@@ -1,0 +1,56 @@
+{
+  "repo": "e-zz/logseq",
+  "posted_at": "2026-10-04T14:47Z",
+  "comments": [
+    {
+      "issue": 4,
+      "comment_id": 5981225906,
+      "url": "https://github.com/e-zz/logseq/issues/4#issuecomment-5981225906",
+      "draft_path": ".agents/audits/issue-public-updates-20261004/issue-4-comment.md",
+      "verified": true,
+      "body_match": true,
+      "privacy_scan": "clean"
+    },
+    {
+      "issue": 8,
+      "comment_id": 5981226056,
+      "url": "https://github.com/e-zz/logseq/issues/8#issuecomment-5981226056",
+      "draft_path": ".agents/audits/issue-public-updates-20261004/issue-8-comment.md",
+      "verified": true,
+      "body_match": true,
+      "privacy_scan": "clean"
+    },
+    {
+      "issue": 9,
+      "comment_id": 5981226274,
+      "url": "https://github.com/e-zz/logseq/issues/9#issuecomment-5981226274",
+      "draft_path": ".agents/audits/issue-public-updates-20261004/issue-9-comment.md",
+      "verified": true,
+      "body_match": true,
+      "privacy_scan": "clean"
+    },
+    {
+      "issue": 11,
+      "comment_id": 5981226419,
+      "url": "https://github.com/e-zz/logseq/issues/11#issuecomment-5981226419",
+      "draft_path": ".agents/audits/issue-public-updates-20261004/issue-11-comment.md",
+      "verified": true,
+      "body_match": true,
+      "privacy_scan": "clean"
+    },
+    {
+      "issue": 14,
+      "comment_id": 5981226568,
+      "url": "https://github.com/e-zz/logseq/issues/14#issuecomment-5981226568",
+      "draft_path": ".agents/audits/issue-public-updates-20261004/issue-14-comment.md",
+      "verified": true,
+      "body_match": true,
+      "privacy_scan": "clean"
+    }
+  ],
+  "notes": [
+    "No issues closed or reopened",
+    "No code/graph/UI changes",
+    "#6/#7 handled separately by parent at user instruction"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "tool": "get_window_state",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "screenshot_out_file": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\current-ui-acceptance-37203268496\\screenshots\\b2-search-opened.png"
+  },
+  "started_at": "2026-10-04T22:44:21.849887+08:00",
+  "finished_at": "2026-10-04T22:44:23.135495+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"_note\": \"Prefer `elements` — `tree_markdown` will continue to work but new fields will only be added to the structured side. Issue #22865: use `max_elements` / `max_depth` to bound the UIA walk on apps with very large trees.\",\n  \"degraded\": true,\n  \"degraded_reason\": \"ax_tree_empty: the UIA walk returned no actionable elements. The window may be a non-UIA surface (canvas/WebGL/custom-drawn) or its accessibility tree was not ready (Chromium/Electron require a UIA-enable + settle). Do not treat element data as authoritative — re-snapshot if the app just launched, otherwise switch to the visual path.\",\n  \"element_count\": 0,\n  \"elements\": [],\n  \"elements_complete\": false,\n  \"escalation\": {\n    \"reason\": \"non-AX surface — act by pixel (x,y) off the screenshot in this response (an element px action).\",\n    \"recommended\": \"px\"\n  },\n  \"pid\": 45964,\n  \"returned_element_count\": 0,\n  \"screenshot_file_path\": \"\\\\\\\\?\\\\D:\\\\orca\\\\workspaces\\\\logseq\\\\issues-human-test-20261003\\\\.agents\\\\audits\\\\current-ui-acceptance-37203268496\\\\screenshots\\\\b2-search-opened.png\",\n  \"screenshot_height\": 861,\n  \"screenshot_mime_type\": \"image/png\",\n  \"screenshot_width\": 1456,\n  \"snapshot_id\": \"s0000001d\",\n  \"total_element_count\": 0,\n  \"tree_markdown\": \"- Window \\\"Logseq\\\"\\n  - Pane \\\"Logseq\\\"\\n\",\n  \"window_id\": 5770950\n}\n",
+  "stderr": ""
+}

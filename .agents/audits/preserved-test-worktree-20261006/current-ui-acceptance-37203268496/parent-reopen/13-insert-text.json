@@ -1,0 +1,13 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "element_token": "s0000003e:44",
+    "value": "ISSUE4-UI-INSERTED-ROW"
+  },
+  "tool": "set_value",
+  "started_at": "2026-10-04T23:33:57.518078+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"unknown\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"accessibility\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

@@ -1,0 +1,57 @@
+{
+  "repository": "e-zz/logseq",
+  "targets": [
+    4,
+    8,
+    9,
+    11
+  ],
+  "verified": [
+    {
+      "number": 4,
+      "comment_url": "https://github.com/e-zz/logseq/issues/4#issuecomment-5997654250",
+      "comment_id": 5997654250,
+      "body_match": true,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-05T15:31:02Z",
+      "issue_url": "https://github.com/e-zz/logseq/issues/4",
+      "close_command_output": ""
+    },
+    {
+      "number": 8,
+      "comment_url": "https://github.com/e-zz/logseq/issues/8#issuecomment-5997655714",
+      "comment_id": 5997655714,
+      "body_match": true,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-05T15:31:07Z",
+      "issue_url": "https://github.com/e-zz/logseq/issues/8",
+      "close_command_output": ""
+    },
+    {
+      "number": 9,
+      "comment_url": "https://github.com/e-zz/logseq/issues/9#issuecomment-5997657210",
+      "comment_id": 5997657210,
+      "body_match": true,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-05T15:31:12Z",
+      "issue_url": "https://github.com/e-zz/logseq/issues/9",
+      "close_command_output": ""
+    },
+    {
+      "number": 11,
+      "comment_url": "https://github.com/e-zz/logseq/issues/11#issuecomment-5997658668",
+      "comment_id": 5997658668,
+      "body_match": true,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-05T15:31:18Z",
+      "issue_url": "https://github.com/e-zz/logseq/issues/11",
+      "close_command_output": ""
+    }
+  ],
+  "non_target_state_changes": {},
+  "all_verified": true
+}

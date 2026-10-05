@@ -1,0 +1,15 @@
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.handler.search-test
+
+Testing frontend.worker.pipeline-test
+
+Testing frontend.worker.search-test
+sync-search-indice 300 new blocks with semantic search enabled took 751ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 797ms CPU
+
+Testing logseq.api.db-based.property-write-test
+
+Ran 146 tests containing 591 assertions.
+0 failures, 0 errors.

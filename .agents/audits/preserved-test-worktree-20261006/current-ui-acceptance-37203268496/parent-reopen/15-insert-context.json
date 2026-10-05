@@ -1,0 +1,12 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "element_token": "s0000003f:43"
+  },
+  "tool": "right_click",
+  "started_at": "2026-10-04T23:34:36.490536+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"unknown\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

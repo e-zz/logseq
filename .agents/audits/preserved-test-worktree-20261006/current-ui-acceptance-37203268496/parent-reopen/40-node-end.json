@@ -1,0 +1,14 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "element_token": "s00000049:44",
+    "key": "end",
+    "delivery_mode": "foreground"
+  },
+  "tool": "press_key",
+  "started_at": "2026-10-04T23:44:06.768937+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"foreground\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

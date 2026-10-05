@@ -1,0 +1,14 @@
+{
+  "U": {
+    "db-worker-node-20261005.log": "e036dad49c7e14d720443facd03d5ef0e57642806b49f2ad8a4331ba355b2128",
+    "db.sqlite": "52e0037d145e166c2bf36b3bdc18ca165a4ca5984d3e2b9f9690e63c76d59372",
+    "client-ops-\\db.sqlite": "a14e1e6d4b1c5946a2dfb170a5a2211b61fe960b3115c9837b22f24fe5bc0406",
+    "search\\db.sqlite": "f1616e10853db24b3ecd7c6ff0dfbbcae029582f1aa53c7f7b18b22500788e30"
+  },
+  "B": {
+    "db-worker-node-20261005.log": "e036dad49c7e14d720443facd03d5ef0e57642806b49f2ad8a4331ba355b2128",
+    "db.sqlite": "52e0037d145e166c2bf36b3bdc18ca165a4ca5984d3e2b9f9690e63c76d59372",
+    "client-ops-\\db.sqlite": "a14e1e6d4b1c5946a2dfb170a5a2211b61fe960b3115c9837b22f24fe5bc0406",
+    "search\\db.sqlite": "f1616e10853db24b3ecd7c6ff0dfbbcae029582f1aa53c7f7b18b22500788e30"
+  }
+}

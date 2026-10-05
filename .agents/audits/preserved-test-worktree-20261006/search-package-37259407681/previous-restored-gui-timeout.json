@@ -1,0 +1,337 @@
+{
+  "evidence": "Actual new package renderer and production Electron HTTP MCP; synthetic isolated DB.",
+  "tests": [
+    {
+      "name": "exact-isolated-graph",
+      "status": "PASS",
+      "detail": {
+        "url": "logseq_db_search-package-fixture",
+        "name": "logseq_db_search-package-fixture",
+        "path": "D:/orca/workspaces/logseq/issues-human-test-20261003/.agents/audits/search-package-37259407681/parent-runtime/home/logseq/graphs/search-package-fixture"
+      }
+    },
+    {
+      "name": "renderer-default-search-result",
+      "status": "PASS",
+      "detail": {
+        "blocks": [
+          {
+            "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778",
+            "page?": null,
+            "fullTitle": "parentactivecanary3785",
+            "title": "parentactivecanary3785",
+            "content": "parentactivecanary3785",
+            "id": 193,
+            "parent": 192,
+            "page": "6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff"
+          }
+        ],
+        "hasMore?": false,
+        "files": []
+      }
+    },
+    {
+      "name": "renderer-default-publishes-state",
+      "status": "PASS",
+      "detail": {
+        "blocks": [
+          {
+            "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778",
+            "page?": null,
+            "fullTitle": "parentactivecanary3785",
+            "title": "parentactivecanary3785",
+            "content": "parentactivecanary3785",
+            "id": 193,
+            "parent": 192,
+            "page": "6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff"
+          }
+        ],
+        "hasMore?": false,
+        "files": []
+      }
+    },
+    {
+      "name": "mcp-real-search-parentactivecanary3785",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"blocks\":[{\"uuid\":\"82b36d82-ae3a-4a5f-9444-19045176a778\",\"page?\":null,\"fullTitle\":\"parentactivecanary3785\",\"title\":\"parentactivecanary3785\",\"content\":\"parentactivecanary3785\",\"id\":193,\"parent\":192,\"page\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\"}],\"hasMore?\":false,\"files\":[]}"
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 3
+      }
+    },
+    {
+      "name": "mcp-real-search-parentcontrolcanary9432",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"blocks\":[{\"uuid\":\"f760bd34-3909-43b2-9a75-fbbc201f9043\",\"page?\":null,\"fullTitle\":\"parentcontrolcanary9432\",\"title\":\"parentcontrolcanary9432\",\"content\":\"parentcontrolcanary9432\",\"id\":194,\"parent\":192,\"page\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\"}],\"hasMore?\":false,\"files\":[]}"
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 4
+      }
+    },
+    {
+      "name": "mcp-real-search-parentactivecanary3785",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"blocks\":[{\"uuid\":\"82b36d82-ae3a-4a5f-9444-19045176a778\",\"page?\":null,\"fullTitle\":\"parentactivecanary3785\",\"title\":\"parentactivecanary3785\",\"content\":\"parentactivecanary3785\",\"id\":193,\"parent\":192,\"page\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\"}],\"hasMore?\":false,\"files\":[]}"
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 5
+      }
+    },
+    {
+      "name": "mcp-does-not-persistently-overwrite-sentinel",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "blocks": [],
+          "pages": [],
+          "testMarker": "parent-optout-sentinel"
+        },
+        "sampled": [
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          },
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          },
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          },
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          },
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          },
+          {
+            "blocks": [],
+            "pages": [],
+            "testMarker": "parent-optout-sentinel"
+          }
+        ],
+        "limit": "Sampled state stability detects the known persistent overwrite regression, NOT proof of zero transient/same-value writes."
+      }
+    },
+    {
+      "name": "cmdk-direct-DOM-search",
+      "status": "PASS",
+      "detail": {
+        "query": "parentactivecanary3785",
+        "exactNodeText": [
+          "parentactivecanary3785"
+        ],
+        "dom": [
+          "Create page — Create page called 'parentactivecanary3785'",
+          "parentactivecanary3785",
+          "Search only nodes — Add filter to search",
+          "Search only codes — Add filter to search",
+          "Search only commands — Add filter to search",
+          "Search only files — Add filter to search",
+          "Search only themes — Add filter to search"
+        ]
+      }
+    },
+    {
+      "name": "exact-synthetic-recycle-target",
+      "status": "PASS",
+      "detail": {
+        "updatedAt": 1791172544840,
+        "createdAt": 1791172544840,
+        "parent": {
+          "id": 192
+        },
+        "children": [],
+        "id": 193,
+        "level": 1,
+        "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778",
+        "fullTitle": "parentactivecanary3785",
+        "content": "parentactivecanary3785",
+        "order": "a0",
+        "title": "parentactivecanary3785",
+        "page": {
+          "id": 192
+        }
+      }
+    },
+    {
+      "name": "target-uuid-present",
+      "status": "PASS",
+      "detail": {
+        "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778"
+      }
+    },
+    {
+      "name": "recycled-excluded-MCP",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"blocks\":[],\"hasMore?\":false,\"files\":[]}"
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 7
+      }
+    },
+    {
+      "name": "recycled-excluded-CmdK",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "texts": [
+          "Create page — Create page called 'parentactivecanary3785'",
+          "Search only nodes — Add filter to search",
+          "Search only codes — Add filter to search",
+          "Search only commands — Add filter to search",
+          "Search only files — Add filter to search",
+          "Search only themes — Add filter to search"
+        ]
+      }
+    },
+    {
+      "name": "restored-visible-MCP",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"blocks\":[{\"uuid\":\"82b36d82-ae3a-4a5f-9444-19045176a778\",\"page?\":null,\"fullTitle\":\"parentactivecanary3785\",\"title\":\"parentactivecanary3785\",\"content\":\"parentactivecanary3785\",\"id\":193,\"parent\":192,\"page\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\"}],\"hasMore?\":false,\"files\":[]}"
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 9
+      }
+    }
+  ],
+  "limits": [
+    "Sampled state stability detects the known persistent overwrite regression, NOT proof of zero transient/same-value writes.",
+    "Inspector startup adjusted filesystem isolation only; package files unmodified."
+  ],
+  "rawRendererSearch": {
+    "blocks": [
+      {
+        "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778",
+        "page?": null,
+        "fullTitle": "parentactivecanary3785",
+        "title": "parentactivecanary3785",
+        "content": "parentactivecanary3785",
+        "id": 193,
+        "parent": 192,
+        "page": "6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff"
+      }
+    ],
+    "hasMore?": false,
+    "files": []
+  },
+  "toolNames": [
+    "restoreBlock",
+    "getBlock",
+    "recycleBlock",
+    "listTags",
+    "upsertNodes",
+    "listProperties",
+    "listPages",
+    "getPage",
+    "searchBlocks",
+    "getRecycledBlock"
+  ],
+  "fixtureTree": [
+    {
+      "updatedAt": 1791172544840,
+      "createdAt": 1791172544840,
+      "parent": {
+        "id": 192
+      },
+      "children": [],
+      "id": 193,
+      "level": 1,
+      "uuid": "82b36d82-ae3a-4a5f-9444-19045176a778",
+      "fullTitle": "parentactivecanary3785",
+      "content": "parentactivecanary3785",
+      "order": "a0",
+      "title": "parentactivecanary3785",
+      "page": {
+        "id": 192
+      }
+    },
+    {
+      "updatedAt": 1791172545113,
+      "createdAt": 1791172545113,
+      "parent": {
+        "id": 192
+      },
+      "children": [],
+      "id": 194,
+      "level": 1,
+      "uuid": "f760bd34-3909-43b2-9a75-fbbc201f9043",
+      "fullTitle": "parentcontrolcanary9432",
+      "content": "parentcontrolcanary9432",
+      "order": "a1",
+      "title": "parentcontrolcanary9432",
+      "page": {
+        "id": 192
+      }
+    }
+  ],
+  "recycle": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"operation\":\"recycle\",\"state\":\"recycled\",\"no-op\":false,\"root-uuid\":\"82b36d82-ae3a-4a5f-9444-19045176a778\",\"affected-uuids\":[\"82b36d82-ae3a-4a5f-9444-19045176a778\"],\"affected-count\":1,\"deleted-at\":1791173345416,\"page-uuid\":\"00000004-7238-1304-3000-000000000000\"}"
+        }
+      ]
+    },
+    "jsonrpc": "2.0",
+    "id": 6
+  },
+  "restore": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"affected-uuids\":[\"82b36d82-ae3a-4a5f-9444-19045176a778\"],\"operation\":\"restore\",\"state\":\"active\",\"affected-count\":1,\"no-op\":false,\"page-uuid\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\",\"root-uuid\":\"82b36d82-ae3a-4a5f-9444-19045176a778\",\"parent-uuid\":\"6ac31fc0-a121-4ed0-bd7e-36bdc9cfd8ff\",\"position\":\"original\",\"order\":\"original\"}"
+        }
+      ]
+    },
+    "jsonrpc": "2.0",
+    "id": 8
+  },
+  "status": "FAIL_OR_BLOCKED",
+  "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.cp__cmdk-item-main-text').filter({ hasText: /^parentactivecanary3785$/ }) to be visible\u001b[22m\n\n    at guiQueryVisible (D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\verify_parent.cjs:38:318)\n    at async D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-package-37259407681\\verify_parent.cjs:43:18"
+}

@@ -1,0 +1,24 @@
+{
+  "event": "Logseq app window (pid 45964, window 5770950) disappeared during session",
+  "detected_between": ["22:58:10.641", "22:58:40.130"],
+  "last_successful_snapshot": "z2-after-enter (22:58:10) - search modal open, query ISSUE4-11-UI-ACCEPTANCE-A, 48 elements",
+  "subsequent_actions": [
+    "aa1-click-close 22:58:33.001 bg click (1420,25) route=synthetic_events",
+    "aa2-click-close 22:58:35.398 bg click (1420,25) route=synthetic_events",
+    "aa3-click-close 22:58:37.680 bg click (1420,25) route=window_target_not_found REFUSED (window already gone by then)"
+  ],
+  "post_event_state": {
+    "pid_45964": "terminated (not in process list)",
+    "Logseq_processes_remaining": [{"pid": 28764, "responding": true, "main_window_handle": 0, "start_time": "2026-10-04 22:13:26 (helper/renderer without window)"}],
+    "window_5770950": "no longer in list_windows",
+    "mcp_port_12315": "connection refused (app down)",
+    "mcp__logseq__getPage": "TimeoutError after 120s"
+  },
+  "context_notes": [
+    "At 22:55:44 the cua-driver foreground click returned 'foreground_unavailable: exact target HWND 0x580ec6 ... actual foreground HWND 0x1e0938'. 0x1e0938 = 'Jump List for Google Chrome' (pid 37352), an invisible OS jump-list window that permanently held foreground; subsequent foreground dispatches to Logseq were refused, background synthetic events were dropped by the Chromium surface ('background_unavailable').",
+    "The app may have crashed independently of the clicks (no error dialog was visible in any screenshot). db-worker log shows last db activity at 13:45:27Z (=21:45 local, before this session's fixture write).",
+    "IMPORTANT: the earlier successful foreground sequence (22:46-22:54, route=global_input, effect=unverifiable) did drive the app: it opened search, accepted set_value, and moved selection. So the 22:58 synthetic clicks were NOT proven to be the cause; the window vanished in a 30s window and the exact trigger is unrecorded.",
+    "No graph data loss: fixture page + blocks verified present via native MCP getPage BEFORE the crash (see m1/m2 readbacks). No GUI edit operation was ever completed on any block, so no further mutation is expected."
+  ],
+  "recovery": "App must be RESTARTED by the user (parent brief forbids install/restart by worker). After restart, all remaining GUI checks (#4 renumber insert/remove, #11 block-ref/page-ref autocomplete, #14 recycle GUI) are re-runnable against the same fixture without any new MCP write."
+}

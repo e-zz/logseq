@@ -1,0 +1,15 @@
+{
+  "operations": [
+    {
+      "data": {
+        "property-cardinality": "one",
+        "property-type": "date",
+        "title": "CI-ISSUE9-Date-Reference"
+      },
+      "entityType": "property",
+      "id": "ci-issue9-date-reference-definition",
+      "operation": "add"
+    }
+  ],
+  "receipt": false
+}

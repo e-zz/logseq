@@ -1,0 +1,30 @@
+{:ns-groups [{:pattern "frontend.components.*" :name all-components}
+             {:pattern "frontend.*" :name all-frontend}]
+
+ :config-in-ns
+ ;; :used-underscored-binding is turned off for components because of false positive
+ ;; for component macros and _state.
+ {all-components
+  {:linters {:used-underscored-binding {:level :off}}}
+
+  all-frontend
+  {:linters {:discouraged-namespace
+             {logseq.db.common.sqlite-cli {:message "frontend should not depend on CLI namespace with sqlite3 dependency"}
+              logseq.outliner.cli {:message "frontend should not depend on CLI namespace with sqlite3 dependency"}}}}
+
+  ;; false positive with match/match and _
+  frontend.handler.paste {:linters {:used-underscored-binding {:level :off}}}
+  frontend.db {:linters {:aliased-namespace-symbol
+                         {:exclude [frontend.db.conn frontend.db.react]}}}}
+
+ :linters
+ {:path-invalid-construct/string-join {:level :info}
+  :defkeywords/invalid-arg {:level :warning}
+  :regex-checks/double-escaped-regex {:level :warning}
+  :aliased-namespace-symbol {:level :warning}
+  :shadowed-var {:level :warning
+                 :exclude [key val name binding type uuid
+                           ;; FIXME: Remove the shadowed below as shadowing core fns isn't a good practice
+                           ;; FIXME: At least remove the first two lines as they have few uses
+                           re-pattern sequence dispatch-fn comp vec delay chunk
+                           fn t ex-data list int? hash range

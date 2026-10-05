@@ -1,0 +1,187 @@
+{
+  "entries": [
+    {
+      "seq": "pre-discovery-001",
+      "time": "2026-10-04T17:05:00+08:00",
+      "action": "listPages,listProperties,listTags,pre-check getPage",
+      "observations": {
+        "abort_page_test_build_20261004_a": "checked via getPage, expected absent",
+        "new_page_test_demo_20261004_a": "checked via getPage, expected absent",
+        "property_pages": [
+          "TEST-DEMO-CV",
+          "TEST-DEMO-ORCID",
+          "TEST-DEMO-Topics",
+          "TEST-DEMO-Description",
+          "TEST-DEMO-Number",
+          "TEST-DEMO-Checkbox"
+        ],
+        "builtin_task_uuid": "00000002-1282-1814-5700-000000000000",
+        "status_property_uuid": "00000002-9072-1685-3000-000000000000",
+        "status_todo_choice_uuid": "00000002-1615-5853-7700-000000000000",
+        "list_type_property_uuid": "00000002-6078-1711-1000-000000000000",
+        "note": "Raw tool outputs will be appended as separate entries before/after writes; this entry is the discovery summary."
+      }
+    },
+    {
+      "seq": "write-attempt-001",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "upsertNodes attempt 1",
+      "raw": "API Error: Block page-id \"demo-list-heading\" must be a page uuid or the id of a page added in the same call",
+      "finding": "API 实测：block temp id cannot be used as page-id in same call."
+    },
+    {
+      "seq": "write-attempt-002",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "upsertNodes attempt 2",
+      "raw": "API Error: Tool arguments are invalid:\n[nil nil nil {:data {:page-id [\"missing required key\"]}}]",
+      "finding": "API 实测：demo-page op must precede block ops; my second batch had page op later and page-id for first block was omitted by transport. No write happened; this is recorded, no further upsert used to evade the one-write limit."
+    },
+    {
+      "seq": "write-attempt-003-authorized",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "upsertNodes authorized real batch",
+      "raw": "\"Added: {:page 1, :property 6, :block 8}.\"",
+      "finding": "API 实测：added 1 page, 6 property definitions, 8 top-level ordinary blocks; no nested child/grandchild, no true numbered list child structure, no typed property assignments. Receipt was false and independent readback performed."
+    },
+    {
+      "seq": "readback-page",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "getPage TEST-DEMO-20261004-A includeChildren=true maxBlocks=50",
+      "raw": "{\"entity\":{\"created-at\":1791078193102,\"name\":\"test-demo-20261004-a\",\"refs\":[{\"title\":\"Page\",\"uuid\":\"00000002-1484-3403-2900-000000000000\",\"ident\":\"logseq.class/Page\"},{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"}],\"tags\":[{\"title\":\"Page\",\"uuid\":\"00000002-1484-3403-2900-000000000000\",\"ident\":\"logseq.class/Page\"}],\"title\":\"TEST-DEMO-20261004-A\",\"updated-at\":1791078193102,\"uuid\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},\"blocks\":[{\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"order\":\"b1b\"},{\"uuid\":\"69c8cc2b-dc3a-40e1-b133-a0781a131cbb\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项一\",\"order\":\"b1c\"},{\"uuid\":\"76a13258-d931-41c9-a21d-14fd6dbacaed\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项二\",\"order\":\"b1d\"},{\"uuid\":\"0c8fa0e5-fe1b-4d82-ac90-d5be7bd713f5\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项三\",\"order\":\"b1e\"},{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"order\":\"b1f\"},{\"uuid\":\"a4454633-532a-443f-8d3a-d06426f0a1d0\",\"updated-at\":1791078193103,\"refs\":[{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"},{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"created-at\":1791078193103,\"children\":[],\"level\":1,\"tags\":[{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"title\":\"TODO 专用类型属性任务测试\",\"order\":\"b1g\"},{\"uuid\":\"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"专用类型属性测试：等待赋值\",\"order\":\"b1h\"},{\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"order\":\"b1i\"}]}",
+      "finding": "API 实测：page UUID and ordinary block UUIDs verified. All 8 blocks are top-level; children arrays empty. Numbered-list heading has no children and no list-type property assigned. Task block has Task tag only; status value not written. Metadata block unassigned."
+    },
+    {
+      "seq": "readback-properties",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "getPage each property definition",
+      "raw": "TEST-DEMO-CV: {\"entity\":{\"index\":true,\"type\":\"url\",\"uuid\":\"00000002-1190-2949-4400-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-CV\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-CV-RbfvlGoT\",\"order\":\"b1V\",\"name\":\"test-demo-cv\"},\"blocks\":[]}; TEST-DEMO-ORCID: {\"entity\":{\"index\":true,\"type\":\"default\",\"uuid\":\"00000002-2061-0048-5900-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-ORCID\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-ORCID-M52r2vUH\",\"order\":\"b1W\",\"name\":\"test-demo-orcid\"},\"blocks\":[]}; TEST-DEMO-Topics: {\"entity\":{\"index\":true,\"type\":\"node\",\"uuid\":\"00000002-4607-5057-9000-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-Topics\",\"cardinality\":\"many\",\"ident\":\"TEST-DEMO-Topics-WbC-2GIA\",\"order\":\"b1X\",\"name\":\"test-demo-topics\"},\"blocks\":[]}; TEST-DEMO-Description: {\"entity\":{\"index\":true,\"type\":\"default\",\"uuid\":\"00000002-2040-4008-4000-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Description\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Description-K2gf-nxp\",\"order\":\"b1Y\",\"name\":\"test-demo-description\"},\"blocks\":[]}; TEST-DEMO-Number: {\"entity\":{\"index\":true,\"type\":\"number\",\"uuid\":\"00000002-1290-4969-3200-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Number\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Number-C-E06qzn\",\"order\":\"b1Z\",\"name\":\"test-demo-number\"},\"blocks\":[]}; TEST-DEMO-Checkbox: {\"entity\":{\"index\":true,\"type\":\"checkbox\",\"uuid\":\"00000002-1028-8501-4900-000000000000\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Checkbox\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Checkbox-Onx-ezk2\",\"order\":\"b1a\",\"name\":\"test-demo-checkbox\"},\"blocks\":[]}",
+      "finding": "API 实测：six definitions created with requested type/cardinality. No property values were written; definitions-only is not typed-write success."
+    },
+    {
+      "seq": "readback-getblock-ordinary",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "getBlock ordinary targets",
+      "raw": "dddcda42: {\"created-at\":1791078193103,\"order\":\"b1b\",\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 69c8cc2b: {\"created-at\":1791078193103,\"order\":\"b1c\",\"title\":\"编号项一\",\"updated-at\":1791078193103,\"uuid\":\"69c8cc2b-dc3a-40e1-b133-a0781a131cbb\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 76a13258: {\"created-at\":1791078193103,\"order\":\"b1d\",\"title\":\"编号项二\",\"updated-at\":1791078193103,\"uuid\":\"76a13258-d931-41c9-a21d-14fd6dbacaed\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 0c8fa0e5: {\"created-at\":1791078193103,\"order\":\"b1e\",\"title\":\"编号项三\",\"updated-at\":1791078193103,\"uuid\":\"0c8fa0e5-fe1b-4d82-ac90-d5be7bd713f5\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 70ec2dc8: {\"created-at\":1791078193103,\"order\":\"b1f\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; a4454633: {\"uuid\":\"a4454633-532a-443f-8d3a-d06426f0a1d0\",\"updated-at\":1791078193103,\"refs\":[{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"},{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"created-at\":1791078193103,\"tags\":[{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"title\":\"TODO 专用类型属性任务测试\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"order\":\"b1g\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; d8d5836c: {\"created-at\":1791078193103,\"order\":\"b1h\",\"title\":\"专用类型属性测试：等待赋值\",\"updated-at\":1791078193103,\"uuid\":\"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; e6a5a455: {\"created-at\":1791078193103,\"order\":\"b1i\",\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}",
+      "finding": "API 实测：all ordinary nodes are direct children of the page, not property-value pseudochildren. No nested child/grandchild exist because single-call temp block nesting is not permitted."
+    },
+    {
+      "seq": "readback-search-page",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "searchBlocks page scope LQDEMO20261004NESTTOKEN",
+      "raw": "{\"blocks\":[{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"page?\":null,\"fullTitle\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"content\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"id\":307,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},{\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"page?\":null,\"fullTitle\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"content\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"id\":303,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},{\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"page?\":null,\"fullTitle\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"content\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"id\":310,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}],\"hasMore?\":false}",
+      "finding": "API 实测：page-scope search found 3 top-level blocks containing token."
+    },
+    {
+      "seq": "readback-search-exact-parent",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "searchBlocks exact parent scope blockUuid=70ec2dc8",
+      "raw": "{\"blocks\":[{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"page?\":null,\"fullTitle\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"content\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"id\":307,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}],\"hasMore?\":false}",
+      "finding": "API 实测：exact-block scope returned only the target block itself, demonstrating contrast with page scope."
+    },
+    {
+      "seq": "negative-getpage-pageuuid-ordinary-block",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "searchBlocks invalid pageUuid=ordinary block dddcda42",
+      "raw": "API Error: UUID dddcda42-ca26-48c4-8bf5-ad5e939d27b3 does not identify a page",
+      "finding": "API 实测：invalid pageUuid errored instead of falling back."
+    },
+    {
+      "seq": "negative-getblock-property-uuid",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "getBlock property UUID 00000002-1190-2949-4400-000000000000",
+      "raw": "API Error: Entity uuid 00000002-1190-2949-4400-000000000000 is a page, tag, or property, not a block",
+      "finding": "API 实测：property UUID rejected by getBlock."
+    },
+    {
+      "seq": "negative-getrecycledblock-active-test-root",
+      "time": "2026-10-04T09:46:01+08:00",
+      "action": "getRecycledBlock active test root 70ec2dc8",
+      "raw": "API Error: Block uuid 70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda is not recycled",
+      "finding": "API 实测：active ordinary block rejected by getRecycledBlock."
+    },
+    {
+      "seq": "write-attempt-001",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "upsertNodes attempt 1",
+      "raw": "API Error: Block page-id \"demo-list-heading\" must be a page uuid or the id of a page added in the same call",
+      "finding": "API 实测：block temp id cannot be used as page-id in same call."
+    },
+    {
+      "seq": "write-attempt-002",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "upsertNodes attempt 2",
+      "raw": "API Error: Tool arguments are invalid:\n[nil nil nil {:data {:page-id [\"missing required key\"]}}]",
+      "finding": "API 实测：second malformed batch failed validation. No further upserts used to evade the one-write limit."
+    },
+    {
+      "seq": "write-attempt-003-authorized",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "upsertNodes authorized real batch",
+      "raw": "\"Added: {:page 1, :property 6, :block 8}.\"",
+      "finding": "API 实测：added 1 page, 6 property definitions, 8 top-level ordinary blocks; no nested child/grandchild, no true numbered list child structure, no typed property assignments. Independent readback performed."
+    },
+    {
+      "seq": "readback-page",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "getPage TEST-DEMO-20261004-A includeChildren=true maxBlocks=50",
+      "raw": "{\"entity\":{\"created-at\":1791078193102,\"name\":\"test-demo-20261004-a\",\"refs\":[{\"title\":\"Page\",\"uuid\":\"00000002-1484-3403-2900-000000000000\",\"ident\":\"logseq.class/Page\"},{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"}],\"tags\":[{\"title\":\"Page\",\"uuid\":\"00000002-1484-3403-2900-000000000000\",\"ident\":\"logseq.class/Page\"}],\"title\":\"TEST-DEMO-20261004-A\",\"updated-at\":1791078193102,\"uuid\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},\"blocks\":[{\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"order\":\"b1b\"},{\"uuid\":\"69c8cc2b-dc3a-40e1-b133-a0781a131cbb\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项一\",\"order\":\"b1c\"},{\"uuid\":\"76a13258-d931-41c9-a21d-14fd6dbacaed\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项二\",\"order\":\"b1d\"},{\"uuid\":\"0c8fa0e5-fe1b-4d82-ac90-d5be7bd713f5\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"编号项三\",\"order\":\"b1e\"},{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"order\":\"b1f\"},{\"uuid\":\"a4454633-532a-443f-8d3a-d06426f0a1d0\",\"updated-at\":1791078193103,\"refs\":[{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"},{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"created-at\":1791078193103,\"children\":[],\"level\":1,\"tags\":[{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"title\":\"TODO 专用类型属性任务测试\",\"order\":\"b1g\"},{\"uuid\":\"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"专用类型属性测试：等待赋值\",\"order\":\"b1h\"},{\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"updated-at\":1791078193103,\"created-at\":1791078193103,\"children\":[],\"level\":1,\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"order\":\"b1i\"}]}",
+      "finding": "API 实测：page UUID and ordinary block UUIDs verified. All 8 blocks are top-level; children arrays empty. Numbered-list heading has no children and no list-type property assigned. Task block has Task tag only; status value not written. Metadata block unassigned."
+    },
+    {
+      "seq": "readback-properties",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "getPage each property definition",
+      "raw": "TEST-DEMO-CV: {\"entity\":{\"index\":true,\"type\":\"url\",\"uuid\":\"00000002-1190-2949-4400-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-CV\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-CV-RbfvlGoT\",\"order\":\"b1V\",\"name\":\"test-demo-cv\"},\"blocks\":[]}; TEST-DEMO-ORCID: {\"entity\":{\"index\":true,\"type\":\"default\",\"uuid\":\"00000002-2061-0048-5900-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-ORCID\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-ORCID-M52r2vUH\",\"order\":\"b1W\",\"name\":\"test-demo-orcid\"},\"blocks\":[]}; TEST-DEMO-Topics: {\"entity\":{\"index\":true,\"type\":\"node\",\"uuid\":\"00000002-4607-5057-9000-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193101,\"created-at\":1791078193101,\"title\":\"TEST-DEMO-Topics\",\"cardinality\":\"many\",\"ident\":\"TEST-DEMO-Topics-WbC-2GIA\",\"order\":\"b1X\",\"name\":\"test-demo-topics\"},\"blocks\":[]}; TEST-DEMO-Description: {\"entity\":{\"index\":true,\"type\":\"default\",\"uuid\":\"00000002-2040-4008-4000-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Description\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Description-K2gf-nxp\",\"order\":\"b1Y\",\"name\":\"test-demo-description\"},\"blocks\":[]}; TEST-DEMO-Number: {\"entity\":{\"index\":true,\"type\":\"number\",\"uuid\":\"00000002-1290-4969-3200-000000000000\",\"valueType\":\"ref\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Number\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Number-C-E06qzn\",\"order\":\"b1Z\",\"name\":\"test-demo-number\"},\"blocks\":[]}; TEST-DEMO-Checkbox: {\"entity\":{\"index\":true,\"type\":\"checkbox\",\"uuid\":\"00000002-1028-8501-4900-000000000000\",\"updated-at\":1791078193102,\"created-at\":1791078193102,\"title\":\"TEST-DEMO-Checkbox\",\"cardinality\":\"one\",\"ident\":\"TEST-DEMO-Checkbox-Onx-ezk2\",\"order\":\"b1a\",\"name\":\"test-demo-checkbox\"},\"blocks\":[]}",
+      "finding": "API 实测：six definitions created with requested type/cardinality. No property values were written; definitions-only is not typed-write success."
+    },
+    {
+      "seq": "readback-getblock-ordinary",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "getBlock ordinary targets",
+      "raw": "dddcda42: {\"created-at\":1791078193103,\"order\":\"b1b\",\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 69c8cc2b: {\"created-at\":1791078193103,\"order\":\"b1c\",\"title\":\"编号项一\",\"updated-at\":1791078193103,\"uuid\":\"69c8cc2b-dc3a-40e1-b133-a0781a131cbb\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 76a13258: {\"created-at\":1791078193103,\"order\":\"b1d\",\"title\":\"编号项二\",\"updated-at\":1791078193103,\"uuid\":\"76a13258-d931-41c9-a21d-14fd6dbacaed\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 0c8fa0e5: {\"created-at\":1791078193103,\"order\":\"b1e\",\"title\":\"编号项三\",\"updated-at\":1791078193103,\"uuid\":\"0c8fa0e5-fe1b-4d82-ac90-d5be7bd713f5\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; 70ec2dc8: {\"created-at\":1791078193103,\"order\":\"b1f\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; a4454633: {\"uuid\":\"a4454633-532a-443f-8d3a-d06426f0a1d0\",\"updated-at\":1791078193103,\"refs\":[{\"title\":\"Tags\",\"uuid\":\"00000002-1814-9483-4000-000000000000\",\"ident\":\"block/tags\"},{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"created-at\":1791078193103,\"tags\":[{\"title\":\"Task\",\"uuid\":\"00000002-1282-1814-5700-000000000000\",\"ident\":\"logseq.class/Task\"}],\"title\":\"TODO 专用类型属性任务测试\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"order\":\"b1g\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; d8d5836c: {\"created-at\":1791078193103,\"order\":\"b1h\",\"title\":\"专用类型属性测试：等待赋值\",\"updated-at\":1791078193103,\"uuid\":\"d8d5836c-5a3c-4fe8-8258-f0edd7d3c706\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}; e6a5a455: {\"created-at\":1791078193103,\"order\":\"b1i\",\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"updated-at\":1791078193103,\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"parent\":\"63bab91a-013d-44df-afb7-4c83026b03ef\",\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}",
+      "finding": "API 实测：all ordinary nodes are direct children of the page, not property-value pseudochildren. No nested child/grandchild exist because single-call temp block nesting is not permitted and one-write limit prevented follow-up with real UUIDs."
+    },
+    {
+      "seq": "readback-search-page",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "searchBlocks page scope LQDEMO20261004NESTTOKEN",
+      "raw": "{\"blocks\":[{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"page?\":null,\"fullTitle\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"content\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"id\":307,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},{\"uuid\":\"dddcda42-ca26-48c4-8bf5-ad5e939d27b3\",\"page?\":null,\"fullTitle\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"title\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"content\":\"编号列表标题 LQDEMO20261004NESTTOKEN\",\"id\":303,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"},{\"uuid\":\"e6a5a455-812d-4672-ae8f-7c0a5e3633c0\",\"page?\":null,\"fullTitle\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"title\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"content\":\"关键词对照块 LQDEMO20261004NESTTOKEN\",\"id\":310,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}],\"hasMore?\":false}",
+      "finding": "API 实测：page-scope search found 3 top-level blocks containing token."
+    },
+    {
+      "seq": "readback-search-exact-parent",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "searchBlocks exact parent scope blockUuid=70ec2dc8",
+      "raw": "{\"blocks\":[{\"uuid\":\"70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda\",\"page?\":null,\"fullTitle\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"title\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"content\":\"测试父块 LQDEMO20261004NESTTOKEN\",\"id\":307,\"parent\":302,\"page\":\"63bab91a-013d-44df-afb7-4c83026b03ef\"}],\"hasMore?\":false}",
+      "finding": "API 实测：exact-block scope returned only the target block itself, demonstrating contrast with page scope."
+    },
+    {
+      "seq": "negative-getpage-pageuuid-ordinary-block",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "searchBlocks invalid pageUuid=ordinary block dddcda42",
+      "raw": "API Error: UUID dddcda42-ca26-48c4-8bf5-ad5e939d27b3 does not identify a page",
+      "finding": "API 实测：invalid pageUuid errored instead of falling back."
+    },
+    {
+      "seq": "negative-getblock-property-uuid",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "getBlock property UUID 00000002-1190-2949-4400-000000000000",
+      "raw": "API Error: Entity uuid 00000002-1190-2949-4400-000000000000 is a page, tag, or property, not a block",
+      "finding": "API 实测：property UUID rejected by getBlock."
+    },
+    {
+      "seq": "negative-getrecycledblock-active-test-root",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "getRecycledBlock active test root 70ec2dc8",
+      "raw": "API Error: Block uuid 70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda is not recycled",
+      "finding": "API 实测：active ordinary block rejected by getRecycledBlock."
+    },
+    {
+      "seq": "snapshot-attempt",
+      "time": "2026-10-04T09:48:51+08:00",
+      "action": "computer_use capture once",
+      "raw": "error: computer_use backend unavailable: Feature 'tool.computer_use' unavailable: install reported success but packages still not importable (may require Python restart). To enable manually: uv pip install 'mcp==2.0.0' 'httpx2==2.7.0'  (or: pip install 'mcp==2.0.0' 'httpx2==2.7.0'). hint: If the cua-driver binary is missing, run `hermes computer-use install`. If a Python dependency is missing, the error above shows the exact install command.",
+      "finding": "UI 未验：一次截图尝试失败；未安装、未重配置、未声称 UI 通过。请用户通过 parent 截图或修复 backend 后再做 UI 观察。"
+    }
+  ]
+}

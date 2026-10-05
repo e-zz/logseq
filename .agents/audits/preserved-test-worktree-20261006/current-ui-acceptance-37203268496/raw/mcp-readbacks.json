@@ -1,0 +1,21 @@
+{
+  "note": "Native readonly MCP readbacks captured around this session (transport: mcp__logseq__*).",
+  "pre_page_A_full_tree": {
+    "time_local": "2026-10-04 ~22:39",
+    "call": "getPage(63bab91a-013d-44df-afb7-4c83026b03ef, includeChildren=true, maxBlocks=200)",
+    "verified": "TEST-DEMO-20261004-A page intact: 12 top-level blocks + descendants, all stable UUIDs present (编号项一 69c8cc2b..., 编号项二 76a13258..., 编号项三 0c8fa0e5..., CI-FORWARD-REF-PARENT a855d7ad..., asset 6ac2457e...). Number-list property value node uuid 6ac1b25e-2986-4a8c-a736-bdc69e13ce48 (number) referenced by 编号项一/编号项三.",
+    "source": "conversation tool result (also in parent's records)"
+  },
+  "post_write_fixture_page": {
+    "time_local": "2026-10-04 ~22:42:10",
+    "call": "getPage(ISSUE4-11-UI-FIXTURE-20261004) + getPage(847b0ac1-3e7e-41aa-806b-00f424db2dd0, includeChildren=true)",
+    "verified": "page uuid 847b0ac1-3e7e-41aa-806b-00f424db2dd0; blocks A/B/C uuids fcbead8c-4e4c-48a0-a9de-4eb0375c5ccc / 0a7ceec6-854b-48aa-a15b-998d7633a99b / 56f8da78-b4f6-4d6f-825a-0f2929e50a7e; raw titles have NO numeric prefix; each has order-list-type -> number value node (6ac265b4-b501-4be3-9aad-517db92e0c4c / -9dae... / -c3f9...).",
+    "source": "conversation tool result"
+  },
+  "listProperties": {
+    "verified": "List type property: ident logseq.property/order-list-type, uuid 00000002-6078-1711-1000-000000000000, type default, valueType ref, view-context never, built-in true."
+  },
+  "listPages_after_write": {
+    "verified": "ISSUE4-11-UI-FIXTURE-20261004 (847b0ac1...) present in active page list; no recycled pages touched."
+  }
+}

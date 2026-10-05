@@ -1,0 +1,23 @@
+{
+  "operations": [
+    {
+      "data": {
+        "title": "ISSUE4-BULLET-REJECT-SHOULD-NOT-COMMIT"
+      },
+      "entityType": "block",
+      "id": "69c8cc2b-dc3a-40e1-b133-a0781a131cbb",
+      "operation": "edit"
+    },
+    {
+      "data": {
+        "properties": {
+          "00000002-6078-1711-1000-000000000000": "bullet"
+        }
+      },
+      "entityType": "block",
+      "id": "69c8cc2b-dc3a-40e1-b133-a0781a131cbb",
+      "operation": "edit"
+    }
+  ],
+  "receipt": true
+}

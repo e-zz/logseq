@@ -1,0 +1,54 @@
+{
+  "tool": "getBlock",
+  "input": {
+    "uuid": "2834bd67-ba5d-4737-acf1-5ddb4913cee7"
+  },
+  "response": {
+    "deadline": 1791091897093,
+    "uuid": "2834bd67-ba5d-4737-acf1-5ddb4913cee7",
+    "updated-at": 1791111639712,
+    "status": {
+      "title": "Done",
+      "uuid": "00000002-1827-5820-8200-000000000000",
+      "ident": "logseq.property/status.done"
+    },
+    "refs": [
+      {
+        "title": "Tags",
+        "uuid": "00000002-1814-9483-4000-000000000000",
+        "ident": "block/tags"
+      },
+      {
+        "title": "Status",
+        "uuid": "00000002-9072-1685-3000-000000000000",
+        "ident": "logseq.property/status"
+      },
+      {
+        "title": "Deadline",
+        "uuid": "00000002-1685-9016-0400-000000000000",
+        "ident": "logseq.property/deadline"
+      },
+      {
+        "title": "Task",
+        "uuid": "00000002-1282-1814-5700-000000000000",
+        "ident": "logseq.class/Task"
+      },
+      {
+        "title": "Oct 4th, 2026",
+        "uuid": "00000001-2026-1004-0000-000000000000"
+      }
+    ],
+    "created-at": 1791111639712,
+    "tags": [
+      {
+        "title": "Task",
+        "uuid": "00000002-1282-1814-5700-000000000000",
+        "ident": "logseq.class/Task"
+      }
+    ],
+    "title": "CI-ISSUE7-TASK-STATUS-ON-ADD",
+    "parent": "63bab91a-013d-44df-afb7-4c83026b03ef",
+    "order": "b1z",
+    "page": "63bab91a-013d-44df-afb7-4c83026b03ef"
+  }
+}

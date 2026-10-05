@@ -1,0 +1,4 @@
+Testing frontend.worker.search-test
+
+Ran 79 tests containing 300 assertions.
+0 failures, 0 errors.

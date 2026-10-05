@@ -1,0 +1,250 @@
+{
+  "entity": {
+    "TEST-DEMO-CV-RbfvlGoT": {
+      "title": "https://example.org/demo-page",
+      "uuid": "6ac1b25e-548b-455a-99bf-558554da3b72"
+    },
+    "TEST-DEMO-Checkbox-Onx-ezk2": false,
+    "uuid": "63bab91a-013d-44df-afb7-4c83026b03ef",
+    "updated-at": 1791079006227,
+    "refs": [
+      {
+        "title": "Page",
+        "uuid": "00000002-1484-3403-2900-000000000000",
+        "ident": "logseq.class/Page"
+      },
+      {
+        "title": "Tags",
+        "uuid": "00000002-1814-9483-4000-000000000000",
+        "ident": "block/tags"
+      },
+      {
+        "title": "TEST-DEMO-CV",
+        "uuid": "00000002-1190-2949-4400-000000000000",
+        "ident": "user.property/TEST-DEMO-CV-RbfvlGoT"
+      },
+      {
+        "title": "TEST-DEMO-Number",
+        "uuid": "00000002-1290-4969-3200-000000000000",
+        "ident": "user.property/TEST-DEMO-Number-C-E06qzn"
+      },
+      {
+        "title": "TEST-DEMO-Checkbox",
+        "uuid": "00000002-1028-8501-4900-000000000000",
+        "ident": "user.property/TEST-DEMO-Checkbox-Onx-ezk2"
+      }
+    ],
+    "created-at": 1791078193102,
+    "tags": [
+      {
+        "title": "Page",
+        "uuid": "00000002-1484-3403-2900-000000000000",
+        "ident": "logseq.class/Page"
+      }
+    ],
+    "title": "TEST-DEMO-20261004-A",
+    "TEST-DEMO-Number-C-E06qzn": {
+      "value": 7,
+      "uuid": "6ac1b25e-f48c-4526-8639-314d19423584"
+    },
+    "name": "test-demo-20261004-a"
+  },
+  "blocks": [
+    {
+      "uuid": "dddcda42-ca26-48c4-8bf5-ad5e939d27b3",
+      "updated-at": 1791078193103,
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "title": "编号列表标题 LQDEMO20261004NESTTOKEN",
+      "order": "b1b"
+    },
+    {
+      "uuid": "69c8cc2b-dc3a-40e1-b133-a0781a131cbb",
+      "updated-at": 1791079006228,
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "title": "编号项一",
+      "order-list-type": {
+        "title": "number",
+        "uuid": "6ac1b25e-2986-4a8c-a736-bdc69e13ce48"
+      },
+      "order": "b1c"
+    },
+    {
+      "uuid": "76a13258-d931-41c9-a21d-14fd6dbacaed",
+      "updated-at": 1791079006228,
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "title": "编号项二",
+      "order-list-type": {
+        "title": "number",
+        "uuid": "6ac1b25e-fcdc-4ee0-82d6-8044b1100c8c"
+      },
+      "order": "b1d"
+    },
+    {
+      "uuid": "0c8fa0e5-fe1b-4d82-ac90-d5be7bd713f5",
+      "updated-at": 1791079006228,
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "title": "编号项三",
+      "order-list-type": {
+        "title": "number",
+        "uuid": "6ac1b25e-8198-4e02-af39-eb97c6ae21ef"
+      },
+      "order": "b1e"
+    },
+    {
+      "uuid": "70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda",
+      "updated-at": 1791078193103,
+      "created-at": 1791078193103,
+      "children": [
+        {
+          "uuid": "d00c2214-fa31-44af-bbea-7f5f9a7c45b9",
+          "updated-at": 1791079006227,
+          "created-at": 1791079006227,
+          "children": [
+            {
+              "uuid": "61859851-aec0-4973-9543-8c4d5bf2c802",
+              "updated-at": 1791079006227,
+              "created-at": 1791079006227,
+              "children": [],
+              "level": 3,
+              "title": "测试孙块 LQDEMO20261004NESTTOKEN",
+              "order": "b1m"
+            }
+          ],
+          "level": 2,
+          "title": "测试子块 LQDEMO20261004NESTTOKEN",
+          "order": "b1l"
+        }
+      ],
+      "level": 1,
+      "title": "测试父块 LQDEMO20261004NESTTOKEN",
+      "order": "b1f"
+    },
+    {
+      "uuid": "a4454633-532a-443f-8d3a-d06426f0a1d0",
+      "updated-at": 1791080520810,
+      "status": {
+        "title": "Done",
+        "uuid": "00000002-1827-5820-8200-000000000000",
+        "ident": "logseq.property/status.done"
+      },
+      "refs": [
+        {
+          "title": "Tags",
+          "uuid": "00000002-1814-9483-4000-000000000000",
+          "ident": "block/tags"
+        },
+        {
+          "title": "Status",
+          "uuid": "00000002-9072-1685-3000-000000000000",
+          "ident": "logseq.property/status"
+        },
+        {
+          "title": "Task",
+          "uuid": "00000002-1282-1814-5700-000000000000",
+          "ident": "logseq.class/Task"
+        }
+      ],
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "tags": [
+        {
+          "title": "Task",
+          "uuid": "00000002-1282-1814-5700-000000000000",
+          "ident": "logseq.class/Task"
+        }
+      ],
+      "title": "专用类型属性任务测试",
+      "order": "b1g"
+    },
+    {
+      "TEST-DEMO-CV-RbfvlGoT": {
+        "title": "https://example.org/demo-cv-updated",
+        "uuid": "6ac1b848-b419-4463-b5fd-10876e93cf21"
+      },
+      "TEST-DEMO-Checkbox-Onx-ezk2": false,
+      "uuid": "d8d5836c-5a3c-4fe8-8258-f0edd7d3c706",
+      "updated-at": 1791080520810,
+      "refs": [
+        {
+          "title": "TEST-DEMO-CV",
+          "uuid": "00000002-1190-2949-4400-000000000000",
+          "ident": "user.property/TEST-DEMO-CV-RbfvlGoT"
+        },
+        {
+          "title": "TEST-DEMO-ORCID",
+          "uuid": "00000002-2061-0048-5900-000000000000",
+          "ident": "user.property/TEST-DEMO-ORCID-M52r2vUH"
+        },
+        {
+          "title": "TEST-DEMO-Topics",
+          "uuid": "00000002-4607-5057-9000-000000000000",
+          "ident": "user.property/TEST-DEMO-Topics-WbC-2GIA"
+        },
+        {
+          "title": "TEST-DEMO-Description",
+          "uuid": "00000002-2040-4008-4000-000000000000",
+          "ident": "user.property/TEST-DEMO-Description-K2gf-nxp"
+        },
+        {
+          "title": "TEST-DEMO-Number",
+          "uuid": "00000002-1290-4969-3200-000000000000",
+          "ident": "user.property/TEST-DEMO-Number-C-E06qzn"
+        },
+        {
+          "title": "TEST-DEMO-Checkbox",
+          "uuid": "00000002-1028-8501-4900-000000000000",
+          "ident": "user.property/TEST-DEMO-Checkbox-Onx-ezk2"
+        }
+      ],
+      "created-at": 1791078193103,
+      "children": [],
+      "TEST-DEMO-Topics-WbC-2GIA": [
+        {
+          "title": "测试父块 LQDEMO20261004NESTTOKEN",
+          "uuid": "70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda"
+        },
+        {
+          "title": "关键词对照块 LQDEMO20261004EDITTOKEN",
+          "uuid": "e6a5a455-812d-4672-ae8f-7c0a5e3633c0"
+        },
+        {
+          "title": "测试子块 LQDEMO20261004NESTTOKEN",
+          "uuid": "d00c2214-fa31-44af-bbea-7f5f9a7c45b9"
+        }
+      ],
+      "level": 1,
+      "title": "专用类型属性测试：等待赋值",
+      "TEST-DEMO-Description-K2gf-nxp": {
+        "title": "专用类型属性真实赋值测试",
+        "uuid": "6ac1b25e-9e0b-4d5b-843c-337fcd56079c"
+      },
+      "TEST-DEMO-ORCID-M52r2vUH": {
+        "title": "TEST-ORCID-NOT-A-REAL-ID",
+        "uuid": "6ac1b25e-af03-4e06-bb08-3c1325121cd2"
+      },
+      "order": "b1h",
+      "TEST-DEMO-Number-C-E06qzn": {
+        "value": 0,
+        "uuid": "6ac1b848-3c14-482c-9e56-afb2e167e749"
+      }
+    },
+    {
+      "uuid": "e6a5a455-812d-4672-ae8f-7c0a5e3633c0",
+      "updated-at": 1791079006228,
+      "created-at": 1791078193103,
+      "children": [],
+      "level": 1,
+      "title": "关键词对照块 LQDEMO20261004EDITTOKEN",
+      "order": "b1i"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+compile-cljs job raw-log excerpt, quoted verbatim from the real downloaded log (no rewording).
+Full log: .agents/audits/upstream-ci-37321968445/compile-checkout.raw.log (local only; .gitignore *.log).
+Full log sha256: 2d2b6e106cfe84c22dd2b5e8450298194d4038b7ddc8d93c1f4e88d529f5ee55  bytes: 217409
+Job: compile-cljs (id 111803045090), run 37321968445, repo e-zz/logseq.
+Reproduce: gh run view 37321968445 --repo e-zz/logseq --log --job=111803045090
+
+40: ##[group]Run actions/checkout@v4
+42:   ref: 22a29b30dee3b3930cf49bba50454650c31d2a07
+104: [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 22a29b30dee3b3930cf49bba50454650c31d2a07
+106:  * branch            22a29b30dee3b3930cf49bba50454650c31d2a07 -> FETCH_HEAD
+114: Note: switching to '22a29b30dee3b3930cf49bba50454650c31d2a07'.
+131: HEAD is now at 22a29b3 fix: resolve uuid refs in search results, breadcrumbs, and nested page refs (#13580)
+
+Conclusion: the compile job checked out and built source 22a29b30dee3b3930cf49bba50454650c31d2a07 (upstream master tip),
+not the workflow execution ref 7b1ae92ee1eb1679b8bb827d12d7e76e22d4d5c5.

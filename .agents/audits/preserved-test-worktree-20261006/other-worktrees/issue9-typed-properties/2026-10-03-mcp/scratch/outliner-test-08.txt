@@ -1,0 +1,30 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+Running tests in #{"test"}
+
+Testing logseq.outliner.copy-paste-nested-test
+
+Testing logseq.outliner.core-test
+
+Testing logseq.outliner.cut-paste-property-test
+
+Testing logseq.outliner.move-property-value-undo-test
+
+Testing logseq.outliner.op-construct-test
+
+Testing logseq.outliner.op-test
+
+Testing logseq.outliner.page-test
+
+Testing logseq.outliner.pipeline-test
+
+Testing logseq.outliner.property-test
+
+Testing logseq.outliner.recycle-test
+
+Testing logseq.outliner.tree-test
+
+Testing logseq.outliner.validate-test
+
+Ran 152 tests containing 754 assertions.
+0 failures, 0 errors.

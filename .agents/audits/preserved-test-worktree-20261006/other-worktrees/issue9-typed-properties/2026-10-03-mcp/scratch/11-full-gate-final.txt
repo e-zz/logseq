@@ -1,0 +1,910 @@
+clojure -M:clj-kondo --parallel --lint src --cache false
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> logseq@0.0.1 cljs:test D:\orca\workspaces\logseq\issue9-typed-properties
+> clojure -M:test compile db-worker-node test
+
+........................................................................................................................................................................[:db-worker-node] Compiling ...
+git describe --long --always --dirty
+.:shadow.hooks/build-metadata-hook {:revision "f2958757d2-dirty", :build-time "2026-10-03T09:00:56.346864500Z"}
+.................................................................................................WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor (file:/C:/Users/zhang/.m2/repository/com/google/javascript/closure-compiler/v20250820/closure-compiler-v20250820.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+.................................................................................................................................................................................................................................................................................................................[:db-worker-node] Build completed. (441 files, 0 compiled, 0 warnings, 8.52s)
+[:test] Compiling ...
+:shadow.hooks/build-metadata-hook {:revision "test-revision", :build-time "test-build-time"}
+.....................................................................................................................................................................................[:test] Build completed. (1381 files, 6 compiled, 0 warnings, 11.62s)
+
+src\test\electron\mcp_server_test.cljs:54:27: info: Redundant boolean coercion - expression already has type boolean
+linting took 26942ms, errors: 0, warnings: 0
+bb lint:carve
+...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+Testing electron.cli-install-test
+
+Testing frontend.components.cmdk.list-item-test
+
+Testing frontend.components.settings-test
+
+Testing frontend.handler-test
+
+Testing frontend.handler.query.builder-test
+
+Testing frontend.worker.commands-test
+
+Testing frontend.handler.editor-test
+
+Testing frontend.worker.db-core-test
+
+Testing frontend.handler.editor-async-test
+
+Testing frontend.components.block.drop-boundary-test
+
+Ran 1 tests containing 2 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.sync.client-op-test
+
+Testing logseq.common.graph-test
+
+Ran 39 tests containing 164 assertions.
+0 failures, 0 errors.
+
+Ran 105 tests containing 286 assertions.
+0 failures, 0 errors.
+
+Ran 33 tests containing 99 assertions.
+0 failures, 0 errors.
+
+Testing electron.core-test
+
+Testing frontend.components.cmdk.scroll-test
+
+Testing frontend.components.shortcut-test
+
+Testing frontend.handler.assets-test
+
+Testing frontend.handler.reaction-test
+
+Testing frontend.handler.db-based.page-test
+
+Ran 5 tests containing 6 assertions.
+0 failures, 0 errors.
+
+Testing electron.db-test
+
+Testing frontend.components.cmdk.state-test
+
+Testing frontend.components.theme-test
+
+Testing frontend.handler.block-test
+
+Testing frontend.worker.db-listener-test
+
+Testing frontend.handler.repo-config-test
+
+Testing frontend.worker.db-sync-test
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:stage :sync-db-to-main-thread, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :outliner-op :save-block, :tx-count 3, :pipeline-ms 0.0441000000009808, :delta-ms 1.5961000000006607, :broadcast-ms 0.037299999999959255}, :line 45}
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:outliner-op :save-block, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :stage :db-listener-complete, :total-ms 4.153299999999945, :tx-count 3, :handlers-ms [[:db-sync 0.042100000000573345]], :persist-ms 0.057800000000497676, :sync-main-ms 1.8049000000009983, :checksum-ms 0.08759999999892898}, :line 45}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: deferred listener failed]}, :line 210}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: async deferred listener failed]}, :line 210}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :update-checksum, :outliner-op nil, :error #object[Error Error: checksum failed]}, :line 210}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :persist-local-tx, :outliner-op nil, :error #object[Error Error: persist failed]}, :line 210}
+
+Testing frontend.worker.sync.crypt-test
+[frontend.worker.sync.util] {:db-sync/missing-field {:base "https://example.com", :field :encrypted-private-key}, :line 14}
+[frontend.worker.sync.crypt] {:db-sync/user-rsa-key-cache-invalid {:base "https://sync.example.test", :user-id "user-1", :graph-id nil, :first-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}, :retry-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}}, :line 550}
+[frontend.worker.sync.crypt] {:db-sync/user-rsa-key-cache-invalid {:base "https://sync.example.test", :user-id "user-1", :graph-id nil, :first-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}, :retry-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}}, :line 550}
+[frontend.worker.sync.util] {:db-sync/missing-e2ee-password {:code :db-sync/missing-e2ee-password, :field :e2ee-password, :reason :missing-refresh-token, :hint "Run logseq login first."}, :line 14}
+[frontend.worker.sync.util] {:db-sync/missing-e2ee-password {:code :db-sync/missing-e2ee-password, :field :e2ee-password, :reason :missing-refresh-token, :hint "Run logseq login first."}, :line 14}
+
+Testing logseq.common.util.macro-test
+
+Ran 82 tests containing 273 assertions.
+0 failures, 0 errors.
+
+Testing frontend.handler.editor-lifecycle-test
+
+Ran 1 tests containing 2 assertions.
+0 failures, 0 errors.
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :db-path "/db.sqlite"}, :line 569}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :search-path "search/db.sqlite"}, :line 575}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :client-ops-path "client-ops-/db.sqlite"}, :line 586}
+
+Testing electron.db-worker-manager-test
+
+Testing frontend.components.datepicker-test
+
+Testing frontend.components.views-test
+
+Testing frontend.handler.route-test
+
+Testing electron.embedding-server-test
+
+Testing frontend.components.dialog-test
+
+Testing frontend.config-test
+
+Testing frontend.handler.comments-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.db-worker-node-test
+
+Ran 7 tests containing 18 assertions.
+0 failures, 0 errors.
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :db-path "/db.sqlite"}, :line 569}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :search-path "search/db.sqlite"}, :line 575}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :client-ops-path "client-ops-/db.sqlite"}, :line 586}
+Worker db transact: 55.194ms
+[frontend.worker.db-worker-node] {:db-worker-node-version {:build-time "test-build-time", :revision "test-revision"}, :line 602}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-eUVEcw\\db-worker-log-version", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+apply outliner ops: 40.216ms
+bb lint:large-vars
+[frontend.worker.db-core] {:db-worker/init-service {:graph "graph-b", :prev-graph "graph-a", :import-type nil}, :line 1045}
+...........................................................................................................Worker db transact: 0.713ms
+..............................................................[frontend.worker.db-core] {:db-worker/wal-checkpoint-failed {:error #object[Error Error: checkpoint failed], :repo "test-repo"}, :line 151}
+............................123
+.............................[frontend.worker.db-core] {:import-file-stat {:fs-path "pages/Home.md", :error #object[Error Error: ENOENT: no such file or directory, stat 'D:\orca\workspaces\logseq\issue9-typed-properties\pages\Home.md']}, :line 336}
+...........................................................................Worker db transact: 66.596ms
+...................
+Testing frontend.rfx-test
+
+Ran 12 tests containing 20 assertions.
+0 failures, 0 errors.
+......................................................Worker db transact: 33.662ms
+.................[frontend.worker.db-core] {:read-import-file {:fs-path "/tmp/graph/pages/Missing.md", :error #object[Error Error: ENOENT]}, :line 312}
+.....................[frontend.worker.db-core] {:import-ignored-files {:count 1}, :line 246}
+...................................................................apply outliner ops: 25.897ms
+..........................................................................................................................................................................................
+Testing electron.graph-switch-flow-test
+
+Testing frontend.components.editor-test
+
+Testing frontend.context.i18n-test
+
+Testing frontend.handler.common-test
+
+Testing frontend.handler.ui-test
+...
+Testing frontend.worker.db-worker-test
+..[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "test-db-worker-repo", :graph-id "graph-failure-1", :graph-e2ee? false, :stage :prepare-import, :error #error {:message "stream failed", :data {:code :stream-failed}}, :error-stack "Error: stream failed\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\db_worker_test.cljs:471:95)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)\n    at transition (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:360:12)\n    at PromiseImpl.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:144:9)", :error-cause nil}, :line 549}
+
+Testing frontend.worker.sync.util-test
+
+Testing logseq.db.common-sqlite-test
+
+Ran 49 tests containing 166 assertions.
+0 failures, 0 errors.
+
+Testing frontend.handler.code-test
+
+Testing frontend.handler.repo-test
+[frontend.handler.repo] {:graph-create-failed {:error #error {:message "persist failed", :data {:code :persist-failed}}}, :line 182}
+"New db created: " "logseq_db_created"
+."New db created: " "logseq_db_imported"
+
+Testing frontend.worker.db-validate-test
+........................apply outliner ops: 5.927s
+:debug :entity {:block/tx-id 1, :kv/value 1, :block/uuid #uuid "47c091cb-6dbc-4a83-8449-3784ba15b237", :block/updated-at 2, :logseq.property.class/extends #{1}, :block/created-at 1, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "imported", :db/id 192, :db/ident :user.class/imported, :block/name "imported"} :error {:dispatch-key :class, :errors {5 {:kv/value {"class-page" ["disallowed key" "disallowed key"]}, :db/ident ["should be :logseq.class/Root"], :logseq.property.class/extends {"class-page" ["disallowed key"]}}}}
+:debug :entity {:block/tx-id 1, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791018174655, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791018174655, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/order "aR", :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+:debug :entity {:block/created-at 1, :block/journal-day 20260504, :block/name "2026-05-04", :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{167} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "2026-05-04", :block/tx-id 1, :block/uuid #uuid "29e5a444-761e-4602-95af-d9904ecf8f31", :db/id 191} :error {:dispatch-key :normal-page, :errors {191 {:block/updated-at {"normal-page" ["missing required key"]}}}}
+.:debug :entity {:block/tx-id 536870918, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791018174655, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791018174655, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+.......:debug :entity {:block/tx-id 536870920, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791018174655, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791018174655, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+.................................................Worker db transact: 40.591ms
+:debug :entity {:block/created-at 1, :block/order "a0", :block/page {:block/name "test page", :db/id 191, :block/created-at 1, :block/tags [:logseq.class/Page]}, :block/parent 191, :block/title "", :block/updated-at 2, :db/id 192} :error {:dispatch-key nil, :errors {5 ["invalid dispatch value"]}}
+Worker db transact: 44.203ms
+[frontend.worker.handler.transaction] {:frontend.worker.handler.transaction/apply-outliner-ops-failed #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :line 153}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :validation-error, :error #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :message "Can't set tag with built-in #Journal", :method :thread-api/apply-outliner-ops}, :line 329}
+
+Ran 147 tests containing 1601 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.sync.restart-test
+[frontend.worker.sync] {:db-sync/ws-closed {:repo "stale-repo"}, :line 261}
+[frontend.worker.sync] {:db-sync/ws-reconnect-scheduled {:repo "stale-repo", :delay 1207, :attempt 0, :reason :close}, :line 247}
+[frontend.worker.sync] {:db-sync/start-skipped {:repo "missing-local-tx-repo", :graph-id "graph-1", :base "wss://sync.example.test/sync/color:black", :reason :client-op-not-ready}, :line 397}%c
+[frontend.worker.sync] {:db-sync/connect! {:repo "stale-repo", :token-exists? true}, :line 331}
+[frontend.worker.sync] {:db-sync/ws-stale-closed {:repo "stale-repo", :ready-state 3}, :line 298}
+
+Testing logseq.db-worker.graph-backup-test
+
+Ran 130 tests containing 529 assertions.
+0 failures, 0 errors.
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :invalid-query, :error #error {:message "Query for unknown vars: [...]", :data {:error :parser/query, :vars #{#datascript.parser.Variable{:symbol ...}}, :form [:find (pull ?e ...) :where [?e :block/title "Status"]]}}, :message "Query for unknown vars: [...]", :method :thread-api/q}, :line 329}
+Worker db transact: 24.893ms
+stdout output c7a00da0-66b0-4051-9b93-6b782866d326
+println output 7f16f48e-d35e-43ae-8a52-5405b194cc91
+console error output 68df52c3-b690-4797-85c5-0e7b24e8c01f
+
+Testing electron.interop-test
+
+Testing frontend.components.file-test
+
+Testing frontend.date-test
+
+Testing frontend.handler.common.config-edn-test
+
+Testing frontend.handler.user-test
+[frontend.handler.db-based.rtc-background-tasks] {:try-to-stop-rtc-if-needed :logout, :line 37}
+[frontend.handler.db-based.sync] {:db-sync/stop-skipped {:reason :db-worker-not-ready}, :line 204}
+:debug "set-token-to-localstorage!"
+:debug "set-token-to-localstorage!"
+restore-tokens-from-localstorage
+
+Testing frontend.worker.graph-view-test
+[frontend.worker.db-core] {:import-file-stat {:fs-path "pages/Home.md", :error #object[Error Error: ENOENT: no such file or directory, stat 'D:\orca\workspaces\logseq\issue9-typed-properties\pages\Home.md']}, :line 336}
+Worker db transact: 28.904ms
+
+Testing electron.mcp-server-test
+
+Testing frontend.components.graph-actions-test
+
+Testing frontend.db.async-test
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block 42, :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block 42, :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block #uuid "7cbe9ef1-5951-4c38-8f40-c5c6679eb67a", :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block-with-children, :block #uuid "7cbe9ef1-5951-4c38-8f40-c5c6679eb67a", :error #object[Error Error: worker failed]}, :line 333}
+
+Testing frontend.handler.common.developer-test
+{:db/id 42,
+ :block/title "debug block",
+ :block/refs [{:block/title "ref title"}],
+ :block.debug/refs ["ref title"]}
+
+
+Testing frontend.handler.worker-test
+[frontend.handler.worker] {:db-worker/stopped-unexpectedly {:event #js {:message "worker crashed"}}, :line 233}
+[frontend.handler.worker] {:db-worker/ui-request-failed {:request-id "req-2", :action :request-e2ee-password, :error #error {:message "boom", :data {:code :boom, :x 1}}}, :line 185}
+
+Testing frontend.worker.handler.block-test
+
+Testing electron.mcp-transport-test
+
+Testing frontend.components.graph-test
+
+Testing frontend.db.async-util-test
+
+Testing frontend.handler.common.page-test
+
+Testing frontend.worker.worker-common-util-test
+
+Testing logseq.db.common.view-small-set-sort-test
+
+Testing frontend.modules.outliner.core-test
+
+Ran 78 tests containing 355 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.handler.comments-test
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/import-db-binary}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/backup-db-sqlite}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/apply-outliner-ops}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 500, :code :exception, :error #error {:message "not found thread-api: thread-api/not-found", :data {}}, :message "not found thread-api: thread-api/not-found", :method :thread-api/not-found}, :line 329}
+
+Testing frontend.worker.sync.download-test
+[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "repo", :graph-id "graph-1", :graph-e2ee? true, :stage :prepare-e2ee, :error #error {:message "decrypt-private-key", :data {}}, :error-stack "Error: decrypt-private-key\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at frontend.worker.sync.crypt/<fetch-graph-aes-key-for-download (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download_test.cljs:98:92)\n    at D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download.cljs:505:26\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend.worker.sync.download.js:807:3)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)", :error-cause nil}, :line 549}
+
+Testing logseq.db-worker.daemon-test
+
+Ran 269 tests containing 2329 assertions.
+0 failures, 0 errors.
+
+Testing logseq.api-test
+
+Testing logseq.db.frontend.comments-class-test
+
+Ran 64 tests containing 177 assertions.
+0 failures, 0 errors.
+All vars are below the max size!
+bb lint:worker-and-frontend-separate
+Worker db transact: 28.75ms
+Valid worker namespaces!
+Valid frontend namespaces!
+bb lang:validate-translations
+
+Testing frontend.worker.sync.upload-test
+[frontend.worker.sync.util] {:db-sync/snapshot-row-too-large {:max-bytes 10, :row-size 11, :addr :too-big}, :line 14}
+
+Testing logseq.db-worker.server-list-test
+parse warning: 364:41: unexpected closing delimiter
+parse warning: 364:42: unexpected closing delimiter
+parse warning: 389:20: unexpected closing delimiter
+parse warning: 389:21: unexpected closing delimiter
+parse warning: 389:22: unexpected closing delimiter
+All referenced keys are defined in dictionary.
+All non-default translations have valid keys!
+parse warning: 364:41: unexpected closing delimiter
+parse warning: 364:42: unexpected closing delimiter
+parse warning: 389:20: unexpected closing delimiter
+parse warning: 389:21: unexpected closing delimiter
+parse warning: 389:22: unexpected closing delimiter
+All translation keys are used.
+All rich translations preserve English render contracts!
+All translations preserve English placeholder contracts!
+bb lint:ns-docstrings
+......................................
+Ran 107 tests containing 464 assertions.
+0 failures, 0 errors.
+................................................................................................................................................................
+Testing electron.release-warning-test
+
+Testing frontend.components.header-test
+
+Testing frontend.db.content-test
+
+Testing frontend.handler.config-test
+
+Testing frontend.modules.outliner.inline-tag-test
+...............................................................................................................
+Testing electron.spell-check-test
+
+Testing frontend.components.icon-test
+
+Testing frontend.db.db-based-model-test
+
+Testing frontend.handler.db-based.editor-test
+
+Testing frontend.modules.outliner.op-test
+
+Testing frontend.worker.handler.render-resource-test
+............
+Testing frontend.worker.handler.property-test
+...................................................
+Testing frontend.common.crypt-test
+..............................................
+Testing logseq.api.app-test
+
+Testing logseq.db.sqlite.backup-test
+
+Ran 33 tests containing 117 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.imports-test
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: Failed to fetch]}, :line 420}
+[frontend.components.imports] {:import-file-graph {:msg "Import finished in 0 seconds"}, :line 470}
+[frontend.components.imports] {:import-valid {:msg "Valid import!"}, :line 290}
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: Failed to fetch]}, :line 420}
+[frontend.components.imports] {:import-file-graph {:msg "Import finished in 0 seconds"}, :line 470}
+[frontend.components.imports] {:import-valid {:msg "Valid import!"}, :line 290}
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: import failed]}, :line 420}
+
+Testing frontend.db.hooks-test
+
+Testing frontend.handler.db-based.import-test
+
+Testing frontend.modules.outliner.pipeline-test
+
+Testing frontend.worker.handler.search-test
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :datalog, :error #object[SyntaxError SyntaxError: Invalid regular expression: /(/: Unterminated group]}, :line 306}
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :dsl, :error #error {:message "Unexpected EOF while reading item 1 of list.", :data {:type :reader-exception, :ex-kind :eof}}}, :line 306}
+
+Testing logseq.api.core-test
+
+Testing frontend.common.search-fuzzy-test
+
+Testing frontend.components.journal-test
+
+Testing logseq.outliner.date-property-test
+
+Ran 48 tests containing 204 assertions.
+0 failures, 0 errors.
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :dsl, :error #error {:message "Query for unknown vars: [?b]", :data {:error :parser/query, :vars #{#datascript.parser.Variable{:symbol ?b}}, :form [:find (pull ?b [:db/id :block/uuid {:block/parent [:db/id]}]) :in $ % :where ((and))]}}}, :line 306}
+
+Testing frontend.db.model-test
+
+Testing logseq.api.block-test
+
+Testing logseq.outliner.copy-paste-nested-test
+
+Ran 107 tests containing 783 assertions.
+0 failures, 0 errors.
+
+Testing frontend.handler.db-based.property-test
+
+Testing frontend.modules.shortcut.config-test
+
+Testing frontend.worker.handler.transaction-test
+apply outliner ops: 0.006ms
+[frontend.worker.handler.transaction] {:db-worker/outliner-op-perf {:apply-ms 0.2908000000006723, :listener-ms 0.006699999999909778, :plain-ms 0.04730000000017753, :total-ms 0.35230000000046857, :perf-id #uuid "11111111-1111-1111-1111-111111111111", :op-names [:save-block], :op-count 1, :worker-apply-ms 0.2908000000006723}, :line 86}
+
+Testing logseq.api.db-based-test
+
+Testing logseq.outliner.default-value-children-test
+
+Ran 49 tests containing 149 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.avatar-test
+
+Testing frontend.components.lazy-editor-test
+
+Testing frontend.db.persist-test
+
+Testing frontend.handler.db-based.property.util-test
+
+Testing frontend.modules.shortcut.core-test
+
+Testing frontend.worker.handler.view-test
+
+All namespaces are documented!
+
+Testing logseq.api.db-based.cli-test
+
+Testing frontend.components.block.asset-test
+
+Testing frontend.components.left-sidebar-test
+
+Testing frontend.db.property-values-test
+
+Testing logseq.outliner.move-property-value-undo-test
+
+Testing frontend.handler.db-based.recent-test
+
+Testing frontend.components.block.breadcrumb-model-test
+
+Testing frontend.components.mobile-sidebar-style-test
+
+Testing frontend.db.query-api-test
+
+Testing frontend.handler.db-based.rtc-flows-test
+
+Testing frontend.persist-db-test
+[frontend.persist-db] {:event :db-worker-ensure-remote-stale, :repo "logseq_db_graph_a", :phase :after-start, :line 313}
+[frontend.persist-db] {:event :db-worker-stale-release-skipped, :repo "logseq_db_graph_a", :reason :runtime-changed, :line 321}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :replaced, :line 219}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :replaced, :line 219}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovery-failed, :repo "logseq_db_graph_a", :error #error {:message "db-worker runtime failed", :data {:code :server-start-failed}}, :line 228}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-ensure-remote-stale, :repo "logseq_db_graph_a", :phase :after-start, :line 313}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovery-skipped, :repo "logseq_db_graph_a", :reason :runtime-changed, :line 183}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-ensure-remote-stale, :repo "logseq_db_graph_a", :phase :before-stop, :line 356}
+[frontend.persist-db] {:event :db-worker-event-stream-error, :repo "logseq_db_graph_a", :failures 1, :error #object[Error Error: connect ECONNREFUSED], :line 398}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+
+Ran 40 tests containing 222 assertions.
+0 failures, 0 errors.
+[frontend.persist-db] {:event :db-worker-ensure-remote-stale, :repo "logseq_db_graph_a", :phase :before-runtime, :line 377}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+[frontend.persist-db] {:event :db-worker-runtime-recovering, :repo "logseq_db_graph_a", :line 225}
+[frontend.persist-db] {:event :db-worker-runtime-recovered, :repo "logseq_db_graph_a", :worker :reused, :line 209}
+
+Testing frontend.worker.migrate-test
+DB schema migrated from {:major 65, :minor 25}
+DB schema migrated to {:major 65, :minor 26}
+DB schema migrated to {:major 65, :minor 27}
+DB schema migrated to {:major 65, :minor 28}
+DB schema migrated to {:major 65, :minor 29}
+DB schema migrated to {:major 65, :minor 30}
+DB schema migrated to {:major 65, :minor 31}
+DB schema migrated to {:major 65, :minor 32}
+DB schema migrated to {:major 65, :minor 33}
+DB schema migrated from {:major 65, :minor 31}
+DB schema migrated to {:major 65, :minor 32}
+
+Testing frontend.components.block.breadcrumb-test
+
+Testing frontend.components.page-first-paint-test
+
+Testing frontend.db.reference-test
+
+Testing frontend.handler.db-based.sync-test
+"refresh tokens... 2026-10-03T09:03:49.240Z"
+
+Testing frontend.page-test
+
+Testing frontend.worker.markdown-mirror-test
+DB schema migrated from {:major 65, :minor 26}
+DB schema migrated to {:major 65, :minor 27}
+[frontend.handler.db-based.sync] {:db-sync/skip-start {:repo "demo-graph", :reason :graph-not-in-remote-list, :remote-graphs-loading? false}, :line 237}
+[frontend.handler.db-based.sync] {:db-sync/stop true, :line 201}
+[frontend.handler.db-based.sync] {:db-sync/skip-start {:repo "demo-graph", :reason :graph-not-in-remote-list, :remote-graphs-loading? false}, :line 237}
+[frontend.handler.db-based.sync] {:db-sync/stop true, :line 201}
+[frontend.handler.db-based.sync] {:db-sync/start {:repo "demo-graph"}, :line 233}
+
+Testing frontend.persist-db.remote-test
+
+Testing frontend.worker.node-sync-test
+[frontend.worker.sync] {:db-sync/connect! {:repo "test-db-sync-repo", :token-exists? true}, :line 331}
+
+Testing logseq.api.db-based.tools-test
+[frontend.worker.markdown-mirror] {:markdown-mirror/duplicate-journal-day {:status :error, :reason :duplicate-journal-day, :repo "logseq_db_graph-xxx", :journal-day 20240507, :page-uuid #uuid "687c1463-98b1-4262-91de-bd72f6eae7e4"}, :line 650}
+DB schema migrated from {:major 65, :minor 32}
+DB schema migrated to {:major 65, :minor 33}
+DB schema migrated from {:major 65, :minor 27}
+DB schema migrated to {:major 65, :minor 28}
+[frontend.worker.markdown-mirror] {:markdown-mirror/invalid-file-name {:status :error, :reason :invalid-file-name, :repo "logseq_db_graph-xxx", :page-uuid #uuid "52e82cfe-2e50-449d-9ec2-fcd6315bc06c"}, :line 626}
+
+Testing logseq.api.db-based.issue6-test
+DB schema migrated from {:major 65, :minor 27}
+DB schema migrated to {:major 65, :minor 28}
+DB schema migrated to {:major 65, :minor 29}
+DB schema migrated to {:major 65, :minor 30}
+DB schema migrated to {:major 65, :minor 31}
+DB schema migrated to {:major 65, :minor 32}
+DB schema migrated to {:major 65, :minor 33}
+
+Testing logseq.outliner.page-backend-validation-test
+
+Ran 83 tests containing 194 assertions.
+0 failures, 0 errors.
+
+Testing logseq.outliner.paste-refs-test
+DB schema migrated from {:major 65, :minor 29}
+DB schema migrated to {:major 65, :minor 30}
+
+Ran 98 tests containing 382 assertions.
+0 failures, 0 errors.
+DB schema migrated from {:major 65, :minor 30}
+DB schema migrated to {:major 65, :minor 31}
+DB schema migrated from {:major 65, :minor 28}
+DB schema migrated to {:major 65, :minor 29}
+DB schema migrated from {:major 65, :minor 24}
+DB schema migrated to {:major 65, :minor 25}
+
+Testing frontend.components.block.comments-model-test
+
+Testing frontend.components.page-test
+
+Testing frontend.worker.undo-redo-test
+
+Testing frontend.db.restore-test
+[frontend.db.restore] {:frontend.db.restore/restore-graph! "opens worker graph in 1 ms", :line 26}
+:<invoke-db-worker-error :thread-api/create-or-open-db
+[frontend.persist-db.browser] {:sqlite-error #error {:message "db-worker has not been initialized", :data {}}, :line 266}
+
+Testing frontend.handler.dnd-test
+
+Testing frontend.postcss-config-test
+
+Testing logseq.api.db-based.property-write-test
+
+Testing frontend.worker.pipeline-test
+
+Testing logseq.db.common.view-all-pages-count-test
+
+Ran 89 tests containing 385 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.control-icon-test
+
+Testing frontend.components.plugins-settings-test
+
+Testing frontend.db.subs-loader-test
+
+Testing frontend.handler.editor-context-popup-test
+
+Testing frontend.publishing-home-test
+
+Testing frontend.worker.plain-value-test
+
+Testing frontend.components.block.drop-test
+
+Testing frontend.components.popup-test
+
+Testing frontend.db.subs-test
+
+Testing logseq.outliner.page-updated-at-test
+
+Ran 110 tests containing 605 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.image-test
+
+Testing frontend.components.property.config-test
+
+Testing frontend.db.transact-test
+[frontend.db.transact] {:db/outliner-op-perf {:worker-to-ui-ms 0.011300000000119326, :perf-id #uuid "93fe8645-34ef-4bdd-a289-9ac21643b1e1", :stage :ui-updated, :worker-listener nil, :ui-refresh {:delta-flush-ms 0.012300000000323053, :editor-callback-ms 0.06549999999879219, :editor-callback {:canonical-rows-ms 0.02479999999923166, :edit-block-flush-ms 0.023100000000340515}, :total-ms 0.07779999999911524}, :total-to-next-frame-ms 1.58009999999922, :op-count 2, :worker-roundtrip-ms 0.4092999999993481, :state-update-ms 0.1003999999993539, :worker-perf nil, :worker-apply-ms nil, :op-names [:save-block :insert-blocks]}, :line 56}
+[frontend.db.transact] {:db/editor-callback-failed {:error #object[Error Error: editor callback failed]}, :line 76}
+[frontend.db.transact] {:db/outliner-op-perf {:worker-to-ui-ms 0.002899999999499414, :perf-id #uuid "347a1b5c-0dc2-49f6-9d63-4df4581af6d0", :stage :ui-updated, :worker-listener nil, :ui-refresh {:delta-flush-ms 0.0007999999997991836, :editor-callback-ms 0.7538000000004104, :editor-callback {:canonical-rows-ms 0.006799999999202555, :edit-block-flush-ms 0.7291999999997643}, :total-ms 0.7546000000002095}, :total-to-next-frame-ms 10.53979999999865, :op-count 1, :worker-roundtrip-ms 0.27559999999903084, :state-update-ms 0.7812000000012631, :worker-perf nil, :worker-apply-ms nil, :op-names [:save-block]}, :line 56}
+[frontend.db.transact] {:db/outliner-op-perf {:worker-to-ui-ms 0.004100000000107684, :perf-id #uuid "05a8f3ba-dd99-424e-82f8-abfc1bd9a275", :stage :ui-updated, :worker-listener nil, :ui-refresh {:delta-flush-ms 0.01720000000022992, :editor-callback-ms 0.007799999999406282, :editor-callback nil, :total-ms 0.024999999999636202}, :total-to-next-frame-ms 14.682399999999689, :op-count 1, :worker-roundtrip-ms 0.3349999999991269, :state-update-ms 0.044200000000273576, :worker-perf nil, :worker-apply-ms nil, :op-names [:save-block]}, :line 56}
+
+Testing frontend.handler.events.rtc-error-test
+
+Testing frontend.security-test
+
+Testing frontend.worker.platform-node-test
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-Y9zBGj\\platform-node-vector-embedding-x64", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-9yewMQ\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-hcf4Ey\\platform-node-text-files", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-vqGcKh\\platform-node-no-vector-embedding", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-WMH34N\\platform-node-kv-store", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-WMH34N\\platform-node-kv-store", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-VCOAHa\\platform-node-list-graphs", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-mbYfjJ\\platform-node-cli-secrets-keychain", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-VYe83g\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-kxoKMl\\platform-node-cli-secrets", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-pb9vBf\\platform-node-owner-source", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-pb9vBf\\platform-node-owner-source", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-wykfcD\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-iQCFBd\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-1FhWqX\\platform-node-remove-vfs", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-4D2iot\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-WkJcak\\platform-node", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-9nXJ0w\\platform-node-backup", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-NKBRbF\\platform-node-embedding-text", :vector-embedding-enabled? true, :embedding-endpoint "http://127.0.0.1:8765/v1/embeddings", :embedding-model-id "all-MiniLM-L6-v2"}, :line 750}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-ELbJoa\\platform-node-drain", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+
+Testing logseq.api.plugin-test
+
+Testing logseq.api.db-based.util-test
+
+Testing logseq.outliner.url-property-children-test
+
+Ran 56 tests containing 262 assertions.
+0 failures, 0 errors.
+[logseq.api.plugin] {:debug "/etc/passwd", :line 73}
+
+Testing mobile.header-test
+
+Ran 71 tests containing 197 assertions.
+0 failures, 0 errors.
+
+Testing logseq.api.db-test
+
+Testing logseq.sdk.utils-test
+
+Ran 27 tests containing 74 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.macros-test
+[logseq.graph-parser.mldoc] {:unexpected-error #object[SyntaxError SyntaxError: Unexpected token 'C', "Config err"... is not valid JSON], :line 373}
+[logseq.graph-parser.mldoc] {:unexpected-error #object[SyntaxError SyntaxError: Unexpected token 'C', "Config err"... is not valid JSON], :line 373}
+
+Testing frontend.components.property.property-test
+
+Testing frontend.electron.ipc-test
+
+Testing frontend.handler.export-property-test
+
+Testing frontend.state-test
+
+Testing frontend.worker.platform-test
+
+Testing logseq.cli.common-test
+
+Testing mobile.navigation-test
+
+Ran 48 tests containing 141 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.positioned-properties-test
+
+Testing frontend.components.property.value-test
+
+Testing frontend.components.block.reactions-test
+
+Testing frontend.components.query-test
+
+Testing frontend.extensions.fsrs-test
+
+Testing frontend.handler.graph-test
+
+Testing frontend.util-test
+
+Testing frontend.worker.recycle-persistence-test
+
+Testing frontend.extensions.calc-test
+
+Testing frontend.handler.export-test
+
+Testing frontend.components.block.reactivity-test
+Worker db transact: 173.525ms
+apply outliner ops: 68.192ms
+apply outliner ops: 67.083ms
+:export-files-as-markdown nil: 18.034ms
+:export-files-as-markdown nil: 5.956ms
+:export-blocks-as-markdown: 16.558ms
+:export-blocks-as-markdown: 20.713ms
+:export-blocks-as-markdown: 5.707ms
+:export-blocks-as-markdown: 7.068ms
+{ name: 'Backups' }
+:export-blocks-as-markdown: 3.801ms
+:export-blocks-as-markdown: 5.878ms
+:export-blocks-as-markdown: 12.363ms
+:export-blocks-as-markdown: 16.749ms
+:export-blocks-as-markdown: 5.306ms
+:export-blocks-as-markdown: 3.596ms
+:export-blocks-as-markdown: 10.64ms
+:export-blocks-as-markdown: 7.661ms
+:export-blocks-as-markdown: 14.187ms
+
+Testing frontend.undo-redo-test
+
+Testing frontend.worker.publish-test
+
+Testing logseq.cli.common.db-worker-test
+
+Testing mobile.popup-test
+
+Ran 96 tests containing 452 assertions.
+0 failures, 0 errors.
+
+Testing frontend.handler.events-test
+
+Testing frontend.reaction-test
+
+Testing frontend.worker.platform-browser-test
+
+Testing logseq.api.editor-test
+
+Testing frontend.components.block.resource-test
+
+Testing frontend.components.query.result-test
+
+Testing frontend.extensions.graph-test
+
+Testing frontend.handler.page-test
+
+Testing frontend.util.datalog-test
+
+Testing frontend.worker.render-delta-test
+
+Testing frontend.components.query.builder-test
+
+Testing frontend.extensions.graph-pixi-logic-test
+apply outliner ops: 189.551ms
+apply outliner ops: 191.325ms
+apply outliner ops: 83.558ms
+
+Testing frontend.handler.history-test
+
+Testing frontend.util.clock-test
+
+Testing frontend.worker.render-affected-keys-test
+
+Testing logseq.cli.profile-test
+
+Testing mobile.selection-toolbar-test
+
+Ran 92 tests containing 320 assertions.
+0 failures, 0 errors.
+
+Testing mobile.deeplink-test
+Worker db transact: 99.641ms
+apply outliner ops: 97.785ms
+
+Ran 93 tests containing 510 assertions.
+0 failures, 0 errors.
+
+Testing logseq.cli.root-dir-test
+
+Testing mobile.tabs-test
+
+Ran 40 tests containing 85 assertions.
+0 failures, 0 errors.
+Worker db transact: 112.831ms
+apply outliner ops: 63.363ms
+apply outliner ops: 105.673ms
+
+Testing logseq.cli.log-test
+[logseq.cli.log-test] {:event :cli/verbose-test, :line 63}
+{:time 1791018272463, :level :fine, :logger "logseq.cli.log-test", :message {:event :cli/verbose-test, :line 63}}
+
+Testing mobile.render-test
+
+Ran 33 tests containing 293 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.selection-test
+
+Testing frontend.components.reference-test
+
+Testing frontend.extensions.pdf.assets-test
+
+Testing frontend.handler.paste-test
+[frontend.handler.paste] {:exception #object[ReferenceError ReferenceError: document is not defined], :line 185}
+[frontend.handler.paste] ReferenceError: document is not defined 
+ ReferenceError: document is not defined
+    at hickory.core/parse-dom-with-write (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\hickory\core.cljs:141:13)
+    at hickory$core$parse (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\hickory\core.cljs:168:37)
+    at frontend.extensions.html-parser/convert (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\frontend\extensions\html_parser.cljs:268:37)
+    at D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\frontend\handler\paste.cljs:183:41
+    at D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\frontend.handler.paste.js:275:4
+    at frontend$handler$paste$paste_copied_text (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\frontend.handler.paste.js:281:3)
+    at f (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\frontend\handler\paste.cljs:242:10)
+    at Object.resolve (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\promesa\impl.cljc:105:29)
+    at processNextTick (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\promesa\impl\promise.js:286:25)
+    at transition (D:\orca\workspaces\logseq\issue9-typed-properties\.shadow-cljs\builds\test\dev\out\cljs-runtime\promesa\impl\promise.js:360:12)
+
+Testing frontend.util.email-test
+
+Testing frontend.worker.search-benchmark-test
+
+Testing logseq.cli.server-test
+[logseq.cli.server] {:cli-server-restart-version-mismatch {:port 9400, :owner-source :cli, :expected-revision "expected", :current-revision "old", :host "127.0.0.1", :pid nil, :root-dir nil, :status nil, :repo "demo"}, :line 216}
+
+Ran 52 tests containing 137 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.url-property-test
+
+Testing frontend.components.repo-test
+[frontend.components.repo] {:db-sync/cloud-graph-failed #error {:message "upload failed", :data {}}, :line 55}
+
+Testing frontend.extensions.sci-test
+
+Testing frontend.handler.plugin-config-test
+[frontend.handler.plugin-config] {:plugin-edn-errors {:id {:version ["missing required key"], :effect ["missing required key"]}}, :line 90}
+
+Testing frontend.util.entity-test
+
+Testing frontend.worker.shared-service-test
+
+Testing logseq.cli.style-test
+
+Ran 39 tests containing 125 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.block.video-test
+
+Testing frontend.components.right-sidebar-test
+
+Testing frontend.extensions.video-test
+
+Testing frontend.handler.property.util-test
+
+Testing frontend.util.text-test
+
+Testing frontend.worker.state-test
+
+Testing logseq.cli.transport-test
+
+Testing frontend.components.cmdk.core-test
+
+Ran 36 tests containing 99 assertions.
+0 failures, 0 errors.
+
+Testing frontend.components.rtc.indicator-test
+
+Testing frontend.fs-test
+[frontend.fs] {:file/write-failed {:dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-lnPAv2", :path "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-lnPAv2", :error #object[Error Error: EISDIR: illegal operation on a directory, open 'D:\orca\workspaces\logseq\issue9-typed-properties\tmp\unit-test-lnPAv2']}, :line 97}
+
+Testing frontend.handler.publish-test
+
+Testing frontend.util.url-test
+
+Testing frontend.worker.sync.assets-test
+[frontend.worker.sync.assets] {:read-asset-failed #object[Error Error: ENOENT: no such file or directory], :line 158}
+
+Testing logseq.common.cognito-config-test
+
+Ran 32 tests containing 82 assertions.
+0 failures, 0 errors.
+
+Testing frontend.db.query-dsl-test
+
+Ran 24 tests containing 107 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.search-test
+sync-search-indice 300 new blocks with semantic search enabled took 594ms CPU
+sync-search-indice 300 new blocks with semantic search disabled took 515ms CPU
+
+Ran 75 tests containing 268 assertions.
+0 failures, 0 errors.

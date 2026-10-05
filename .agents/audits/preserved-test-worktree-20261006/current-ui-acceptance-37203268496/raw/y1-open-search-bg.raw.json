@@ -1,0 +1,14 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 65,
+    "y": 30
+  },
+  "started_at": "2026-10-04T22:57:40.307453+08:00",
+  "finished_at": "2026-10-04T22:57:41.197881+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"background\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"synthetic_events\"\n}\n",
+  "stderr": ""
+}

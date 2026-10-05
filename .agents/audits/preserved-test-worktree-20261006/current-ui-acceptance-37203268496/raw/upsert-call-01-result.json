@@ -1,0 +1,6 @@
+{
+  "called_at": "2026-10-04T22:42:07.211858+08:00",
+  "transport": "native mcp__logseq__upsertNodes (this user request)",
+  "result_verbatim": "Added: {:page 1, :block 3}.",
+  "note": "Single authorized write; no receipt requested per brief. Payload saved pre-call in raw/upsert-payload-01.json."
+}

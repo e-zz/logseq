@@ -1,0 +1,13 @@
+{
+  "status": "DOWNLOADED_NOT_EXECUTED",
+  "source_sha": "22a29b30dee3b3930cf49bba50454650c31d2a07",
+  "source_evidence": "compile log exact SHA lines (inspect checkout context before running)",
+  "run": 37131548966,
+  "artifact": 11277537465,
+  "zip_sha256": "503ad6252dbf2f123c83ac74d55e6d7201e6eca69d2ed3e9b45bc8b99f8a3c97",
+  "expected_sha256": "503ad6252dbf2f123c83ac74d55e6d7201e6eca69d2ed3e9b45bc8b99f8a3c97",
+  "exe": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\gui-search-upstream-compatibility-independent\\upstream-package-37131548966\\portable\\Logseq.exe",
+  "compile_sha_lines": [
+    "compile-cljs\tUNKNOWN STEP\t2026-10-03T15:01:35.2771270Z 22a29b30dee3b3930cf49bba50454650c31d2a07"
+  ]
+}

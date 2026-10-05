@@ -1,0 +1,21 @@
+# Validation repair before next MCP feature
+
+Work ONLY D:/orca/workspaces/logseq/issue9-typed-properties. User authorizes worktrees. Preserve all existing uncommitted property and scoped-search changes. No main checkout writes, commits, push, merge, reset, checkout, clean, deletions. You ARE worker: no delegation/process-log inspection. All scratch/report files inside this worktree; NEVER /tmp or system Temp. On permission denial retry inside worktree. Model pinned DeepSeek v4.1 Flash.
+
+Read applicable AGENTS and repo-local skills/review notes. Stop broad exploration. Concrete task: repair tests/lint introduced by OUR work, prove baseline provenance for disputed search fixture failures, and address closed-value discovery leak. No new recycle feature in this slice.
+
+Parent independently executed:
+- electron.mcp-server-test 3/7, frontend.handler.search-test 11/29, frontend.worker.handler.search-test 6/19 all zero failure/error.
+- git diff --check clean.
+- node static/tests.js -n frontend.worker.search-test: 73 tests/235 assertions, 3 failures + 1 error. Failed vars: search-indexes-hide-by-default-properties (keywords/author fixture names mismatch) and sync-search-indice-reindexes-holders-when-property-is-deleted (nil block/refs).
+- bb dev:lint-and-test freshly compiles but returns exit 1. clj-kondo reports errors 0/warnings 15 (NOT 16); tests DO RUN IN PARALLEL, contrary to report claiming lint prevents test phase. Additional Windows path and missing document failures occur in embedding-server/plugin/editor/mobile tests. Do not claim pre-existing solely because untouched diff lines. Do not claim full gate passed.
+
+Work:
+1. Correct .agents/audits/2026-10-03-mcp/04-scoped-search-implementation.md: baseline attribution was INFERENCE, not measured; lint warnings from our new property tests are OUR remaining debt, not irrelevant upstream. Tests did run. No genuine RED captured earlier, keep explicit.
+2. Fix clj-kondo warnings in property_write_test.cljs (unused db-property-closed-value-title, redundant lets, shadow first/second/status-uuid/list-type-uuid, unused before). Fix inherited tools_test alias and redundant let narrowly. No broad reformat. Preserve behavioral assertions, no skip or weakened expectations.
+3. Closed-value discovery bug in tools.cljs: into {} e keeps raw :property/closed-values when allowed-closed-values filtered vector is empty. Add genuine behavior RED test for all hidden/recycled choices, then replace/dissoc original consistently, JSON-safe deterministic output. Verify write rejection and discovery accept identical allowed set. Don't expose protected metadata indiscriminately.
+4. Prove search failure baseline WITHOUT touching/stashing/resetting current edits. Preferred isolated baseline worktree at f2958757d2, located alongside existing worktrees, detached (git worktree add --detach with absolute native paths, permitted only for new baseline). Check existing worktree list first and reuse matching clean baseline if available. No main code edits. Dependencies/build artifact must belong to baseline source: don't run current bundle as baseline. Use documented setup; no blind large copy of node_modules/cache. If baseline setup blocked, report attribution UNVERIFIED; no guessing.
+5. If baseline search tests fail identically, make narrow fixture fix in current worktree based on real generated property identities. Don't change production behavior to appease broken fixtures. If baseline passes, diagnose regression before proceeding. Maintain behavior tests and record evidence.
+6. Fresh compile pnpm cljs:test, run focused property/parent/CLI/tools/MCP/search suites separately and actual test counts. Run lint and bb dev:lint-and-test. Capture real outputs; full suite may have baseline Windows/document failures, keep exact status, no green fiction. Write .agents/audits/2026-10-03-mcp/05-validation-repair.md with baseline source and commands, red/green, scope boundaries and remaining failures. Write interim report before long gates so progress survives interruption.
+
+No user graphs/GUI mutation; synthetic fixtures only. HTTP/SQLite reopen remain pending; do not close any issue. Do NOT expand to unrelated embedding-server/plugin/mobile bug fixing; isolate those failures as remaining gate blockers. Finish concrete changes + tested report, not mere plan.

@@ -1,0 +1,583 @@
+==== person-add
+{
+ "mode": "verified",
+ "operations": [
+  {
+   "index": 0,
+   "operation": "add",
+   "entity-type": "page",
+   "status": "verified",
+   "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+   "entity": {
+    "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+    "title": "Person Alpha",
+    "properties": {
+     "cv": "https://example.org/people/alpha",
+     "orcid": "0000-0002-1825-0097",
+     "description": "Researcher",
+     "topics": [
+      "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+     ]
+    }
+   }
+  }
+ ]
+}
+==== person-page-after
+{
+ "entity": {
+  "description": {
+   "title": "Senior Researcher",
+   "uuid": "6ac0b05e-fa88-47e2-afc1-73de55b85611"
+  },
+  "updated-at": 1791012958935,
+  "cv": {
+   "title": "https://example.org/people/alpha",
+   "uuid": "6ac0b05e-8af5-431f-8ad6-80ec7bc07dae"
+  },
+  "name": "person alpha",
+  "orcid": {
+   "title": "0000-0002-1825-0097",
+   "uuid": "6ac0b05e-0135-4f39-a35b-6daa0ab3f440"
+  },
+  "title": "Person Alpha",
+  "topics": [
+   {
+    "title": "Topic Alpha",
+    "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+   },
+   {
+    "title": "Topic Beta",
+    "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+   }
+  ],
+  "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+  "created-at": 1791012958773
+ },
+ "blocks": [
+  {
+   "description": {
+    "id": 210,
+    "uuid": {
+     "uuid": "6ac0b05e-623d-4da8-bd58-a2ab74ab4965",
+     "__hash": -1779372837,
+     "cljs$lang$protocol_mask$partition0$": 2153775104,
+     "cljs$lang$protocol_mask$partition1$": 2048
+    },
+    "title": "Block level description"
+   },
+   "updated-at": 1791012958859,
+   "parent": {
+    "id": 202
+   },
+   "refs": [
+    {
+     "id": 196,
+     "ident": "description",
+     "uuid": {
+      "uuid": "00000002-1144-1187-9200-000000000000",
+      "__hash": 725111688,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Description",
+     "name": "description",
+     "type": "default"
+    },
+    {
+     "id": 197,
+     "ident": "topics",
+     "uuid": {
+      "uuid": "00000002-2183-9455-2000-000000000000",
+      "__hash": 625024013,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topics",
+     "name": "topics",
+     "type": "node"
+    },
+    {
+     "id": 198,
+     "ident": "score",
+     "uuid": {
+      "uuid": "00000002-3385-6118-0000-000000000000",
+      "__hash": -1526662186,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Score",
+     "name": "score",
+     "type": "number"
+    },
+    {
+     "id": 199,
+     "ident": "enabled",
+     "uuid": {
+      "uuid": "00000002-4351-4850-8000-000000000000",
+      "__hash": 364279684,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Enabled",
+     "name": "enabled",
+     "type": "checkbox"
+    },
+    {
+     "id": 200,
+     "uuid": {
+      "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26",
+      "__hash": -545930140,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Alpha",
+     "name": "topic alpha"
+    },
+    {
+     "id": 201,
+     "uuid": {
+      "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de",
+      "__hash": 944849345,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Beta",
+     "name": "topic beta"
+    }
+   ],
+   "title": "Person launch",
+   "level": 1,
+   "topics": [
+    {
+     "id": 200,
+     "uuid": {
+      "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26",
+      "__hash": -545930140,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Alpha",
+     "name": "topic alpha"
+    },
+    {
+     "id": 201,
+     "uuid": {
+      "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de",
+      "__hash": 944849345,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Beta",
+     "name": "topic beta"
+    }
+   ],
+   "id": 207,
+   "score": {
+    "id": 208,
+    "uuid": {
+     "uuid": "6ac0b05e-22bf-444f-82ed-0c67893ce4d1",
+     "__hash": -507767509,
+     "cljs$lang$protocol_mask$partition0$": 2153775104,
+     "cljs$lang$protocol_mask$partition1$": 2048
+    },
+    "value": 0
+   },
+   "order": "b1g",
+   "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b",
+   "created-at": 1791012958859,
+   "enabled": false
+  }
+ ],
+ "tree-has-more?": true,
+ "tree-omitted-count": 2
+}
+==== person-block-read
+{
+ "description": {
+  "title": "Block level description",
+  "uuid": "6ac0b05e-623d-4da8-bd58-a2ab74ab4965"
+ },
+ "updated-at": 1791012958859,
+ "parent": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "refs": [
+  {
+   "title": "Description",
+   "uuid": "00000002-1144-1187-9200-000000000000",
+   "ident": "user.property/description"
+  },
+  {
+   "title": "Topics",
+   "uuid": "00000002-2183-9455-2000-000000000000",
+   "ident": "user.property/topics"
+  },
+  {
+   "title": "Score",
+   "uuid": "00000002-3385-6118-0000-000000000000",
+   "ident": "user.property/score"
+  },
+  {
+   "title": "Enabled",
+   "uuid": "00000002-4351-4850-8000-000000000000",
+   "ident": "user.property/enabled"
+  },
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "page": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "title": "Person launch",
+ "topics": [
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "score": {
+  "value": 0,
+  "uuid": "6ac0b05e-22bf-444f-82ed-0c67893ce4d1"
+ },
+ "order": "b1g",
+ "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b",
+ "created-at": 1791012958859,
+ "enabled": false
+}
+==== person-block-after-dry
+{
+ "description": {
+  "title": "Block level description",
+  "uuid": "6ac0b05e-623d-4da8-bd58-a2ab74ab4965"
+ },
+ "updated-at": 1791012958859,
+ "parent": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "refs": [
+  {
+   "title": "Description",
+   "uuid": "00000002-1144-1187-9200-000000000000",
+   "ident": "user.property/description"
+  },
+  {
+   "title": "Topics",
+   "uuid": "00000002-2183-9455-2000-000000000000",
+   "ident": "user.property/topics"
+  },
+  {
+   "title": "Score",
+   "uuid": "00000002-3385-6118-0000-000000000000",
+   "ident": "user.property/score"
+  },
+  {
+   "title": "Enabled",
+   "uuid": "00000002-4351-4850-8000-000000000000",
+   "ident": "user.property/enabled"
+  },
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "page": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "title": "Person launch",
+ "topics": [
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "score": {
+  "value": 0,
+  "uuid": "6ac0b05e-22bf-444f-82ed-0c67893ce4d1"
+ },
+ "order": "b1g",
+ "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b",
+ "created-at": 1791012958859,
+ "enabled": false
+}
+==== person-page-after-bad
+{
+ "entity": {
+  "description": {
+   "title": "Senior Researcher",
+   "uuid": "6ac0b05e-fa88-47e2-afc1-73de55b85611"
+  },
+  "updated-at": 1791012958935,
+  "cv": {
+   "title": "https://example.org/people/alpha",
+   "uuid": "6ac0b05e-8af5-431f-8ad6-80ec7bc07dae"
+  },
+  "name": "person alpha",
+  "orcid": {
+   "title": "0000-0002-1825-0097",
+   "uuid": "6ac0b05e-0135-4f39-a35b-6daa0ab3f440"
+  },
+  "title": "Person Alpha",
+  "topics": [
+   {
+    "title": "Topic Alpha",
+    "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+   },
+   {
+    "title": "Topic Beta",
+    "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+   }
+  ],
+  "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+  "created-at": 1791012958773
+ },
+ "blocks": [
+  {
+   "description": {
+    "id": 210,
+    "uuid": {
+     "uuid": "6ac0b05e-623d-4da8-bd58-a2ab74ab4965",
+     "__hash": -1779372837,
+     "cljs$lang$protocol_mask$partition0$": 2153775104,
+     "cljs$lang$protocol_mask$partition1$": 2048
+    },
+    "title": "Block level description"
+   },
+   "updated-at": 1791012958859,
+   "parent": {
+    "id": 202
+   },
+   "refs": [
+    {
+     "id": 196,
+     "ident": "description",
+     "uuid": {
+      "uuid": "00000002-1144-1187-9200-000000000000",
+      "__hash": 725111688,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Description",
+     "name": "description",
+     "type": "default"
+    },
+    {
+     "id": 197,
+     "ident": "topics",
+     "uuid": {
+      "uuid": "00000002-2183-9455-2000-000000000000",
+      "__hash": 625024013,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topics",
+     "name": "topics",
+     "type": "node"
+    },
+    {
+     "id": 198,
+     "ident": "score",
+     "uuid": {
+      "uuid": "00000002-3385-6118-0000-000000000000",
+      "__hash": -1526662186,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Score",
+     "name": "score",
+     "type": "number"
+    },
+    {
+     "id": 199,
+     "ident": "enabled",
+     "uuid": {
+      "uuid": "00000002-4351-4850-8000-000000000000",
+      "__hash": 364279684,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Enabled",
+     "name": "enabled",
+     "type": "checkbox"
+    },
+    {
+     "id": 200,
+     "uuid": {
+      "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26",
+      "__hash": -545930140,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Alpha",
+     "name": "topic alpha"
+    },
+    {
+     "id": 201,
+     "uuid": {
+      "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de",
+      "__hash": 944849345,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Beta",
+     "name": "topic beta"
+    }
+   ],
+   "title": "Person launch",
+   "level": 1,
+   "topics": [
+    {
+     "id": 200,
+     "uuid": {
+      "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26",
+      "__hash": -545930140,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Alpha",
+     "name": "topic alpha"
+    },
+    {
+     "id": 201,
+     "uuid": {
+      "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de",
+      "__hash": 944849345,
+      "cljs$lang$protocol_mask$partition0$": 2153775104,
+      "cljs$lang$protocol_mask$partition1$": 2048
+     },
+     "title": "Topic Beta",
+     "name": "topic beta"
+    }
+   ],
+   "id": 207,
+   "score": {
+    "id": 208,
+    "uuid": {
+     "uuid": "6ac0b05e-22bf-444f-82ed-0c67893ce4d1",
+     "__hash": -507767509,
+     "cljs$lang$protocol_mask$partition0$": 2153775104,
+     "cljs$lang$protocol_mask$partition1$": 2048
+    },
+    "value": 0
+   },
+   "order": "b1g",
+   "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b",
+   "created-at": 1791012958859,
+   "enabled": false
+  }
+ ],
+ "tree-has-more?": true,
+ "tree-omitted-count": 2
+}
+==== person-block-after-bad
+{
+ "description": {
+  "title": "Block level description",
+  "uuid": "6ac0b05e-623d-4da8-bd58-a2ab74ab4965"
+ },
+ "updated-at": 1791012958859,
+ "parent": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "refs": [
+  {
+   "title": "Description",
+   "uuid": "00000002-1144-1187-9200-000000000000",
+   "ident": "user.property/description"
+  },
+  {
+   "title": "Topics",
+   "uuid": "00000002-2183-9455-2000-000000000000",
+   "ident": "user.property/topics"
+  },
+  {
+   "title": "Score",
+   "uuid": "00000002-3385-6118-0000-000000000000",
+   "ident": "user.property/score"
+  },
+  {
+   "title": "Enabled",
+   "uuid": "00000002-4351-4850-8000-000000000000",
+   "ident": "user.property/enabled"
+  },
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "page": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+ "title": "Person launch",
+ "topics": [
+  {
+   "title": "Topic Alpha",
+   "uuid": "970e2f0c-0f7d-477c-a94b-f35556b7df26"
+  },
+  {
+   "title": "Topic Beta",
+   "uuid": "91834704-ddd9-45e7-b9c9-7a0effe079de"
+  }
+ ],
+ "score": {
+  "value": 0,
+  "uuid": "6ac0b05e-22bf-444f-82ed-0c67893ce4d1"
+ },
+ "order": "b1g",
+ "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b",
+ "created-at": 1791012958859,
+ "enabled": false
+}
+==== block-dry-run
+{
+ "mode": "dry-run",
+ "operations": [
+  {
+   "index": 0,
+   "operation": "edit",
+   "entity-type": "block",
+   "status": "dry-run",
+   "uuid": "18c57196-33d1-4e9c-882a-f9e1caf8ec4b"
+  }
+ ]
+}
+==== page-union
+{
+ "mode": "verified",
+ "operations": [
+  {
+   "index": 0,
+   "operation": "edit",
+   "entity-type": "page",
+   "status": "verified",
+   "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+   "entity": {
+    "uuid": "5d82491e-dac0-4f83-a3d3-940278ba7f26",
+    "title": "Person Alpha",
+    "properties": {
+     "description": "Senior Researcher",
+     "topics": [
+      "970e2f0c-0f7d-477c-a94b-f35556b7df26",
+      "91834704-ddd9-45e7-b9c9-7a0effe079de"
+     ]
+    }
+   }
+  }
+ ]
+}
+==== bad-scalar
+"Unexpected API error: Numeric property :00000002-3385-6118-0000-000000000000 value must be a finite JSON number"
+==== bad-ref
+"Unexpected API error: Reference property :00000002-2183-9455-2000-000000000000 requires an unambiguous {\"uuid\" \"...\"} reference envelope"
+==== bad-mixed
+"Unexpected API error: Numeric property :00000002-3385-6118-0000-000000000000 value must be a finite JSON number"

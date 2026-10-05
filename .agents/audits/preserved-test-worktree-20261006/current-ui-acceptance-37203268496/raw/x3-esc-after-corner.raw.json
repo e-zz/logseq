@@ -1,0 +1,14 @@
+{
+  "tool": "press_key",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "key": "escape",
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:57:07.421965+08:00",
+  "finished_at": "2026-10-04T22:57:08.774608+08:00",
+  "exit_code": 0,
+  "stdout": "foreground_unavailable: Windows did not confirm exact target HWND 0x580ec6 for key delivery within 500 ms (actual foreground HWND 0x1e0938). Route the request through the UIAccess-manifested cua-driver-uia worker; no input was sent.\n",
+  "stderr": ""
+}

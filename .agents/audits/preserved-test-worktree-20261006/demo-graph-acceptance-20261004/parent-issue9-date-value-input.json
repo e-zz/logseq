@@ -1,0 +1,17 @@
+{
+  "operations": [
+    {
+      "operation": "edit",
+      "entityType": "block",
+      "id": "2834bd67-ba5d-4737-acf1-5ddb4913cee7",
+      "data": {
+        "properties": {
+          "00000002-5930-4674-3000-000000000000": {
+            "uuid": "00000001-2026-1004-0000-000000000000"
+          }
+        }
+      }
+    }
+  ],
+  "receipt": true
+}

@@ -1,0 +1,33 @@
+{
+  "tool": "getPage",
+  "input": {
+    "pageName": "00000002-2190-1503-4000-000000000000"
+  },
+  "response": {
+    "entity": {
+      "ui-position": "block-below",
+      "index": true,
+      "type": "node",
+      "uuid": "00000002-2190-1503-4000-000000000000",
+      "valueType": "ref",
+      "updated-at": 1784649034090,
+      "hide-empty-value": true,
+      "created-at": 1784649034090,
+      "built-in?": true,
+      "title": "Assignee",
+      "cardinality": "many",
+      "classes": [
+        {
+          "title": "Page",
+          "uuid": "00000002-1484-3403-2900-000000000000",
+          "ident": "logseq.class/Page"
+        }
+      ],
+      "ident": "assignee",
+      "order": "b0W",
+      "name": "assignee",
+      "public?": true
+    },
+    "blocks": []
+  }
+}

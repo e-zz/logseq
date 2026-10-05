@@ -1,0 +1,12 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "element_token": "s0000003b:41"
+  },
+  "tool": "click",
+  "started_at": "2026-10-04T23:31:09.920406+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"background\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"synthetic_events\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

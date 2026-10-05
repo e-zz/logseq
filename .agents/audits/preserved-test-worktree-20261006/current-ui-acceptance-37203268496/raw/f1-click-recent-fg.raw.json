@@ -1,0 +1,15 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "x": 100,
+    "y": 340,
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:47:01.055468+08:00",
+  "finished_at": "2026-10-04T22:47:02.056570+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"foreground\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": ""
+}

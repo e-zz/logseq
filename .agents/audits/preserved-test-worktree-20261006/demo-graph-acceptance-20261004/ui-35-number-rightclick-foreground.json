@@ -1,0 +1,15 @@
+{
+  "tool": "click",
+  "input": {
+    "pid": 25932,
+    "window_id": 201312,
+    "element_token": "s00000015:57",
+    "button": "right",
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T13:43:22.980126+08:00",
+  "finished_at": "2026-10-04T13:43:24.381707+08:00",
+  "exit_code": 0,
+  "stdout": "foreground_unavailable: Windows did not activate exact target HWND 0x31260 (actual foreground HWND 0x0); no mouse input was sent\n",
+  "stderr": ""
+}

@@ -1,0 +1,15 @@
+{
+  "tool": "set_value",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "snapshot_id": "s00000036",
+    "element_index": 8,
+    "value": "ISSUE4-11-UI-ACCEPTANCE-A"
+  },
+  "started_at": "2026-10-04T22:57:44.435650+08:00",
+  "finished_at": "2026-10-04T22:57:45.231573+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"unknown\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"accessibility\"\n}\n",
+  "stderr": ""
+}

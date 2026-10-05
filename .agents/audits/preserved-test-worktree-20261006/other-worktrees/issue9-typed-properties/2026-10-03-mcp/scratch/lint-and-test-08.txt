@@ -1,0 +1,80 @@
+logseq.tasks.dev/run-parallel!            - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:58:4
+logseq.tasks.dev/run-parallel!            - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:56:1
+logseq.tasks.dev                          - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:165:3
+clojure.core/apply                        - clojure/core.clj:662:1
+user-0174327f-c776-489d-bcd9-1933bc558ac2 - NO_SOURCE_PATH:40:1
+
+
+Testing electron.graph-switch-flow-test
+
+Testing frontend.components.editor-test
+
+Testing frontend.context.i18n-test
+
+Testing frontend.handler.common-test
+
+Testing frontend.handler.ui-test
+
+Testing frontend.worker.db-worker-test
+[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "test-db-worker-repo", :graph-id "graph-failure-1", :graph-e2ee? false, :stage :prepare-import, :error #error {:message "stream failed", :data {:code :stream-failed}}, :error-stack "Error: stream failed\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\db_worker_test.cljs:471:95)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)\n    at transition (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:360:12)\n    at PromiseImpl.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:144:9)", :error-cause nil}, :line 549}
+
+Testing frontend.worker.sync.util-test
+
+Testing logseq.db.common-sqlite-test
+
+Ran 49 tests containing 166 assertions.
+0 failures, 0 errors.
+:debug :entity {:block/tx-id 1, :kv/value 1, :block/uuid #uuid "49b9cf96-a348-407a-bc2d-f747e3c1e250", :block/updated-at 2, :logseq.property.class/extends #{1}, :block/created-at 1, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "imported", :db/id 192, :db/ident :user.class/imported, :block/name "imported"} :error {:dispatch-key :class, :errors {5 {:kv/value {"class-page" ["disallowed key" "disallowed key"]}, :db/ident ["should be :logseq.class/Root"], :logseq.property.class/extends {"class-page" ["disallowed key"]}}}}
+:debug :entity {:block/tx-id 1, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791000493083, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791000493083, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/order "aR", :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+:debug :entity {:block/created-at 1, :block/journal-day 20260504, :block/name "2026-05-04", :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{167} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "2026-05-04", :block/tx-id 1, :block/uuid #uuid "4ea63347-8450-4a4e-9062-9e2a6c9d09a0", :db/id 191} :error {:dispatch-key :normal-page, :errors {191 {:block/updated-at {"normal-page" ["missing required key"]}}}}
+apply outliner ops: 5.732s
+:debug :entity {:block/tx-id 536870918, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791000493083, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791000493083, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+:debug :entity {:block/tx-id 536870920, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1791000493083, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1791000493083, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+Worker db transact: 39.84ms
+:debug :entity {:block/created-at 1, :block/order "a0", :block/page {:block/name "test page", :db/id 191, :block/created-at 1, :block/tags [:logseq.class/Page]}, :block/parent 191, :block/title "", :block/updated-at 2, :db/id 192} :error {:dispatch-key nil, :errors {5 ["invalid dispatch value"]}}
+Worker db transact: 50.693ms
+[frontend.worker.handler.transaction] {:frontend.worker.handler.transaction/apply-outliner-ops-failed #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :line 153}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :validation-error, :error #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :message "Can't set tag with built-in #Journal", :method :thread-api/apply-outliner-ops}, :line 329}
+
+Ran 147 tests containing 1601 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.sync.restart-test
+[frontend.worker.sync] {:db-sync/ws-closed {:repo "stale-repo"}, :line 261}
+[frontend.worker.sync] {:db-sync/ws-reconnect-scheduled {:repo "stale-repo", :delay 1050, :attempt 0, :reason :close}, :line 247}
+[frontend.worker.sync] {:db-sync/start-skipped {:repo "missing-local-tx-repo", :graph-id "graph-1", :base "wss://sync.example.test/sync/color:black", :reason :client-op-not-ready}, :line 397}%c
+[frontend.worker.sync] {:db-sync/connect! {:repo "stale-repo", :token-exists? true}, :line 331}
+[frontend.worker.sync] {:db-sync/ws-stale-closed {:repo "stale-repo", :ready-state 3}, :line 298}
+
+Testing logseq.db-worker.graph-backup-test
+
+Ran 130 tests containing 529 assertions.
+0 failures, 0 errors.
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :invalid-query, :error #error {:message "Query for unknown vars: [...]", :data {:error :parser/query, :vars #{#datascript.parser.Variable{:symbol ...}}, :form [:find (pull ?e ...) :where [?e :block/title "Status"]]}}, :message "Query for unknown vars: [...]", :method :thread-api/q}, :line 329}
+Worker db transact: 24.238ms
+stdout output c98ac5ec-e48c-4336-98a6-aba084c1c07d
+println output 8c5214b9-c2a1-4ef9-95f3-f3b12bebc96e
+console error output 903e1c44-1ec7-4d50-a1cf-ec11994759bd
+[frontend.worker.db-core] {:import-file-stat {:fs-path "pages/Home.md", :error #object[Error Error: ENOENT: no such file or directory, stat 'D:\orca\workspaces\logseq\issue9-typed-properties\pages\Home.md']}, :line 336}
+Worker db transact: 29.369ms
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/import-db-binary}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/backup-db-sqlite}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/apply-outliner-ops}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 500, :code :exception, :error #error {:message "not found thread-api: thread-api/not-found", :data {}}, :message "not found thread-api: thread-api/not-found", :method :thread-api/not-found}, :line 329}
+
+Testing frontend.worker.sync.download-test
+[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "repo", :graph-id "graph-1", :graph-e2ee? true, :stage :prepare-e2ee, :error #error {:message "decrypt-private-key", :data {}}, :error-stack "Error: decrypt-private-key\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at frontend.worker.sync.crypt/<fetch-graph-aes-key-for-download (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download_test.cljs:98:92)\n    at D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download.cljs:505:26\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend.worker.sync.download.js:807:3)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)", :error-cause nil}, :line 549}
+
+Testing logseq.db-worker.daemon-test
+
+Ran 269 tests containing 2329 assertions.
+0 failures, 0 errors.
+Worker db transact: 26.691ms
+
+Testing frontend.worker.sync.upload-test
+[frontend.worker.sync.util] {:db-sync/snapshot-row-too-large {:max-bytes 10, :row-size 11, :addr :too-big}, :line 14}
+
+Testing logseq.db-worker.server-list-test
+
+Ran 107 tests containing 464 assertions.
+12 failures, 0 errors.

@@ -1,0 +1,486 @@
+clojure -M:clj-kondo --parallel --lint src --cache false
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> logseq@0.0.1 cljs:test D:\orca\workspaces\logseq\issue9-typed-properties
+> clojure -M:test compile db-worker-node test
+
+...........................................................................................................................................[:db-worker-node] Compiling ...
+git describe --long --always --dirty
+...:shadow.hooks/build-metadata-hook {:revision "f2958757d2-dirty", :build-time "2026-10-03T01:17:15.186600Z"}
+...........................................................................................WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor (file:/C:/Users/zhang/.m2/repository/com/google/javascript/closure-compiler/v20250820/closure-compiler-v20250820.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+..........................................................................................................................................................................................................................................................................................................[:db-worker-node] Build completed. (441 files, 0 compiled, 0 warnings, 8.79s)
+[:test] Compiling ...
+..:shadow.hooks/build-metadata-hook {:revision "test-revision", :build-time "test-build-time"}
+.......................................................................................................................................................................................................................[:test] Build completed. (1378 files, 6 compiled, 0 warnings, 12.91s)
+
+linting took 30313ms, errors: 0, warnings: 0
+bb lint:carve
+....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+Testing frontend.worker.db-core-test
+
+Testing frontend.handler.editor-async-test
+
+Testing electron.cli-install-test
+
+Testing frontend.components.block.drop-boundary-test
+
+Ran 1 tests containing 2 assertions.
+0 failures, 0 errors.
+
+Testing frontend.handler.editor-test
+
+Testing frontend.components.cmdk.list-item-test
+
+Testing frontend.components.settings-test
+
+Testing frontend.handler-test
+
+Testing frontend.handler.query.builder-test
+
+Testing frontend.worker.commands-test
+............
+Testing frontend.worker.sync.crypt-test
+.....[frontend.worker.sync.util] {:db-sync/missing-field {:base "https://example.com", :field :encrypted-private-key}, :line 14}
+...[frontend.worker.sync.crypt] {:db-sync/user-rsa-key-cache-invalid {:base "https://sync.example.test", :user-id "user-1", :graph-id nil, :first-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}, :retry-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}}, :line 550}
+..[frontend.worker.sync.crypt] {:db-sync/user-rsa-key-cache-invalid {:base "https://sync.example.test", :user-id "user-1", :graph-id nil, :first-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}, :retry-error #error {:message "invalid-e2ee-password", :data {:code :db-sync/invalid-e2ee-password}, :cause #error {:message "decrypt-private-key", :data {:invalid-password? true}}}}, :line 550}
+[frontend.worker.sync.util] {:db-sync/missing-e2ee-password {:code :db-sync/missing-e2ee-password, :field :e2ee-password, :reason :missing-refresh-token, :hint "Run logseq login first."}, :line 14}
+[frontend.worker.sync.util] {:db-sync/missing-e2ee-password {:code :db-sync/missing-e2ee-password, :field :e2ee-password, :reason :missing-refresh-token, :hint "Run logseq login first."}, :line 14}
+
+Testing logseq.common.util.macro-test
+
+Ran 69 tests containing 287 assertions.
+0 failures, 0 errors.
+.......
+Ran 105 tests containing 286 assertions.
+0 failures, 0 errors.
+...........
+Ran 33 tests containing 99 assertions.
+0 failures, 0 errors.
+
+Testing electron.core-test
+
+Testing frontend.components.cmdk.scroll-test
+
+Testing frontend.components.shortcut-test
+
+Testing frontend.handler.assets-test
+
+Testing frontend.handler.reaction-test
+
+Testing frontend.handler.db-based.page-test
+
+Ran 5 tests containing 6 assertions.
+0 failures, 0 errors.
+
+Testing electron.db-test
+
+Testing frontend.components.cmdk.state-test
+
+Testing frontend.components.theme-test
+
+Testing frontend.handler.block-test
+
+Testing frontend.worker.db-listener-test
+
+Testing frontend.handler.repo-config-test
+
+Testing frontend.worker.db-sync-test
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:stage :sync-db-to-main-thread, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :outliner-op :save-block, :tx-count 3, :pipeline-ms 0.06240000000070722, :delta-ms 1.657999999999447, :broadcast-ms 0.042699999999967986}, :line 45}
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:outliner-op :save-block, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :stage :db-listener-complete, :total-ms 4.888499999999112, :tx-count 3, :handlers-ms [[:db-sync 0.08109999999942374]], :persist-ms 0.10560000000077707, :sync-main-ms 1.9149999999990541, :checksum-ms 0.13249999999970896}, :line 45}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: deferred listener failed]}, :line 210}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: async deferred listener failed]}, :line 210}
+
+Testing frontend.handler.editor-lifecycle-test
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :update-checksum, :outliner-op nil, :error #object[Error Error: checksum failed]}, :line 210}
+
+Ran 1 tests containing 2 assertions.
+0 failures, 0 errors.
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :persist-local-tx, :outliner-op nil, :error #object[Error Error: persist failed]}, :line 210}
+
+Testing frontend.worker.sync.download-test
+[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "repo", :graph-id "graph-1", :graph-e2ee? true, :stage :prepare-e2ee, :error #error {:message "decrypt-private-key", :data {}}, :error-stack "Error: decrypt-private-key\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at frontend.worker.sync.crypt/<fetch-graph-aes-key-for-download (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download_test.cljs:98:92)\n    at D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\sync\\download.cljs:505:26\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend.worker.sync.download.js:807:3)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)", :error-cause nil}, :line 549}
+
+Testing logseq.db-worker.daemon-test
+
+Ran 46 tests containing 129 assertions.
+0 failures, 0 errors.
+
+Testing electron.db-worker-manager-test
+
+Testing frontend.components.datepicker-test
+
+Testing frontend.components.views-test
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :db-path "/db.sqlite"}, :line 569}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :search-path "search/db.sqlite"}, :line 575}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-new-graph", :client-ops-path "client-ops-/db.sqlite"}, :line 586}
+
+Testing electron.embedding-server-test
+
+FAIL in (start-allocates-port-creates-local-venv-installs-deps-and-spawns-server) (electron/embedding_server_test.cljs:136:17)
+expected: (= [runtime-dir] (clojure.core/deref ensured-dirs))
+  actual: (not (= ["/users/me/logseq/embedding-server"] ["\\users\\me\\logseq\\embedding-server"]))
+
+FAIL in (start-allocates-port-creates-local-venv-installs-deps-and-spawns-server) (electron/embedding_server_test.cljs:137:17)
+expected: (= [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd runtime-dir} {:cmd venv-python, :args ["-c" "import sys"], :cwd runtime-dir} {:cmd venv-python, :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd runtime-dir}] (clojure.core/deref commands))
+  actual: (not (= [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "/users/me/logseq/embedding-server"} {:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-c" "import sys"], :cwd "/users/me/logseq/embedding-server"} {:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "/users/me/logseq/embedding-server"}] [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-c" "import sys"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "\\users\\me\\logseq\\embedding-server"}]))
+
+FAIL in (start-allocates-port-creates-local-venv-installs-deps-and-spawns-server) (electron/embedding_server_test.cljs:147:17)
+expected: (= [{:file deps-stamp, :content "sentence-transformers\nhttpx[socks]\n"}] (clojure.core/deref writes))
+  actual: (not (= [{:file "/users/me/logseq/embedding-server/deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}] [{:file "\\users\\me\\logseq\\embedding-server\\deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}]))
+
+FAIL in (start-allocates-port-creates-local-venv-installs-deps-and-spawns-server) (electron/embedding_server_test.cljs:150:17)
+expected: (= [{:runtime-dir runtime-dir, :venv-dir venv-dir, :venv-python venv-python, :sidecar-dir "/repo/sidecar", :script-path script, :host "127.0.0.1", :port 56789, :model-id "all-MiniLM-L6-v2"}] (clojure.core/deref spawns))
+  actual: (not (= [{:runtime-dir "/users/me/logseq/embedding-server", :venv-dir "/users/me/logseq/embedding-server/.venv", :venv-python "/users/me/logseq/embedding-server/.venv/bin/python", :sidecar-dir "/repo/sidecar", :script-path "/repo/sidecar/embedding_server.py", :host "127.0.0.1", :port 56789, :model-id "all-MiniLM-L6-v2"}] [{:runtime-dir "\\users\\me\\logseq\\embedding-server", :venv-dir "\\users\\me\\logseq\\embedding-server\\.venv", :venv-python "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :sidecar-dir "\\repo\\sidecar", :script-path "\\repo\\sidecar\\embedding_server.py", :host "127.0.0.1", :port 56789, :model-id "all-MiniLM-L6-v2"}]))
+
+FAIL in (start-upgrades-existing-venv-when-dependency-stamp-is-stale) (electron/embedding_server_test.cljs:215:17)
+expected: (= [{:cmd venv-python, :args ["-c" "import sys"], :cwd runtime-dir} {:cmd venv-python, :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd runtime-dir}] (clojure.core/deref commands))
+  actual: (not (= [{:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-c" "import sys"], :cwd "/users/me/logseq/embedding-server"} {:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "/users/me/logseq/embedding-server"}] [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-c" "import sys"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "\\users\\me\\logseq\\embedding-server"}]))
+
+FAIL in (start-upgrades-existing-venv-when-dependency-stamp-is-stale) (electron/embedding_server_test.cljs:222:17)
+expected: (= [{:file deps-stamp, :content "sentence-transformers\nhttpx[socks]\n"}] (clojure.core/deref writes))
+  actual: (not (= [{:file "/users/me/logseq/embedding-server/deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}] [{:file "\\users\\me\\logseq\\embedding-server\\deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}]))
+
+FAIL in (start-recreates-existing-venv-when-python-is-not-usable) (electron/embedding_server_test.cljs:280:17)
+expected: (= [venv-dir] (clojure.core/deref removed-dirs))
+  actual: (not (= ["/users/me/logseq/embedding-server/.venv"] ["\\users\\me\\logseq\\embedding-server\\.venv"]))
+
+FAIL in (start-recreates-existing-venv-when-python-is-not-usable) (electron/embedding_server_test.cljs:281:17)
+expected: (= [{:cmd venv-python, :args ["-c" "import sys"], :cwd runtime-dir} {:cmd "python3", :args ["-m" "venv" ".venv"], :cwd runtime-dir} {:cmd venv-python, :args ["-c" "import sys"], :cwd runtime-dir} {:cmd venv-python, :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd runtime-dir}] (clojure.core/deref commands))
+  actual: (not (= [{:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-c" "import sys"], :cwd "/users/me/logseq/embedding-server"} {:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "/users/me/logseq/embedding-server"} {:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-c" "import sys"], :cwd "/users/me/logseq/embedding-server"} {:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "/users/me/logseq/embedding-server"}] [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-c" "import sys"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "\\users\\me\\logseq\\embedding-server"}]))
+
+FAIL in (start-recreates-existing-venv-when-python-is-not-usable) (electron/embedding_server_test.cljs:294:17)
+expected: (= [{:file deps-stamp, :content "sentence-transformers\nhttpx[socks]\n"}] (clojure.core/deref writes))
+  actual: (not (= [{:file "/users/me/logseq/embedding-server/deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}] [{:file "\\users\\me\\logseq\\embedding-server\\deps-v2.ok", :content "sentence-transformers\nhttpx[socks]\n"}]))
+
+FAIL in (start-recreates-existing-venv-when-python-is-not-usable) (electron/embedding_server_test.cljs:297:17)
+expected: (= [{:runtime-dir runtime-dir, :venv-dir venv-dir, :venv-python venv-python, :sidecar-dir "/app/Contents/Resources/sidecar", :script-path "/app/Contents/Resources/sidecar/embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}] (clojure.core/deref spawns))
+  actual: (not (= [{:runtime-dir "/users/me/logseq/embedding-server", :venv-dir "/users/me/logseq/embedding-server/.venv", :venv-python "/users/me/logseq/embedding-server/.venv/bin/python", :sidecar-dir "/app/Contents/Resources/sidecar", :script-path "/app/Contents/Resources/sidecar/embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}] [{:runtime-dir "\\users\\me\\logseq\\embedding-server", :venv-dir "\\users\\me\\logseq\\embedding-server\\.venv", :venv-python "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :sidecar-dir "\\app\\Contents\\Resources\\sidecar", :script-path "\\app\\Contents\\Resources\\sidecar\\embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}]))
+
+FAIL in (start-reuses-existing-venv-and-installed-deps-with-allocated-port) (electron/embedding_server_test.cljs:241:17)
+expected: (= [{:cmd venv-python, :args ["-c" "import sys"], :cwd runtime-dir}] (clojure.core/deref commands))
+  actual: (not (= [{:cmd "/users/me/logseq/embedding-server/.venv/bin/python", :args ["-c" "import sys"], :cwd "/users/me/logseq/embedding-server"}] [{:cmd "python3", :args ["-m" "venv" ".venv"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-c" "import sys"], :cwd "\\users\\me\\logseq\\embedding-server"} {:cmd "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :args ["-m" "pip" "install" "sentence-transformers" "httpx[socks]"], :cwd "\\users\\me\\logseq\\embedding-server"}]))
+
+FAIL in (start-reuses-existing-venv-and-installed-deps-with-allocated-port) (electron/embedding_server_test.cljs:245:17)
+expected: (= [{:runtime-dir runtime-dir, :venv-dir "/users/me/logseq/embedding-server/.venv", :venv-python venv-python, :sidecar-dir "/app/Contents/Resources/sidecar", :script-path "/app/Contents/Resources/sidecar/embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}] (clojure.core/deref spawns))
+  actual: (not (= [{:runtime-dir "/users/me/logseq/embedding-server", :venv-dir "/users/me/logseq/embedding-server/.venv", :venv-python "/users/me/logseq/embedding-server/.venv/bin/python", :sidecar-dir "/app/Contents/Resources/sidecar", :script-path "/app/Contents/Resources/sidecar/embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}] [{:runtime-dir "\\users\\me\\logseq\\embedding-server", :venv-dir "\\users\\me\\logseq\\embedding-server\\.venv", :venv-python "\\users\\me\\logseq\\embedding-server\\.venv\\bin\\python", :sidecar-dir "\\app\\Contents\\Resources\\sidecar", :script-path "\\app\\Contents\\Resources\\sidecar\\embedding_server.py", :host "127.0.0.1", :port 45678, :model-id "all-MiniLM-L6-v2"}]))
+
+Testing frontend.components.dialog-test
+
+Testing frontend.config-test
+
+Testing frontend.handler.comments-test
+
+Testing frontend.handler.search-test
+
+Testing frontend.worker.db-worker-node-test
+
+Testing frontend.handler.route-test
+
+Ran 7 tests containing 18 assertions.
+0 failures, 0 errors.
+Worker db transact: 47.582ms
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :db-path "/db.sqlite"}, :line 569}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :search-path "search/db.sqlite"}, :line 575}
+[frontend.worker.db-core] {:db-worker/get-dbs-open {:repo "bootstrap-datoms", :client-ops-path "client-ops-/db.sqlite"}, :line 586}
+[frontend.worker.db-worker-node] {:db-worker-node-version {:build-time "test-build-time", :revision "test-revision"}, :line 602}
+[frontend.worker.platform.node] {:db-worker-node-platform {:root-dir "D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\tmp\\unit-test-PsasjD\\db-worker-log-version", :vector-embedding-enabled? false, :embedding-endpoint nil, :embedding-model-id nil}, :line 750}
+apply outliner ops: 42.605ms
+[frontend.worker.db-core] {:db-worker/init-service {:graph "graph-b", :prev-graph "graph-a", :import-type nil}, :line 1045}
+Worker db transact: 0.703ms
+123
+[frontend.worker.db-core] {:db-worker/wal-checkpoint-failed {:error #object[Error Error: checkpoint failed], :repo "test-repo"}, :line 151}
+bb lint:large-vars
+[frontend.worker.db-core] {:import-file-stat {:fs-path "pages/Home.md", :error #object[Error Error: ENOENT: no such file or directory, stat 'D:\orca\workspaces\logseq\issue9-typed-properties\pages\Home.md']}, :line 336}
+...........................Worker db transact: 63.957ms
+.......
+Testing frontend.rfx-test
+..............................
+Ran 12 tests containing 20 assertions.
+.0 failures, 0 errors.
+..........................................................................Worker db transact: 37.767ms
+...................................................................................................[frontend.worker.db-core] {:read-import-file {:fs-path "/tmp/graph/pages/Missing.md", :error #object[Error Error: ENOENT]}, :line 312}
+...........................[frontend.worker.db-core] {:import-ignored-files {:count 1}, :line 246}
+...............................................................................................................apply outliner ops: 35.191ms
+...............................................................................................................................................................................
+Testing frontend.handler.code-test
+
+Testing frontend.handler.repo-test
+[frontend.handler.repo] {:graph-create-failed {:error #error {:message "persist failed", :data {:code :persist-failed}}}, :line 182}
+"New db created: " "logseq_db_created"
+"New db created: " "logseq_db_imported"
+
+Testing frontend.worker.db-validate-test
+..............
+Testing electron.graph-switch-flow-test
+
+Testing frontend.components.editor-test
+
+Testing frontend.context.i18n-test
+
+Testing frontend.handler.common-test
+
+Testing frontend.handler.ui-test
+........
+Testing frontend.worker.db-worker-test
+..[frontend.worker.sync.download] {:db-sync/download-graph-by-id-failed {:repo "test-db-worker-repo", :graph-id "graph-failure-1", :graph-e2ee? false, :stage :prepare-import, :error #error {:message "stream failed", :data {:code :stream-failed}}, :error-stack "Error: stream failed\n    at new cljs$core$ExceptionInfo (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11769:11)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$3] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs.core/ex-info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at cljs$core$ex_info.cljs.core/ex-info [as cljs$core$IFn$_invoke$arity$2] (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11799:16)\n    at cljs$core$ex_info (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\cljs\\core.cljs:11796:1)\n    at f (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\frontend\\worker\\db_worker_test.cljs:471:95)\n    at Object.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl.cljc:105:29)\n    at processNextTick (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:286:25)\n    at transition (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:360:12)\n    at PromiseImpl.resolve (D:\\orca\\workspaces\\logseq\\issue9-typed-properties\\.shadow-cljs\\builds\\test\\dev\\out\\cljs-runtime\\promesa\\impl\\promise.js:144:9)", :error-cause nil}, :line 549}
+
+Testing frontend.worker.undo-redo-test
+..........................................................:debug :entity {:block/tx-id 1, :kv/value 1, :block/uuid #uuid "8a8bd9b5-6220-401d-9429-730ec4eb82fd", :block/updated-at 2, :logseq.property.class/extends #{1}, :block/created-at 1, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "imported", :db/id 192, :db/ident :user.class/imported, :block/name "imported"} :error {:dispatch-key :class, :errors {5 {:kv/value {"class-page" ["disallowed key" "disallowed key"]}, :db/ident ["should be :logseq.class/Root"], :logseq.property.class/extends {"class-page" ["disallowed key"]}}}}
+:debug :entity {:block/tx-id 1, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1790990354151, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1790990354151, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/order "aR", :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+:debug :entity {:block/created-at 1, :block/journal-day 20260504, :block/name "2026-05-04", :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{167} {:page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "2026-05-04", :block/tx-id 1, :block/uuid #uuid "2050235e-5395-4887-97e9-15791b1e1dd4", :db/id 191} :error {:dispatch-key :normal-page, :errors {191 {:block/updated-at {"normal-page" ["missing required key"]}}}}
+.:debug :entity {:block/tx-id 536870918, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1790990354151, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1790990354151, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{2 3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:block/tags ["should only have one tag for a built-in entity"], :logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+:debug :entity {:block/tx-id 536870920, :db/index true, :logseq.property/type :class, :block/uuid #uuid "00000002-7475-9380-3000-000000000000", :db/valueType :db.type/ref, :block/properties [[{:db/ident :logseq.property/built-in?, :db/cardinality :db.cardinality/one, :logseq.property/type :checkbox} true] [{:db/ident :logseq.property/description, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/one, :logseq.property/type :default} 40]], :block/updated-at 1790990354151, :logseq.property.class/extends #{1}, :logseq.property/view-context :class, :block/created-at 1790990354151, :block/tags [{:db/ident :block/tags, :db/valueType :db.type/ref, :db/cardinality :db.cardinality/many, :logseq.property/type :class} #{3} {:logseq.property/built-in? true, :page-class-id 4, :all-page-class-ids #{3 4 2 167 168}}], :block/title "Extends", :db/cardinality :db.cardinality/many, :db/id 39, :db/ident :logseq.property.class/extends, :block/name "extends", :logseq.property/public? true} :error {:dispatch-key :property, :errors {43 {:logseq.property.class/extends {"internal-property" ["disallowed key"]}}}}
+...........................apply outliner ops: 5.952s
+.Worker db transact: 35.568ms
+...:debug :entity {:block/created-at 1, :block/order "a0", :block/page {:block/name "test page", :db/id 191, :block/created-at 1, :block/tags [:logseq.class/Page]}, :block/parent 191, :block/title "", :block/updated-at 2, :db/id 192} :error {:dispatch-key nil, :errors {5 ["invalid dispatch value"]}}
+..Worker db transact: 51.435ms
+...[frontend.worker.handler.transaction] {:frontend.worker.handler.transaction/apply-outliner-ops-failed #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :line 153}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :validation-error, :error #error {:message "Can't set tag with built-in #Journal", :data {:type :notification, :payload {:message "Can't set tag with built-in #Journal", :i18n-key :class.validation/cant-set-tag-built-in, :i18n-args ["Journal"], :type :error}, :property-id :block/tags, :property-value 167}}, :message "Can't set tag with built-in #Journal", :method :thread-api/apply-outliner-ops}, :line 329}
+.............
+Testing logseq.db.common.view-all-pages-count-test
+...
+Ran 88 tests containing 386 assertions.
+0 failures, 0 errors.
+...
+Testing frontend.worker.sync.upload-test
+.[frontend.worker.sync.util] {:db-sync/snapshot-row-too-large {:max-bytes 10, :row-size 11, :addr :too-big}, :line 14}
+
+Testing logseq.db-worker.server-list-test
+...............................................[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 400, :code :invalid-query, :error #error {:message "Query for unknown vars: [...]", :data {:error :parser/query, :vars #{#datascript.parser.Variable{:symbol ...}}, :form [:find (pull ?e ...) :where [?e :block/title "Status"]]}}, :message "Query for unknown vars: [...]", :method :thread-api/q}, :line 329}
+...........
+Ran 147 tests containing 1601 assertions.
+0 failures, 0 errors.
+
+Ran 133 tests containing 537 assertions.
+0 failures, 0 errors.
+Worker db transact: 29.705ms
+stdout output ac6b9c79-9c26-4b27-bcb9-bb4ef0a09bca
+println output 69190a67-c40b-412a-a466-1a2098287e8e
+console error output 578536dd-0644-4062-b43a-77c6e714f726
+[frontend.worker.db-core] {:import-file-stat {:fs-path "pages/Home.md", :error #object[Error Error: ENOENT: no such file or directory, stat 'D:\orca\workspaces\logseq\issue9-typed-properties\pages\Home.md']}, :line 336}
+Worker db transact: 34.265ms
+
+Testing electron.interop-test
+
+Testing frontend.components.file-test
+
+Testing frontend.date-test
+
+Testing frontend.handler.common.config-edn-test
+
+Testing frontend.handler.user-test
+[frontend.handler.db-based.rtc-background-tasks] {:try-to-stop-rtc-if-needed :logout, :line 37}
+[frontend.handler.db-based.sync] {:db-sync/stop-skipped {:reason :db-worker-not-ready}, :line 204}
+:debug "set-token-to-localstorage!"
+:debug "set-token-to-localstorage!"
+restore-tokens-from-localstorage
+
+Testing frontend.worker.graph-view-test
+
+Testing electron.mcp-server-test
+
+Testing frontend.components.graph-actions-test
+
+Testing frontend.db.async-test
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block 42, :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block 42, :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block, :block #uuid "8a27ea1b-3034-4e27-953a-cb732fa240e4", :error #object[Error Error: worker failed]}, :line 333}
+[frontend.db.async] {:db/block-fetch-failed {:operation :get-block-with-children, :block #uuid "8a27ea1b-3034-4e27-953a-cb732fa240e4", :error #object[Error Error: worker failed]}, :line 333}
+
+Testing frontend.handler.common.developer-test
+{:db/id 42,
+ :block/title "debug block",
+ :block/refs [{:block/title "ref title"}],
+ :block.debug/refs ["ref title"]}
+
+
+Testing frontend.handler.worker-test
+[frontend.handler.worker] {:db-worker/stopped-unexpectedly {:event #js {:message "worker crashed"}}, :line 233}
+[frontend.handler.worker] {:db-worker/ui-request-failed {:request-id "req-2", :action :request-e2ee-password, :error #error {:message "boom", :data {:code :boom, :x 1}}}, :line 185}
+
+Testing frontend.worker.handler.block-test
+
+Testing electron.mcp-transport-test
+
+Testing frontend.components.graph-test
+
+Testing frontend.db.async-util-test
+
+Testing frontend.handler.common.page-test
+
+Testing frontend.modules.outliner.core-test
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/import-db-binary}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/backup-db-sqlite}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 409, :code :repo-locked, :error #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}, :cause #error {:message "Graph ownership transaction was lost", :data {:code :repo-locked}}}, :message "Graph ownership transaction was lost", :method :thread-api/apply-outliner-ops}, :line 329}
+[frontend.worker.db-worker-node] {:db-worker-node-invoke-failed {:status 500, :code :exception, :error #error {:message "not found thread-api: thread-api/not-found", :data {}}, :message "not found thread-api: thread-api/not-found", :method :thread-api/not-found}, :line 329}
+
+Testing logseq.api-test
+
+Testing logseq.db.frontend.comments-class-test
+
+Ran 75 tests containing 314 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.handler.comments-test
+
+Testing frontend.worker.sync.restart-test
+[frontend.worker.sync] {:db-sync/ws-closed {:repo "stale-repo"}, :line 261}
+[frontend.worker.sync] {:db-sync/ws-reconnect-scheduled {:repo "stale-repo", :delay 1065, :attempt 0, :reason :close}, :line 247}
+[frontend.worker.sync] {:db-sync/start-skipped {:repo "missing-local-tx-repo", :graph-id "graph-1", :base "wss://sync.example.test/sync/color:black", :reason :client-op-not-ready}, :line 397}%c
+[frontend.worker.sync] {:db-sync/connect! {:repo "stale-repo", :token-exists? true}, :line 331}
+[frontend.worker.sync] {:db-sync/ws-stale-closed {:repo "stale-repo", :ready-state 3}, :line 298}
+
+Testing logseq.db-worker.graph-backup-test
+
+Ran 280 tests containing 2366 assertions.
+0 failures, 0 errors.
+Worker db transact: 37.154ms
+
+Testing frontend.worker.sync.util-test
+
+Testing logseq.db.common-sqlite-test
+
+Ran 95 tests containing 420 assertions.
+12 failures, 0 errors.
+
+Testing logseq.api.app-test
+
+Testing logseq.db.sqlite.backup-test
+
+Ran 76 tests containing 200 assertions.
+0 failures, 0 errors.
+
+The following vars exceed the line count max of 100:
+
+|         :var | :lines-count |                             :filename |
+|--------------+--------------+---------------------------------------|
+| upsert-nodes |          119 | src\main\logseq\api\db_based\cli.cljs |
+----- Error --------------------------------------------------------------------
+Type:     clojure.lang.ExceptionInfo
+Message:  
+Data:     {:proc #object[java.lang.ProcessImpl 0x7125ba3f "Process[pid=37016, exitValue=1]"], :exit 1, :in #object[java.lang.ProcessBuilder$NullOutputStream 0x78b7ff29 "java.lang.ProcessBuilder$NullOutputStream@78b7ff29"], :out #object[java.lang.ProcessBuilder$NullInputStream 0x22eeea17 "java.lang.ProcessBuilder$NullInputStream@22eeea17"], :err #object[java.lang.ProcessBuilder$NullInputStream 0x22eeea17 "java.lang.ProcessBuilder$NullInputStream@22eeea17"], :prev nil, :cmd ["C:\\Users\\zhang\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Babashka.Babashka_Microsoft.Winget.Source_8wekyb3d8bbwe\\bb.exe" "lint:large-vars"], :type :babashka.process/error}
+Location: /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:83:12
+
+----- Context ------------------------------------------------------------------
+79:              results (->> #(future (worker))
+80:                           (repeatedly (min jobs (count tasks)))
+81:                           doall)]
+82:          (when-let [error (some deref results)]
+83:            (throw error)))))))
+               ^--- 
+84: 
+85: (defn- selected-test-namespaces
+86:   [args]
+87:   (->> (:out (apply run-shell {:out :string
+88:                                :shutdown nil
+
+----- Stack trace --------------------------------------------------------------
+babashka.process/check                    - <built-in>
+babashka.process/shell                    - <built-in>
+clojure.core/apply                        - <built-in>
+babashka.impl.process/shell               - <built-in>
+logseq.tasks.dev/run-parallel!            - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:83:12
+logseq.tasks.dev/run-parallel!            - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:58:4
+logseq.tasks.dev/run-parallel!            - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:56:1
+logseq.tasks.dev                          - /D:/orca/workspaces/logseq/issue9-typed-properties/scripts/src/logseq/tasks/dev.clj:165:3
+clojure.core/apply                        - clojure/core.clj:662:1
+user-8b987db6-1161-4dd6-b1d5-98f32877d456 - NO_SOURCE_PATH:40:1
+
+
+Testing electron.release-warning-test
+
+Testing frontend.components.header-test
+
+Testing frontend.db.content-test
+
+Testing frontend.handler.config-test
+
+Testing frontend.modules.outliner.inline-tag-test
+
+Testing frontend.worker.handler.property-test
+
+Testing electron.spell-check-test
+
+Testing frontend.components.icon-test
+
+Testing frontend.db.db-based-model-test
+
+Testing frontend.handler.db-based.editor-test
+
+Testing frontend.modules.outliner.op-test
+
+Testing frontend.worker.handler.render-resource-test
+
+Testing frontend.common.crypt-test
+
+Testing frontend.common.search-fuzzy-test
+
+Testing frontend.components.journal-test
+
+Testing frontend.components.imports-test
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: Failed to fetch]}, :line 420}
+
+Testing logseq.api.block-test
+[frontend.components.imports] {:import-file-graph {:msg "Import finished in 0 seconds"}, :line 470}
+[frontend.components.imports] {:import-valid {:msg "Valid import!"}, :line 290}
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: Failed to fetch]}, :line 420}
+[frontend.components.imports] {:import-file-graph {:msg "Import finished in 0 seconds"}, :line 470}
+[frontend.components.imports] {:import-valid {:msg "Valid import!"}, :line 290}
+[frontend.components.imports] {:import-file-graph-failed {:error #object[Error Error: import failed]}, :line 420}
+
+Testing frontend.db.hooks-test
+
+Testing frontend.handler.db-based.import-test
+
+Testing frontend.modules.outliner.pipeline-test
+
+Testing frontend.worker.handler.search-test
+
+Testing logseq.outliner.copy-paste-nested-test
+
+Ran 28 tests containing 117 assertions.
+0 failures, 0 errors.
+
+Testing frontend.db.model-test
+
+Testing logseq.api.db-based-test
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :datalog, :error #object[SyntaxError SyntaxError: Invalid regular expression: /(/: Unterminated group]}, :line 306}
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :dsl, :error #error {:message "Unexpected EOF while reading item 1 of list.", :data {:type :reader-exception, :ex-kind :eof}}}, :line 306}
+
+Testing frontend.handler.db-based.property-test
+
+Testing frontend.modules.shortcut.config-test
+
+Testing frontend.worker.handler.transaction-test
+apply outliner ops: 0.011ms
+[frontend.worker.handler.transaction] {:db-worker/outliner-op-perf {:apply-ms 0.394800000000032, :listener-ms 0.010000000000218279, :plain-ms 0.0650999999998021, :total-ms 0.48469999999906577, :perf-id #uuid "11111111-1111-1111-1111-111111111111", :op-names [:save-block], :op-count 1, :worker-apply-ms 0.394800000000032}, :line 86}
+
+Testing logseq.api.db-based.cli-test
+[frontend.worker.handler.render-resource.query] {:renderer-query-failed {:kind :dsl, :error #error {:message "Query for unknown vars: [?b]", :data {:error :parser/query, :vars #{#datascript.parser.Variable{:symbol ?b}}, :form [:find (pull ?b [:db/id :block/uuid {:block/parent [:db/id]}]) :in $ % :where ((and))]}}}, :line 306}
+
+Testing logseq.outliner.move-property-value-undo-test
+
+Testing logseq.outliner.default-value-children-test
+
+Ran 57 tests containing 232 assertions.
+0 failures, 0 errors.
+
+Ran 52 tests containing 217 assertions.
+0 failures, 0 errors.
+
+Testing logseq.api.core-test
+
+Testing logseq.outliner.date-property-test
+
+Ran 107 tests containing 781 assertions.
+0 failures, 0 errors.
+
+Testing frontend.worker.worker-common-util-test
+
+Testing logseq.db.common.view-small-set-sort-test
+
+Ran 48 tests containing 197 assertions.
+0 failures, 0 errors.

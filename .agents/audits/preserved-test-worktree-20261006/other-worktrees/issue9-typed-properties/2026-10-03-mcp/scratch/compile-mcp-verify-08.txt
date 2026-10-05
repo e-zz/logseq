@@ -1,0 +1,279 @@
+WARNING: Implicit use of clojure.main with options is deprecated, use -M compile mcp-http-verify
+[:mcp-http-verify] Compiling ...
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor (file:/C:/Users/zhang/.m2/repository/com/google/javascript/closure-compiler/v20250820/closure-compiler-v20250820.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+[:mcp-http-verify] Build completed. (558 files, 4 compiled, 17 warnings, 7.70s)
+
+[1m------ WARNING #1 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:75:13
+--------------------------------------------------------------------------------
+[2m  72 |     (aset res "code" (fn [c] (aset res "__code" c) res))[0m
+[2m  73 |     (aset res "send"[0m
+[2m  74 |           (fn [payload][0m
+[1m  75 |             (.writeHead raw-res (or (aget res "__code") 200)[0m
+-------------------^------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. raw-res writeHead (or (aget res "__code") 200) #object[cljs.tagged_literals.JSValue 0x4f7b5d46 "cljs.tagged_literals.JSValue@4f7b5d46"])[0m
+--------------------------------------------------------------------------------
+[2m  76 |                         #js {"content-type" "application/json"})[0m
+[2m  77 |             (.end raw-res (if (string? payload) payload (js/JSON.stringify payload)))[0m
+[2m  78 |             res))[0m
+[2m  79 |     res))[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #2 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:92:5
+--------------------------------------------------------------------------------
+[2m  89 | (defn- read-body[0m
+[2m  90 |   [raw-req cb][0m
+[2m  91 |   (let [chunks (atom [])][0m
+[1m  92 |     (.on raw-req "data" (fn [c] (swap! chunks conj (.toString c "utf8"))))[0m
+-----------^--------------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. raw-req on "data" (fn [c] (swap! chunks conj (.toString c "utf8"))))[0m
+--------------------------------------------------------------------------------
+[2m  93 |     (.on raw-req "end" (fn [][0m
+[2m  94 |                          (let [s (apply str @chunks)][0m
+[2m  95 |                            (cb (when (seq s) (js/JSON.parse s))))))))[0m
+[2m  96 | [0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #3 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:93:5
+--------------------------------------------------------------------------------
+[2m  90 |   [raw-req cb][0m
+[2m  91 |   (let [chunks (atom [])][0m
+[2m  92 |     (.on raw-req "data" (fn [c] (swap! chunks conj (.toString c "utf8"))))[0m
+[1m  93 |     (.on raw-req "end" (fn [][0m
+-----------^--------------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. raw-req on "end" (fn [] (let [s (apply str (clojure.core/deref chunks))] (cb (when (seq s) (js/JSON.parse s))))))[0m
+--------------------------------------------------------------------------------
+[2m  94 |                          (let [s (apply str @chunks)][0m
+[2m  95 |                            (cb (when (seq s) (js/JSON.parse s))))))))[0m
+[2m  96 | [0m
+[2m  97 | (defn- route![0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #4 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:101:11
+--------------------------------------------------------------------------------
+[2m  98 |   [host port raw-req raw-res][0m
+[2m  99 |   (let [url (or (.-url raw-req) "")][0m
+[2m 100 |     (if-not (string/starts-with? url "/mcp")[0m
+[1m 101 |       (do (.writeHead raw-res 404) (.end raw-res "not found"))[0m
+-----------------^--------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. raw-res writeHead 404)[0m
+--------------------------------------------------------------------------------
+[2m 102 |       (case (.-method raw-req)[0m
+[2m 103 |         "POST" (read-body raw-req[0m
+[2m 104 |                           (fn [body][0m
+[2m 105 |                             (mcp-server/handle-post-request[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #5 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:111:13
+--------------------------------------------------------------------------------
+[2m 108 |                              (shim-res raw-res))))[0m
+[2m 109 |         "GET" (mcp-server/handle-get-request (shim-req raw-req nil) (shim-res raw-res))[0m
+[2m 110 |         "DELETE" (mcp-server/handle-delete-request (shim-req raw-req nil) (shim-res raw-res))[0m
+[1m 111 |         (do (.writeHead raw-res 405) (.end raw-res))))))[0m
+-------------------^------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. raw-res writeHead 405)[0m
+--------------------------------------------------------------------------------
+[2m 112 | [0m
+[2m 113 | (defn- start-server![0m
+[2m 114 |   [][0m
+[2m 115 |   (p/create[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #6 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:148:7
+--------------------------------------------------------------------------------
+[2m 145 |   "Calls a tool and returns the raw content text, tolerating SDK-level[0m
+[2m 146 |    JSON-RPC rejections so schema failures can be asserted instead of thrown."[0m
+[2m 147 |   [client name args][0m
+[1m 148 |   (-> (.callTool client #js {:name name :arguments args})[0m
+-------------^------------------------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x5b56c56 "cljs.tagged_literals.JSValue@5b56c56"])[0m
+--------------------------------------------------------------------------------
+[2m 149 |       (p/then (fn [result] (.-text (aget (.-content result) 0))))[0m
+[2m 150 |       (p/catch (fn [error] (str error)))))[0m
+[2m 151 | [0m
+[2m 152 | (defn- run-scenario![0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #7 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:160:17
+--------------------------------------------------------------------------------
+[2m 157 |                      (js/URL. (str "http://127.0.0.1:" port "/mcp")))[0m
+[2m 158 |           client (Client. #js {:name "mcp-verify-client" :version "0.0.1"})[0m
+[2m 159 |           _ (.connect client transport)[0m
+[1m 160 |           tools (.listTools client)[0m
+-----------------------^--------------------------------------------------------
+ [33;1mCannot infer target type in expression (. client listTools)[0m
+--------------------------------------------------------------------------------
+[2m 161 |           tool-names (->> (.-tools tools) (map #(.-name %)) sort vec)[0m
+[2m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+[2m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 164 |           before (parse-text before-r)[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #8 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:161:27
+--------------------------------------------------------------------------------
+[2m 158 |           client (Client. #js {:name "mcp-verify-client" :version "0.0.1"})[0m
+[2m 159 |           _ (.connect client transport)[0m
+[2m 160 |           tools (.listTools client)[0m
+[1m 161 |           tool-names (->> (.-tools tools) (map #(.-name %)) sort vec)[0m
+---------------------------------^----------------------------------------------
+ [33;1mCannot infer target type in expression (. tools -tools)[0m
+--------------------------------------------------------------------------------
+[2m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+[2m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 164 |           before (parse-text before-r)[0m
+[2m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #9 - :infer-warning ---------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:162:62
+--------------------------------------------------------------------------------
+[2m 159 |           _ (.connect client transport)[0m
+[2m 160 |           tools (.listTools client)[0m
+[2m 161 |           tool-names (->> (.-tools tools) (map #(.-name %)) sort vec)[0m
+[1m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+--------------------------------------------------------------------^-----------
+ [33;1mCannot infer target type in expression (. t -inputSchema)[0m
+--------------------------------------------------------------------------------
+[2m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 164 |           before (parse-text before-r)[0m
+[2m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 166 |           recycle (parse-text recycle-r)[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #10 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:162:83
+--------------------------------------------------------------------------------
+[2m 159 |           _ (.connect client transport)[0m
+[2m 160 |           tools (.listTools client)[0m
+[2m 161 |           tool-names (->> (.-tools tools) (map #(.-name %)) sort vec)[0m
+[1m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+-----------------------------------------------------------------------------------------^
+ [33;1mCannot infer target type in expression (. tools -tools)[0m
+--------------------------------------------------------------------------------
+[2m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 164 |           before (parse-text before-r)[0m
+[2m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 166 |           recycle (parse-text recycle-r)[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #11 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:163:20
+--------------------------------------------------------------------------------
+[2m 160 |           tools (.listTools client)[0m
+[2m 161 |           tool-names (->> (.-tools tools) (map #(.-name %)) sort vec)[0m
+[2m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+[1m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+--------------------------^-----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x49b748c9 "cljs.tagged_literals.JSValue@49b748c9"])[0m
+--------------------------------------------------------------------------------
+[2m 164 |           before (parse-text before-r)[0m
+[2m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 166 |           recycle (parse-text recycle-r)[0m
+[2m 167 |           hidden-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #12 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:165:21
+--------------------------------------------------------------------------------
+[2m 162 |           schemas (into {} (map (fn [t] [(.-name t) (js->clj (.-inputSchema t))]) (.-tools tools)))[0m
+[2m 163 |           before-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 164 |           before (parse-text before-r)[0m
+[1m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+---------------------------^----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x1fe44cd0 "cljs.tagged_literals.JSValue@1fe44cd0"])[0m
+--------------------------------------------------------------------------------
+[2m 166 |           recycle (parse-text recycle-r)[0m
+[2m 167 |           hidden-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 168 |           hidden (parse-text hidden-r)[0m
+[2m 169 |           fetched-r (.callTool client #js {:name "getRecycledBlock" :arguments #js {:blockUuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #13 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:167:20
+--------------------------------------------------------------------------------
+[2m 164 |           before (parse-text before-r)[0m
+[2m 165 |           recycle-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 166 |           recycle (parse-text recycle-r)[0m
+[1m 167 |           hidden-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+--------------------------^-----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x6a11ee55 "cljs.tagged_literals.JSValue@6a11ee55"])[0m
+--------------------------------------------------------------------------------
+[2m 168 |           hidden (parse-text hidden-r)[0m
+[2m 169 |           fetched-r (.callTool client #js {:name "getRecycledBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 170 |           fetched (parse-text fetched-r)[0m
+[2m 171 |           noop-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #14 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:169:21
+--------------------------------------------------------------------------------
+[2m 166 |           recycle (parse-text recycle-r)[0m
+[2m 167 |           hidden-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 168 |           hidden (parse-text hidden-r)[0m
+[1m 169 |           fetched-r (.callTool client #js {:name "getRecycledBlock" :arguments #js {:blockUuid root-uuid}})[0m
+---------------------------^----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x51bf4c31 "cljs.tagged_literals.JSValue@51bf4c31"])[0m
+--------------------------------------------------------------------------------
+[2m 170 |           fetched (parse-text fetched-r)[0m
+[2m 171 |           noop-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 172 |           noop (parse-text noop-r)[0m
+[2m 173 |           restore-r (.callTool client #js {:name "restoreBlock" :arguments #js {:blockUuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #15 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:171:18
+--------------------------------------------------------------------------------
+[2m 168 |           hidden (parse-text hidden-r)[0m
+[2m 169 |           fetched-r (.callTool client #js {:name "getRecycledBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 170 |           fetched (parse-text fetched-r)[0m
+[1m 171 |           noop-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+------------------------^-------------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x223da7cf "cljs.tagged_literals.JSValue@223da7cf"])[0m
+--------------------------------------------------------------------------------
+[2m 172 |           noop (parse-text noop-r)[0m
+[2m 173 |           restore-r (.callTool client #js {:name "restoreBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 174 |           restore (parse-text restore-r)[0m
+[2m 175 |           visible-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #16 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:173:21
+--------------------------------------------------------------------------------
+[2m 170 |           fetched (parse-text fetched-r)[0m
+[2m 171 |           noop-r (.callTool client #js {:name "recycleBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 172 |           noop (parse-text noop-r)[0m
+[1m 173 |           restore-r (.callTool client #js {:name "restoreBlock" :arguments #js {:blockUuid root-uuid}})[0m
+---------------------------^----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x1f82fd94 "cljs.tagged_literals.JSValue@1f82fd94"])[0m
+--------------------------------------------------------------------------------
+[2m 174 |           restore (parse-text restore-r)[0m
+[2m 175 |           visible-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+[2m 176 |           visible (parse-text visible-r)[0m
+[2m 177 |           schema-rejection (call-tool-text client "recycleBlock" #js {:blockUuid "not-a-uuid"})[0m
+--------------------------------------------------------------------------------
+
+[1m------ WARNING #17 - :infer-warning --------------------------------------------[0m
+ File: D:\orca\workspaces\logseq\issue9-typed-properties\src\dev-cljs\electron\mcp_verify.cljs:175:21
+--------------------------------------------------------------------------------
+[2m 172 |           noop (parse-text noop-r)[0m
+[2m 173 |           restore-r (.callTool client #js {:name "restoreBlock" :arguments #js {:blockUuid root-uuid}})[0m
+[2m 174 |           restore (parse-text restore-r)[0m
+[1m 175 |           visible-r (.callTool client #js {:name "getBlock" :arguments #js {:uuid root-uuid}})[0m
+---------------------------^----------------------------------------------------
+ [33;1mCannot infer target type in expression (. client callTool #object[cljs.tagged_literals.JSValue 0x7a04cb77 "cljs.tagged_literals.JSValue@7a04cb77"])[0m
+--------------------------------------------------------------------------------
+[2m 176 |           visible (parse-text visible-r)[0m
+[2m 177 |           schema-rejection (call-tool-text client "recycleBlock" #js {:blockUuid "not-a-uuid"})[0m
+[2m 178 |           _ (.close client)[0m
+[2m 179 |           _ (p/create (fn [res _] (.close server (fn [] (res nil)))))][0m
+--------------------------------------------------------------------------------

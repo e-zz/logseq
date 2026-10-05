@@ -1,0 +1,15 @@
+{
+  "tool": "type_text",
+  "input": {
+    "pid": 25932,
+    "window_id": 201312,
+    "element_token": "s00000003:5",
+    "text": "TEST-DEMO-20261004-A",
+    "delivery_mode": "background"
+  },
+  "started_at": "2026-10-04T13:07:38.347143+08:00",
+  "finished_at": "2026-10-04T13:07:39.154634+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"code\": \"background_unavailable\",\n  \"escalation\": {\n    \"reason\": \"background input is dropped by this surface; retry this action with delivery_mode:\\\"foreground\\\".\",\n    \"recommended\": \"foreground\"\n  },\n  \"event_kind\": \"text_input\",\n  \"suggestion\": \"Retry this action with delivery_mode:\\\"foreground\\\".\",\n  \"target_class\": \"Chrome_WidgetWin_1\"\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "anchor": "22a29b30dee3b3930cf49bba50454650c31d2a07",
+    "head": "546d1f7cca51ee4cdfeb68f5c3bedbedf820a03a",
+    "file": "src/main/frontend/worker/db_listener.cljs",
+    "anchorFnSource": "(defn- skip-search-sync?\n  [tx-meta]\n  (or (:from-disk? tx-meta)\n      (:logseq.graph-parser.exporter/imported-data? tx-meta)\n      (:logseq.db.sqlite.export/imported-data? tx-meta)))",
+    "headFnSource": "(defn- skip-search-sync?\n  [tx-meta]\n  (or (:from-disk? tx-meta)\n      (:logseq.graph-parser.exporter/imported-data? tx-meta)\n      (and (:logseq.db.sqlite.export/imported-data? tx-meta)\n           (not (:logseq.outliner.op/runtime-write? tx-meta)))))",
+    "anchorKeywords": [
+      "from-disk?",
+      "logseq.graph-parser.exporter/imported-data?",
+      "logseq.db.sqlite.export/imported-data?"
+    ],
+    "headKeywords": [
+      "from-disk?",
+      "logseq.graph-parser.exporter/imported-data?",
+      "logseq.db.sqlite.export/imported-data?",
+      "logseq.outliner.op/runtime-write?"
+    ],
+    "transcriptionNote": "JS bodies transcribed 1:1 from the extracted defn forms (same or/and/negation structure). The predicate is the ONLY thing that differs between anchor and current on this path.",
+    "semantics": "skipSearchSync=true means the :search listener does NOT run incremental upsert/delete for that tx; FTS rows from the pre-tx index state persist until the next full rebuild."
+  },
+  "results": [
+    {
+      "tx": "T1-recycle-op",
+      "anchor_skipSearchSync": false,
+      "current_skipSearchSync": false,
+      "anchor_incrementalSyncRuns": true,
+      "current_incrementalSyncRuns": true,
+      "diff": false
+    },
+    {
+      "tx": "T2-restore-op",
+      "anchor_skipSearchSync": false,
+      "current_skipSearchSync": false,
+      "anchor_incrementalSyncRuns": true,
+      "current_incrementalSyncRuns": true,
+      "diff": false
+    },
+    {
+      "tx": "T3-mcp-upsert",
+      "anchor_skipSearchSync": true,
+      "current_skipSearchSync": false,
+      "anchor_incrementalSyncRuns": false,
+      "current_incrementalSyncRuns": true,
+      "diff": true
+    },
+    {
+      "tx": "T4-bulk-import",
+      "anchor_skipSearchSync": true,
+      "current_skipSearchSync": true,
+      "anchor_incrementalSyncRuns": false,
+      "current_incrementalSyncRuns": false,
+      "diff": false
+    },
+    {
+      "tx": "T5-from-disk",
+      "anchor_skipSearchSync": true,
+      "current_skipSearchSync": true,
+      "anchor_incrementalSyncRuns": false,
+      "current_incrementalSyncRuns": false,
+      "diff": false
+    }
+  ],
+  "verdict": {
+    "mcpUpsert": "current: incremental search sync RUNS for MCP runtime-write imports",
+    "bulkImport": "current: incremental search sync SKIPPED for bulk imports (full rebuild covers)",
+    "recycleOps": "recycle/restore ops (T1/T2) carry no imported-data? flag in either version => incremental sync RUNS in both; recycled subtree FTS rows are removed incrementally (per H3) in both anchor and current",
+    "difference": [
+      "T3-mcp-upsert"
+    ]
+  }
+}

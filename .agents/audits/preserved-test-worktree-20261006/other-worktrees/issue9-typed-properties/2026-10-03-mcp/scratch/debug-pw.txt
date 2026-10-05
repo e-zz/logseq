@@ -1,0 +1,10 @@
+
+Testing logseq.api.db-based.property-write-test
+
+FAIL in (list-properties-omits-hidden-closed-values-and-write-agrees) (logseq/api/db_based/property_write_test.cljs:415:13)
+a property whose choices are all hidden/recycled exposes no choices
+expected: (= :debug {:choices-count (count choices), :raw (map (comp str :block/uuid) choices), :hidden-uuids hidden-uuids})
+  actual: (not (= :debug {:choices-count 0, :raw (), :hidden-uuids #{"00000002-7233-3491-0000-000000000000" "00000002-1615-5853-7700-000000000000" "00000002-1840-1229-0800-000000000000" "00000002-1870-0014-4300-000000000000" "00000002-1827-5820-8200-000000000000" "00000002-7526-4326-2000-000000000000"}}))
+
+Ran 12 tests containing 81 assertions.
+1 failures, 0 errors.

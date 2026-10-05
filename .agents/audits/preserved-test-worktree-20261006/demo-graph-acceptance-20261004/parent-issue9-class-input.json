@@ -1,0 +1,27 @@
+{
+  "operations": [
+    {
+      "data": {
+        "title": "CI-ISSUE9-WRONG-CLASS-SHOULD-NOT-COMMIT"
+      },
+      "entityType": "block",
+      "id": "2834bd67-ba5d-4737-acf1-5ddb4913cee7",
+      "operation": "edit"
+    },
+    {
+      "data": {
+        "properties": {
+          "00000002-2190-1503-4000-000000000000": [
+            {
+              "uuid": "70ec2dc8-8fcc-4c97-b134-bdf2a24f3cda"
+            }
+          ]
+        }
+      },
+      "entityType": "block",
+      "id": "2834bd67-ba5d-4737-acf1-5ddb4913cee7",
+      "operation": "edit"
+    }
+  ],
+  "receipt": true
+}

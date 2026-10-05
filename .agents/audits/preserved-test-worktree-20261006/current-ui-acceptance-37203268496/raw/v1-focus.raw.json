@@ -1,0 +1,13 @@
+{
+  "tool": "focus_app",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "raise_window": false
+  },
+  "started_at": "2026-10-04T22:56:05.340961+08:00",
+  "finished_at": "2026-10-04T22:56:07.096015+08:00",
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "Permission denied: tool 'focus_app' has no reviewed risk classification\n"
+}

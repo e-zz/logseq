@@ -1,0 +1,14 @@
+{
+  "tool": "press_key",
+  "input": {
+    "pid": 45964,
+    "window_id": 5770950,
+    "key": "backspace",
+    "delivery_mode": "foreground"
+  },
+  "started_at": "2026-10-04T22:49:09.556146+08:00",
+  "finished_at": "2026-10-04T22:49:10.678149+08:00",
+  "exit_code": 0,
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"foreground\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": ""
+}

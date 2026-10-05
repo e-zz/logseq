@@ -1,0 +1,18 @@
+{
+  "artifact": "C:\\Users\\zhang\\Downloads\\logseq-win-x64-builds\\Logseq-win-x64-2.0.2\\resources\\app.asar",
+  "entries": [
+    {
+      "entry": "logseq-cli.js",
+      "size": 90,
+      "sha256": "0581285715b905026ee101c42ffabeecb6a6b14b2d116f4d5aa0201ec7cd80d6",
+      "prefix": "#!/usr/bin/env node\nconsole.error(\"logseq-cli: not built (fork build)\");\nprocess.exit(1);\n"
+    },
+    {
+      "entry": "js/logseq-cli.js",
+      "size": 90,
+      "sha256": "0581285715b905026ee101c42ffabeecb6a6b14b2d116f4d5aa0201ec7cd80d6",
+      "prefix": "#!/usr/bin/env node\nconsole.error(\"logseq-cli: not built (fork build)\");\nprocess.exit(1);\n"
+    }
+  ],
+  "conclusion": "Both packaged CLI entries inspected; stub if prefix says not built. No CLI invoked, no compilation."
+}

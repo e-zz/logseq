@@ -1,0 +1,50 @@
+
+Testing logseq.api.plugin-test
+
+FAIL in (user-preferences-and-plugin-settings-use-idb) (logseq/api/plugin_test.cljs:267:19)
+expected: (= "/tmp/plugins/settings/test-plugin.json" (first settings-before))
+  actual: (not (= "/tmp/plugins/settings/test-plugin.json" "\\tmp\\plugins\\settings\\test-plugin.json"))
+
+FAIL in (list-and-clear-plugin-storage-files) (logseq/api/plugin_test.cljs:241:23)
+expected: (empty? (clojure.core/deref files))
+  actual: (not (empty? {"/tmp/plugins/storages/test-plugin/a.json" "a", "/tmp/plugins/storages/test-plugin/b.json" "b"}))
+
+FAIL in (binary-content-detection-and-storage-root) (logseq/api/plugin_test.cljs:106:7)
+expected: (= "storages/demo-plugin" ((var api-plugin/plugin-storage-sub-root) "demo-plugin"))
+  actual: (not (= "storages/demo-plugin" "storages\\demo-plugin"))
+
+FAIL in (binary-content-detection-and-storage-root) (logseq/api/plugin_test.cljs:108:7)
+expected: (= "storages/nested" ((var api-plugin/plugin-storage-sub-root) "/tmp/plugins/nested"))
+  actual: (not (= "storages/nested" "storages\\nested"))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:208:23)
+expected: (= "{\"name\":\"demo\"}" pkg)
+  actual: (not (= "{\"name\":\"demo\"}" nil))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:209:23)
+expected: (= "# Demo" readme)
+  actual: (not (= "# Demo" nil))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:210:23)
+expected: (re-find #"2.0.0" saved)
+  actual: (not (re-find #"2.0.0" "{\"name\":\"demo\"}"))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:211:23)
+expected: (= "/tmp/plugins/tmp/scratch.txt" tmp-path)
+  actual: (not (= "/tmp/plugins/tmp/scratch.txt" "\\tmp\\plugins\\tmp\\scratch.txt"))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:212:23)
+expected: (= "/tmp/plugins/docs/notes.txt" dotdir-path)
+  actual: (not (= "/tmp/plugins/docs/notes.txt" "\\tmp\\plugins\\docs\\notes.txt"))
+
+FAIL in (plugin-package-and-dotdir-file-io) (logseq/api/plugin_test.cljs:213:23)
+expected: (= "/tmp/graph/assets/brand/logo.txt" assets-path)
+  actual: (not (= "/tmp/graph/assets/brand/logo.txt" "\\tmp\\graph\\assets\\brand\\logo.txt"))
+[logseq.api.plugin] {:debug "/etc/passwd", :line 73}
+
+FAIL in (storage-paths-stay-inside-plugin-root) (logseq/api/plugin_test.cljs:98:9)
+expected: (= (str root "/notes.txt") ((var api-plugin/storage-file-path) root "notes.txt" "write"))
+  actual: (not (= "/tmp/logseq/plugins/notes.txt" "\\tmp\\logseq\\plugins\\notes.txt"))
+
+Ran 22 tests containing 67 assertions.
+11 failures, 0 errors.

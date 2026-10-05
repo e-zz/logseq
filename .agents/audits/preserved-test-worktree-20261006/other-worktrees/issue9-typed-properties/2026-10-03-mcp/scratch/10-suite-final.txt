@@ -1,0 +1,12 @@
+===== logseq.api.db-based.cli-test =====
+Ran 22 tests containing 107 assertions.
+0 failures, 0 errors.
+===== logseq.api.db-based.property-write-test =====
+Ran 34 tests containing 208 assertions.
+0 failures, 0 errors.
+===== logseq.api.db-based.tools-test =====
+Ran 37 tests containing 192 assertions.
+0 failures, 0 errors.
+===== logseq.api.db-based.issue6-test =====
+Ran 10 tests containing 41 assertions.
+0 failures, 0 errors.

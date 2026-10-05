@@ -1,0 +1,39 @@
+{
+  "page": "ISSUE4-11-UI-FIXTURE-20261004",
+  "purpose": "Targeted current-package UI acceptance fixture for #4 (numbered list auto renumber) and #11 (GUI search + reference autocomplete). Added 2026-10-04 via the single authorized upsertNodes batch. DO NOT edit titles; canary text for #11 search test: ISSUE4-11-UI-ACCEPTANCE-A.",
+  "operations": [
+    {
+      "operation": "add",
+      "entityType": "page",
+      "id": "temp-IFX",
+      "data": { "title": "ISSUE4-11-UI-FIXTURE-20261004" }
+    },
+    {
+      "operation": "add",
+      "entityType": "block",
+      "data": {
+        "page-id": "temp-IFX",
+        "title": "ISSUE4-11-UI-ACCEPTANCE-A",
+        "properties": { "logseq.property/order-list-type": "number" }
+      }
+    },
+    {
+      "operation": "add",
+      "entityType": "block",
+      "data": {
+        "page-id": "temp-IFX",
+        "title": "ISSUE4-11-UI-ACCEPTANCE-B",
+        "properties": { "logseq.property/order-list-type": "number" }
+      }
+    },
+    {
+      "operation": "add",
+      "entityType": "block",
+      "data": {
+        "page-id": "temp-IFX",
+        "title": "ISSUE4-11-UI-ACCEPTANCE-C",
+        "properties": { "logseq.property/order-list-type": "number" }
+      }
+    }
+  ]
+}

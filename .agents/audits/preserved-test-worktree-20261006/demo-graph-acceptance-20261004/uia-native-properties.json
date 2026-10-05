@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-10-04T13:40:16.2796590+08:00",
+  "hwnd": 201312,
+  "nodesScanned": 232,
+  "elements": [
+    {
+      "name": "",
+      "automationId": "",
+      "controlType": "ControlType.CheckBox",
+      "patterns": [
+        "ValuePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "check box",
+        "AutomationElementIdentifiers.AutomationIdProperty": "",
+        "TogglePatternIdentifiers.ToggleStateProperty": "Off",
+        "AutomationElementIdentifiers.ClassNameProperty": "ui__checkbox peer h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[checked]:text-primary-foreground jtrigger flex flex-row items-center",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED"
+      }
+    },
+    {
+      "name": "",
+      "automationId": "trigger-76-308-74",
+      "controlType": "ControlType.Group",
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "group",
+        "AutomationElementIdentifiers.ClassNameProperty": "jtrigger",
+        "AutomationElementIdentifiers.AutomationIdProperty": "trigger-76-308-74",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType"
+      }
+    },
+    {
+      "name": "",
+      "automationId": "",
+      "controlType": "ControlType.CheckBox",
+      "patterns": [
+        "ValuePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "check box",
+        "AutomationElementIdentifiers.AutomationIdProperty": "",
+        "TogglePatternIdentifiers.ToggleStateProperty": "Off",
+        "AutomationElementIdentifiers.ClassNameProperty": "ui__checkbox peer h-4 w-4 shrink-0 cursor-pointer rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[checked]:text-primary-foreground jtrigger flex flex-row items-center",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED"
+      }
+    },
+    {
+      "name": "Todo",
+      "automationId": "ac-1",
+      "controlType": "ControlType.Hyperlink",
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "ValuePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "Todo",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "link",
+        "AutomationElementIdentifiers.ClassNameProperty": " flex justify-between menu-link",
+        "AutomationElementIdentifiers.AutomationIdProperty": "ac-1",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType"
+      }
+    },
+    {
+      "name": "Doing",
+      "automationId": "ac-2",
+      "controlType": "ControlType.Hyperlink",
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "ValuePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "Doing",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "link",
+        "AutomationElementIdentifiers.ClassNameProperty": " flex justify-between menu-link",
+        "AutomationElementIdentifiers.AutomationIdProperty": "ac-2",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType"
+      }
+    },
+    {
+      "name": "Done",
+      "automationId": "ac-4",
+      "controlType": "ControlType.Hyperlink",
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "ValuePatternIdentifiers.Pattern",
+        "ScrollItemPatternIdentifiers.Pattern"
+      ],
+      "properties": {
+        "AutomationElementIdentifiers.NameProperty": "Done",
+        "AutomationElementIdentifiers.LocalizedControlTypeProperty": "link",
+        "AutomationElementIdentifiers.ClassNameProperty": " flex justify-between menu-link",
+        "AutomationElementIdentifiers.AutomationIdProperty": "ac-4",
+        "AutomationElementIdentifiers.HelpTextProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ItemStatusProperty": "NOT_SUPPORTED",
+        "AutomationElementIdentifiers.ControlTypeProperty": "System.Windows.Automation.ControlType"
+      }
+    }
+  ]
+}

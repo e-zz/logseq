@@ -1,0 +1,1418 @@
+{
+  "scope": "Actual U vs B Electron Cmd-K GUI on initially byte-identical synthetic graph copies. No user graph.",
+  "limits": [
+    "Fresh-index fixture only; old-index migration not tested.",
+    "Only ordinary/nested block labels and navigation initially; recycled entities need separate controlled fixture.",
+    "Same-fixture equality is bounded compatibility evidence, not absence of every upstream regression."
+  ],
+  "sides": {
+    "U": {
+      "sha": "22a29b30dee3b3930cf49bba50454650c31d2a07",
+      "exe": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\gui-search-upstream-compatibility-independent\\upstream-package-37131548966\\portable\\Logseq.exe",
+      "queries": [
+        {
+          "mainText": "compatordinary45831",
+          "itemText": "Compat Page One\ncompatordinary45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatordinary45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatordinary45831",
+          "urlBefore": "lsp://logseq.com/index.html",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatnested45831",
+          "itemText": "Compat Page One\n/\ncompatparent45831\nCurrent Page\ncompatnested45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span><span class=\" opacity-50 px-1\">/</span><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">compatparent45831</span></span></div><span class=\" cp__cmdk-current-page-badge\">Current Page</span></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatnested45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            },
+            {
+              "text": "compatparent45831",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 110.5,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatnested45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatotherpage45831",
+          "itemText": "Compat Page Two\ncompatotherpage45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page Two</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatotherpage45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page Two",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 102,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatotherpage45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "expectedPage": "Compat Page Two",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page Two\nCompat Page One\nAdd icon\nSet property\nCompat Page Two\ncompatotherpage45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202450321,
+              "createdAt": 1791202450053,
+              "tags": [
+                4
+              ],
+              "id": 196,
+              "rawTitle": "Compat Page Two",
+              "name": "compat page two",
+              "uuid": "6ac39492-3462-4d4c-b11f-f42e30176de7",
+              "fullTitle": "Compat Page Two",
+              "content": "Compat Page Two",
+              "title": "Compat Page Two",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        }
+      ],
+      "scope": "Synthetic graph only",
+      "pid": 17180,
+      "ports": {
+        "inspectPort": 19541,
+        "cdpPort": 19542
+      },
+      "isolation": {
+        "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\home",
+        "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\userdata",
+        "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U/appdata",
+        "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U/logs",
+        "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\U\\home",
+        "appPath": "D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\gui-search-upstream-compatibility-independent\\upstream-package-37131548966\\portable\\resources\\app.asar"
+      },
+      "graph": {
+        "url": "logseq_db_compat-pair-fixture",
+        "name": "logseq_db_compat-pair-fixture",
+        "path": "C:/Users/zhang/AppData/Local/Temp/ls-ub-20261005/U/home/logseq/graphs/compat-pair-fixture"
+      },
+      "version": {
+        "url": "lsp://logseq.com/index.html",
+        "title": "Logseq: A privacy-first platform for knowledge management and collaboration",
+        "apiKeys": [
+          "get_caller_plugin_id",
+          "install_plugin_hook",
+          "uninstall_plugin_hook",
+          "should_exec_plugin_hook",
+          "load_plugin_config",
+          "load_plugin_readme",
+          "save_plugin_package_json",
+          "write_dotdir_file",
+          "write_assetsdir_file",
+          "write_user_tmp_file",
+          "write_plugin_storage_file",
+          "read_plugin_storage_file",
+          "unlink_plugin_storage_file",
+          "exist_plugin_storage_file",
+          "clear_plugin_storage_files",
+          "list_plugin_storage_files",
+          "load_user_preferences",
+          "save_user_preferences",
+          "load_plugin_user_settings",
+          "save_plugin_user_settings",
+          "load_installed_web_plugins",
+          "save_installed_web_plugin",
+          "unlink_installed_web_plugin",
+          "unlink_plugin_user_settings",
+          "register_plugin_slash_command",
+          "unregister_plugin_slash_command",
+          "register_plugin_simple_command",
+          "unregister_plugin_simple_command",
+          "register_search_service",
+          "unregister_search_services",
+          "register_plugin_ui_item",
+          "get_external_plugin",
+          "invoke_external_plugin_cmd",
+          "validate_external_plugins",
+          "__install_plugin",
+          "check_current_is_db_graph",
+          "get_state_from_store",
+          "set_state_from_store",
+          "get_app_info",
+          "get_user_configs",
+          "get_current_graph_configs",
+          "set_current_graph_configs",
+          "get_current_graph_favorites",
+          "get_current_graph_recent",
+          "get_current_graph",
+          "show_themes",
+          "set_theme_mode",
+          "relaunch",
+          "quit",
+          "open_external_link",
+          "invoke_external_command",
+          "set_left_sidebar_visible",
+          "set_right_sidebar_visible",
+          "clear_right_sidebar_blocks",
+          "push_state",
+          "replace_state",
+          "get_current_route",
+          "q",
+          "datascript_query",
+          "custom_query",
+          "set_file_content",
+          "get_file_content",
+          "prepend_block_in_page",
+          "append_block_in_page",
+          "check_editing",
+          "clear_selected_blocks",
+          "create_journal_page",
+          "create_page",
+          "delete_page",
+          "delete_recycled_page_permanently",
+          "download_graph_db",
+          "download_graph_pages",
+          "edit_block",
+          "exit_editing_mode",
+          "get_all_pages",
+          "get_block",
+          "get_block_properties",
+          "get_block_property",
+          "get_current_block",
+          "get_current_page",
+          "get_current_page_blocks_tree",
+          "get_editing_block_content",
+          "get_editing_cursor_position",
+          "get_next_sibling_block",
+          "get_page",
+          "get_today_page",
+          "get_page_blocks_tree",
+          "get_page_linked_references",
+          "get_page_properties",
+          "get_previous_sibling_block",
+          "get_selected_blocks",
+          "insert_at_editing_cursor",
+          "insert_batch_block",
+          "insert_block",
+          "move_block",
+          "new_block_uuid",
+          "open_in_right_sidebar",
+          "remove_block",
+          "remove_block_property",
+          "rename_page",
+          "restore_page",
+          "restore_editing_cursor",
+          "save_focused_code_editor_content",
+          "select_block",
+          "set_block_collapsed",
+          "update_block",
+          "upsert_block_property",
+          "open_pdf_viewer",
+          "show_msg",
+          "query_element_rect",
+          "query_element_by_id",
+          "make_asset_url",
+          "exper_register_fenced_code_renderer",
+          "exper_load_scripts",
+          "exper_request",
+          "http_request_abort",
+          "search",
+          "set_focused_settings",
+          "force_save_graph",
+          "get_property",
+          "upsert_property",
+          "remove_property",
+          "get_all_tags",
+          "get_all_properties",
+          "get_tag_objects",
+          "create_tag",
+          "get_tag",
+          "get_tags_by_name",
+          "add_tag_extends",
+          "remove_tag_extends",
+          "add_block_tag",
+          "remove_block_tag",
+          "add_tag_property",
+          "remove_tag_property",
+          "set_block_icon",
+          "remove_block_icon",
+          "add_property_value_choices",
+          "set_property_node_tags",
+          "list_tags",
+          "list_properties",
+          "list_pages",
+          "get_page_data",
+          "upsert_nodes",
+          "import_edn",
+          "export_edn"
+        ]
+      },
+      "status": "EXERCISED",
+      "normalQuitRequested": true,
+      "normalExit": null,
+      "leftRunning": true,
+      "portsClosedVerified": true
+    },
+    "B": {
+      "sha": "fb5eb4eb43cdb3be7a29d816b969d45c127d4861",
+      "exe": "C:/Users/zhang/Downloads/logseq-ci-37203268496-x64/Logseq-win-x64-2.0.2/Logseq.exe",
+      "queries": [
+        {
+          "mainText": "compatordinary45831",
+          "itemText": "Compat Page One\ncompatordinary45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatordinary45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatordinary45831",
+          "urlBefore": "lsp://logseq.com/index.html",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatnested45831",
+          "itemText": "Compat Page One\n/\ncompatparent45831\nCurrent Page\ncompatnested45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span><span class=\" opacity-50 px-1\">/</span><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">compatparent45831</span></span></div><span class=\" cp__cmdk-current-page-badge\">Current Page</span></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatnested45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            },
+            {
+              "text": "compatparent45831",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 110.5,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatnested45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatotherpage45831",
+          "itemText": "Compat Page Two\ncompatotherpage45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page Two</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatotherpage45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page Two",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 102,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatotherpage45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "expectedPage": "Compat Page Two",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page Two\nCompat Page One\nAdd icon\nSet property\nCompat Page Two\ncompatotherpage45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202450321,
+              "createdAt": 1791202450053,
+              "tags": [
+                4
+              ],
+              "id": 196,
+              "rawTitle": "Compat Page Two",
+              "name": "compat page two",
+              "uuid": "6ac39492-3462-4d4c-b11f-f42e30176de7",
+              "fullTitle": "Compat Page Two",
+              "content": "Compat Page Two",
+              "title": "Compat Page Two",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        }
+      ],
+      "scope": "Synthetic graph only",
+      "pid": 42876,
+      "ports": {
+        "inspectPort": 19551,
+        "cdpPort": 19552
+      },
+      "isolation": {
+        "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\home",
+        "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\userdata",
+        "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B/appdata",
+        "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B/logs",
+        "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\B\\home",
+        "appPath": "C:\\Users\\zhang\\Downloads\\logseq-ci-37203268496-x64\\Logseq-win-x64-2.0.2\\resources\\app.asar"
+      },
+      "graph": {
+        "url": "logseq_db_compat-pair-fixture",
+        "name": "logseq_db_compat-pair-fixture",
+        "path": "C:/Users/zhang/AppData/Local/Temp/ls-ub-20261005/B/home/logseq/graphs/compat-pair-fixture"
+      },
+      "version": {
+        "url": "lsp://logseq.com/index.html",
+        "title": "Logseq: A privacy-first platform for knowledge management and collaboration",
+        "apiKeys": [
+          "get_caller_plugin_id",
+          "install_plugin_hook",
+          "uninstall_plugin_hook",
+          "should_exec_plugin_hook",
+          "load_plugin_config",
+          "load_plugin_readme",
+          "save_plugin_package_json",
+          "write_dotdir_file",
+          "write_assetsdir_file",
+          "write_user_tmp_file",
+          "write_plugin_storage_file",
+          "read_plugin_storage_file",
+          "unlink_plugin_storage_file",
+          "exist_plugin_storage_file",
+          "clear_plugin_storage_files",
+          "list_plugin_storage_files",
+          "load_user_preferences",
+          "save_user_preferences",
+          "load_plugin_user_settings",
+          "save_plugin_user_settings",
+          "load_installed_web_plugins",
+          "save_installed_web_plugin",
+          "unlink_installed_web_plugin",
+          "unlink_plugin_user_settings",
+          "register_plugin_slash_command",
+          "unregister_plugin_slash_command",
+          "register_plugin_simple_command",
+          "unregister_plugin_simple_command",
+          "register_search_service",
+          "unregister_search_services",
+          "register_plugin_ui_item",
+          "get_external_plugin",
+          "invoke_external_plugin_cmd",
+          "validate_external_plugins",
+          "__install_plugin",
+          "check_current_is_db_graph",
+          "get_state_from_store",
+          "set_state_from_store",
+          "get_app_info",
+          "get_user_configs",
+          "get_current_graph_configs",
+          "set_current_graph_configs",
+          "get_current_graph_favorites",
+          "get_current_graph_recent",
+          "get_current_graph",
+          "show_themes",
+          "set_theme_mode",
+          "relaunch",
+          "quit",
+          "open_external_link",
+          "invoke_external_command",
+          "set_left_sidebar_visible",
+          "set_right_sidebar_visible",
+          "clear_right_sidebar_blocks",
+          "push_state",
+          "replace_state",
+          "get_current_route",
+          "q",
+          "datascript_query",
+          "custom_query",
+          "set_file_content",
+          "get_file_content",
+          "prepend_block_in_page",
+          "append_block_in_page",
+          "check_editing",
+          "clear_selected_blocks",
+          "create_journal_page",
+          "create_page",
+          "delete_page",
+          "delete_recycled_page_permanently",
+          "download_graph_db",
+          "download_graph_pages",
+          "edit_block",
+          "exit_editing_mode",
+          "get_all_pages",
+          "get_block",
+          "get_block_properties",
+          "get_block_property",
+          "get_current_block",
+          "get_current_page",
+          "get_current_page_blocks_tree",
+          "get_editing_block_content",
+          "get_editing_cursor_position",
+          "get_next_sibling_block",
+          "get_page",
+          "get_today_page",
+          "get_page_blocks_tree",
+          "get_page_linked_references",
+          "get_page_properties",
+          "get_previous_sibling_block",
+          "get_selected_blocks",
+          "insert_at_editing_cursor",
+          "insert_batch_block",
+          "insert_block",
+          "move_block",
+          "new_block_uuid",
+          "open_in_right_sidebar",
+          "remove_block",
+          "remove_block_property",
+          "rename_page",
+          "restore_page",
+          "restore_editing_cursor",
+          "save_focused_code_editor_content",
+          "select_block",
+          "set_block_collapsed",
+          "update_block",
+          "upsert_block_property",
+          "open_pdf_viewer",
+          "show_msg",
+          "query_element_rect",
+          "query_element_by_id",
+          "make_asset_url",
+          "exper_register_fenced_code_renderer",
+          "exper_load_scripts",
+          "exper_request",
+          "http_request_abort",
+          "search",
+          "set_focused_settings",
+          "force_save_graph",
+          "get_property",
+          "upsert_property",
+          "remove_property",
+          "get_all_tags",
+          "get_all_properties",
+          "get_tag_objects",
+          "create_tag",
+          "get_tag",
+          "get_tags_by_name",
+          "add_tag_extends",
+          "remove_tag_extends",
+          "add_block_tag",
+          "remove_block_tag",
+          "add_tag_property",
+          "remove_tag_property",
+          "set_block_icon",
+          "remove_block_icon",
+          "add_property_value_choices",
+          "set_property_node_tags",
+          "list_tags",
+          "list_properties",
+          "list_pages",
+          "get_page_data",
+          "get_block_by_uuid",
+          "recycle_block",
+          "restore_block",
+          "get_recycled_block",
+          "upsert_nodes",
+          "import_edn",
+          "export_edn"
+        ]
+      },
+      "status": "EXERCISED",
+      "normalQuitRequested": true,
+      "normalExit": null,
+      "leftRunning": true,
+      "portsClosedVerified": true
+    },
+    "C": {
+      "sha": "7b1ae92ee1eb1679b8bb827d12d7e76e22d4d5c5",
+      "exe": "C:/Users/zhang/Downloads/logseq-ci-37259407681-x64/unpacked/Logseq.exe",
+      "queries": [
+        {
+          "mainText": "compatordinary45831",
+          "itemText": "Compat Page One\ncompatordinary45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatordinary45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatordinary45831",
+          "urlBefore": "lsp://logseq.com/index.html",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatnested45831",
+          "itemText": "Compat Page One\n/\ncompatparent45831\nCurrent Page\ncompatnested45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page One</span></span><span class=\" opacity-50 px-1\">/</span><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">compatparent45831</span></span></div><span class=\" cp__cmdk-current-page-badge\">Current Page</span></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatnested45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page One",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 101,
+                "height": 15.9921875
+              }
+            },
+            {
+              "text": "compatparent45831",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 110.5,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatnested45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-55cc48d0-be61-43d8-b06a-fa308e8ebf9b",
+          "expectedPage": "Compat Page One",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page One\nAdd icon\nSet property\nCompat Page One\ncompatordinary45831\ncompatparent45831\ncompatnested45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202449779,
+              "createdAt": 1791202449476,
+              "tags": [
+                4
+              ],
+              "id": 192,
+              "rawTitle": "Compat Page One",
+              "name": "compat page one",
+              "uuid": "6ac39491-9049-456f-a34a-64fa6f0a3ca4",
+              "fullTitle": "Compat Page One",
+              "content": "Compat Page One",
+              "title": "Compat Page One",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        },
+        {
+          "mainText": "compatotherpage45831",
+          "itemText": "Compat Page Two\ncompatotherpage45831",
+          "itemHTML": "<div data-cmdk-item=\"true\" class=\"flex flex-col transition-colors duration-75 ease-in rounded-lg py-1.5 px-3 gap-0.5\" style=\"opacity: 1;\"><div class=\"-mt-1 text-xs pl-8 font-light flex items-center gap-2 overflow-hidden min-w-0\" style=\"color: var(--lx-gray-11); white-space: nowrap; text-overflow: ellipsis;\"><div class=\" breadcrumb--search-result breadcrumb block-parents\"><span class=\" breadcrumb__segment inline-flex items-center min-w-0\"><span class=\" breadcrumb__label\">Compat Page Two</span></span></div></div><div class=\" flex items-start gap-3\"><div class=\"w-5 h-5 rounded flex items-center justify-center bg-gray-05 dark:text-white w-5 h-5 rounded flex items-center justify-center\"><div class=\" icon-cp-container flex items-center\" style=\"color: inherit;\"><span class=\"ls-icon-point-filled  ui__icon ti\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" stroke=\"none\" class=\"tabler-icon tabler-icon-point-filled \"><path d=\"M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z\"></path></svg></span></div></div><div class=\" flex flex-1 flex-col\"><div class=\"cp__cmdk-item-main-text text-sm font-medium text-gray-12 flex items-center gap-2 flex-wrap\"><span><span></span><mark style=\"padding: 0px; border-radius: 0px;\">compatotherpage45831</mark></span></div></div></div></div>",
+          "labels": [
+            {
+              "text": "Compat Page Two",
+              "display": "block",
+              "visibility": "visible",
+              "rect": {
+                "width": 102,
+                "height": 15.9921875
+              }
+            }
+          ],
+          "query": "compatotherpage45831",
+          "urlBefore": "lsp://logseq.com/index.html#/page/6ac39491-9049-456f-a34a-64fa6f0a3ca4?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-e3a0cfb8-54dc-48a7-8aa5-1a10ba05a180",
+          "expectedPage": "Compat Page Two",
+          "hasVisibleExpectedPage": true,
+          "hasVisibleParent": true,
+          "urlAfter": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+          "navigation": {
+            "url": "lsp://logseq.com/index.html#/page/6ac39492-3462-4d4c-b11f-f42e30176de7?graph-id=00000000-44f0-4f81-88e0-56d3e51f5932&anchor=ls-block-44e95e66-1996-4fa3-ad38-aa417fcc26a0",
+            "body": "Skip to main content\ncompat-pair-fixture\nNavigations\nJournals\nFlashcards\nPages\nGraph view\nFavorites\nRecent\nCompat Page Two\nCompat Page One\nAdd icon\nSet property\nCompat Page Two\ncompatotherpage45831",
+            "page": {
+              "properties": {
+                "tags": [
+                  4
+                ]
+              },
+              "updatedAt": 1791202450321,
+              "createdAt": 1791202450053,
+              "tags": [
+                4
+              ],
+              "id": 196,
+              "rawTitle": "Compat Page Two",
+              "name": "compat page two",
+              "uuid": "6ac39492-3462-4d4c-b11f-f42e30176de7",
+              "fullTitle": "Compat Page Two",
+              "content": "Compat Page Two",
+              "title": "Compat Page Two",
+              "collapsed?": false,
+              "refs": [
+                {
+                  "ident": ":logseq.class/Page",
+                  "tags": [
+                    ":logseq.class/Tag"
+                  ],
+                  "id": 4,
+                  "rawTitle": "Page",
+                  "name": "page",
+                  "uuid": "00000002-1484-3403-2900-000000000000",
+                  "fullTitle": "Page",
+                  "content": "Page",
+                  "title": "Page",
+                  ":logseq.property.class/extends": [
+                    {
+                      "ident": ":logseq.class/Root"
+                    }
+                  ]
+                },
+                {
+                  "ident": "tags",
+                  "tags": [
+                    ":logseq.class/Property"
+                  ],
+                  "id": 22,
+                  "rawTitle": "Tags",
+                  "name": "tags",
+                  "uuid": "00000002-1814-9483-4000-000000000000",
+                  "fullTitle": "Tags",
+                  "content": "Tags",
+                  "title": "Tags"
+                }
+              ]
+            }
+          },
+          "navigationHasPage": true,
+          "navigationHasQuery": true
+        }
+      ],
+      "scope": "Synthetic graph only",
+      "pid": 16300,
+      "ports": {
+        "inspectPort": 19561,
+        "cdpPort": 19562
+      },
+      "isolation": {
+        "home": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\home",
+        "userData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\userdata",
+        "appData": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C/appdata",
+        "logs": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C/logs",
+        "osHome": "C:\\Users\\zhang\\AppData\\Local\\Temp\\ls-ub-20261005\\C\\home",
+        "appPath": "C:\\Users\\zhang\\Downloads\\logseq-ci-37259407681-x64\\unpacked\\resources\\app.asar"
+      },
+      "graph": {
+        "url": "logseq_db_compat-pair-fixture",
+        "name": "logseq_db_compat-pair-fixture",
+        "path": "C:/Users/zhang/AppData/Local/Temp/ls-ub-20261005/C/home/logseq/graphs/compat-pair-fixture"
+      },
+      "version": {
+        "url": "lsp://logseq.com/index.html",
+        "title": "Logseq",
+        "apiKeys": [
+          "get_caller_plugin_id",
+          "install_plugin_hook",
+          "uninstall_plugin_hook",
+          "should_exec_plugin_hook",
+          "load_plugin_config",
+          "load_plugin_readme",
+          "save_plugin_package_json",
+          "write_dotdir_file",
+          "write_assetsdir_file",
+          "write_user_tmp_file",
+          "write_plugin_storage_file",
+          "read_plugin_storage_file",
+          "unlink_plugin_storage_file",
+          "exist_plugin_storage_file",
+          "clear_plugin_storage_files",
+          "list_plugin_storage_files",
+          "load_user_preferences",
+          "save_user_preferences",
+          "load_plugin_user_settings",
+          "save_plugin_user_settings",
+          "load_installed_web_plugins",
+          "save_installed_web_plugin",
+          "unlink_installed_web_plugin",
+          "unlink_plugin_user_settings",
+          "register_plugin_slash_command",
+          "unregister_plugin_slash_command",
+          "register_plugin_simple_command",
+          "unregister_plugin_simple_command",
+          "register_search_service",
+          "unregister_search_services",
+          "register_plugin_ui_item",
+          "get_external_plugin",
+          "invoke_external_plugin_cmd",
+          "validate_external_plugins",
+          "__install_plugin",
+          "check_current_is_db_graph",
+          "get_state_from_store",
+          "set_state_from_store",
+          "get_app_info",
+          "get_user_configs",
+          "get_current_graph_configs",
+          "set_current_graph_configs",
+          "get_current_graph_favorites",
+          "get_current_graph_recent",
+          "get_current_graph",
+          "show_themes",
+          "set_theme_mode",
+          "relaunch",
+          "quit",
+          "open_external_link",
+          "invoke_external_command",
+          "set_left_sidebar_visible",
+          "set_right_sidebar_visible",
+          "clear_right_sidebar_blocks",
+          "push_state",
+          "replace_state",
+          "get_current_route",
+          "q",
+          "datascript_query",
+          "custom_query",
+          "set_file_content",
+          "get_file_content",
+          "prepend_block_in_page",
+          "append_block_in_page",
+          "check_editing",
+          "clear_selected_blocks",
+          "create_journal_page",
+          "create_page",
+          "delete_page",
+          "delete_recycled_page_permanently",
+          "download_graph_db",
+          "download_graph_pages",
+          "edit_block",
+          "exit_editing_mode",
+          "get_all_pages",
+          "get_block",
+          "get_block_properties",
+          "get_block_property",
+          "get_current_block",
+          "get_current_page",
+          "get_current_page_blocks_tree",
+          "get_editing_block_content",
+          "get_editing_cursor_position",
+          "get_next_sibling_block",
+          "get_page",
+          "get_today_page",
+          "get_page_blocks_tree",
+          "get_page_linked_references",
+          "get_page_properties",
+          "get_previous_sibling_block",
+          "get_selected_blocks",
+          "insert_at_editing_cursor",
+          "insert_batch_block",
+          "insert_block",
+          "move_block",
+          "new_block_uuid",
+          "open_in_right_sidebar",
+          "remove_block",
+          "remove_block_property",
+          "rename_page",
+          "restore_page",
+          "restore_editing_cursor",
+          "save_focused_code_editor_content",
+          "select_block",
+          "set_block_collapsed",
+          "update_block",
+          "upsert_block_property",
+          "open_pdf_viewer",
+          "show_msg",
+          "query_element_rect",
+          "query_element_by_id",
+          "make_asset_url",
+          "exper_register_fenced_code_renderer",
+          "exper_load_scripts",
+          "exper_request",
+          "http_request_abort",
+          "search",
+          "set_focused_settings",
+          "force_save_graph",
+          "get_property",
+          "upsert_property",
+          "remove_property",
+          "get_all_tags",
+          "get_all_properties",
+          "get_tag_objects",
+          "create_tag",
+          "get_tag",
+          "get_tags_by_name",
+          "add_tag_extends",
+          "remove_tag_extends",
+          "add_block_tag",
+          "remove_block_tag",
+          "add_tag_property",
+          "remove_tag_property",
+          "set_block_icon",
+          "remove_block_icon",
+          "add_property_value_choices",
+          "set_property_node_tags",
+          "list_tags",
+          "list_properties",
+          "list_pages",
+          "get_page_data",
+          "get_block_by_uuid",
+          "recycle_block",
+          "restore_block",
+          "get_recycled_block",
+          "upsert_nodes",
+          "import_edn",
+          "export_edn"
+        ]
+      },
+      "status": "EXERCISED",
+      "normalQuitRequested": true,
+      "normalExit": null,
+      "leftRunning": true,
+      "portsClosedVerified": true
+    }
+  },
+  "comparison": [
+    {
+      "query": "compatordinary45831",
+      "U": {
+        "labels": [
+          "Compat Page One"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      },
+      "B": {
+        "labels": [
+          "Compat Page One"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      }
+    },
+    {
+      "query": "compatnested45831",
+      "U": {
+        "labels": [
+          "Compat Page One",
+          "compatparent45831"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      },
+      "B": {
+        "labels": [
+          "Compat Page One",
+          "compatparent45831"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      }
+    },
+    {
+      "query": "compatotherpage45831",
+      "U": {
+        "labels": [
+          "Compat Page Two"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      },
+      "B": {
+        "labels": [
+          "Compat Page Two"
+        ],
+        "visible": true,
+        "parent": true,
+        "navPage": true,
+        "navQuery": true
+      }
+    }
+  ],
+  "comparisonC": [
+    {
+      "query": "compatordinary45831",
+      "labels": [
+        "Compat Page One"
+      ],
+      "visible": true,
+      "parent": true,
+      "navPage": true,
+      "navQuery": true
+    },
+    {
+      "query": "compatnested45831",
+      "labels": [
+        "Compat Page One",
+        "compatparent45831"
+      ],
+      "visible": true,
+      "parent": true,
+      "navPage": true,
+      "navQuery": true
+    },
+    {
+      "query": "compatotherpage45831",
+      "labels": [
+        "Compat Page Two"
+      ],
+      "visible": true,
+      "parent": true,
+      "navPage": true,
+      "navQuery": true
+    }
+  ],
+  "status": "OBSERVED_COMPARISON"
+}

@@ -1,0 +1,851 @@
+diff --git a/deps/outliner/src/logseq/outliner/cli.cljs b/deps/outliner/src/logseq/outliner/cli.cljs
+index 75a3ef9d35..f7301c4601 100644
+--- a/deps/outliner/src/logseq/outliner/cli.cljs
++++ b/deps/outliner/src/logseq/outliner/cli.cljs
+@@ -5,6 +5,7 @@
+             ["path" :as node-path]
+             [borkdude.rewrite-edn :as rewrite]
+             [clojure.string :as string]
++            [datascript.core :as d]
+             [logseq.db :as ldb]
+             [logseq.db.common.sqlite-cli :as sqlite-cli]
+             [logseq.db.sqlite.build :as sqlite-build]
+@@ -15,7 +16,7 @@
+   (some (fn [dir]
+           (let [f (node-path/join dir rel-path)]
+             (when (fs/existsSync f) f)))
+-        (string/split classpath #":")))
++        (string/split classpath (re-pattern (.-delimiter node-path)))))
+ 
+ (defn- pretty-print-merge
+   "Merge map into string while preversing whitespace"
+@@ -44,16 +45,20 @@
+                         "{}"))
+           additional-config
+           (pretty-print-merge additional-config))
+-        git-sha (get-git-sha)]
++        git-sha (get-git-sha)
++        existing-file-paths (set (d/q '[:find [?path ...]
++                                        :where [_ :file/path ?path]]
++                                      @conn))]
+     (ldb/transact! conn (sqlite-create-graph/build-db-initial-data config-content
+-                                                                   (merge {:import-type import-type}
++                                                                   (merge {:import-type import-type
++                                                                           :existing-file-paths existing-file-paths}
+                                                                           (when git-sha {:graph-git-sha git-sha}))))))
+ 
+ (defn init-conn
+   "Create sqlite DB, initialize datascript connection and sync listener and then
+   transacts initial data. Takes the following options:
+    * :additional-config - Additional config map to merge into repo config.edn
+-   * :classpath - A java classpath string i.e. paths delimited by ':'. Used to find default config.edn
++   * :classpath - A classpath string using the platform's path delimiter. Used to find default config.edn
+      that comes with Logseq"
+   [& args*]
+   (let [[args opts] (if (map? (last args*))
+diff --git a/deps/outliner/src/logseq/outliner/op.cljs b/deps/outliner/src/logseq/outliner/op.cljs
+index fd26d46649..741539a609 100644
+--- a/deps/outliner/src/logseq/outliner/op.cljs
++++ b/deps/outliner/src/logseq/outliner/op.cljs
+@@ -16,7 +16,8 @@
+             [logseq.outliner.op.construct :as op-construct]))
+ 
+ (defkeywords
+-  ::missing-parent-original {:doc "The linked-reference parent supplied to an outdent no longer exists."})
++  ::missing-parent-original {:doc "The linked-reference parent supplied to an outdent no longer exists."}
++  ::runtime-write? {:doc "Marks a :batch-import-edn operation as an incremental runtime write whose changes must still be indexed by search, unlike a bulk graph import."})
+ 
+ (def ^:private ^:large-vars/data-var op-schema
+   [:multi {:dispatch first}
+@@ -144,6 +145,11 @@
+      [:op :keyword]
+      [:args [:tuple ::uuid]]]]
+ 
++   [:recycle-blocks
++    [:catn
++     [:op :keyword]
++     [:args [:tuple ::uuid ::option]]]]
++
+    [:recycle-delete-permanently
+     [:catn
+      [:op :keyword]
+@@ -414,6 +420,10 @@
+     (let [[root-uuid] args]
+       (reset! *result (outliner-recycle/restore! conn root-uuid)))
+ 
++    :recycle-blocks
++    (let [[root-uuid opts] args]
++      (reset! *result (outliner-recycle/recycle! conn root-uuid (merge opts opts'))))
++
+     :recycle-delete-permanently
+     (let [[root-uuid] args]
+       (reset! *result (outliner-recycle/permanently-delete! conn root-uuid)))
+diff --git a/deps/outliner/src/logseq/outliner/op/construct.cljc b/deps/outliner/src/logseq/outliner/op/construct.cljc
+index b2d1b586ed..a74a471326 100644
+--- a/deps/outliner/src/logseq/outliner/op/construct.cljc
++++ b/deps/outliner/src/logseq/outliner/op/construct.cljc
+@@ -22,6 +22,7 @@
+     :rename-page
+     :delete-page
+     :restore-recycled
++    :recycle-blocks
+     :recycle-delete-permanently
+     :upsert-property})
+ 
+@@ -656,6 +657,10 @@
+     (let [[root-id] args]
+       [:restore-recycled [(stable-block-uuid db root-id)]])
+ 
++    :recycle-blocks
++    (let [[root-id opts] args]
++      [:recycle-blocks [(stable-block-uuid db root-id) opts]])
++
+     :recycle-delete-permanently
+     (let [[root-id] args]
+       [:recycle-delete-permanently [(stable-block-uuid db root-id)]])
+@@ -1410,6 +1415,10 @@
+     (let [[root-id] args]
+       (unresolved-numeric-entity-id? root-id))
+ 
++    :recycle-blocks
++    (let [[root-id _opts] args]
++      (unresolved-numeric-entity-id? root-id))
++
+     :apply-template
+     (let [[template-id target-id opts] args
+           template-blocks (:template-blocks opts)]
+diff --git a/deps/outliner/src/logseq/outliner/recycle.cljs b/deps/outliner/src/logseq/outliner/recycle.cljs
+index d942723b4c..968f4721d0 100644
+--- a/deps/outliner/src/logseq/outliner/recycle.cljs
++++ b/deps/outliner/src/logseq/outliner/recycle.cljs
+@@ -75,10 +75,21 @@
+     :else nil))
+ 
+ (defn- block-subtree
++  "Root-first depth-first subtree entities, siblings ordered by :block/order.
++   Includes property-value pseudochildren (via the full-children rules query)."
+   [db block]
+-  (let [ids (cons (:db/id block)
+-                  (common-initial-data/get-block-full-children-ids db (:db/id block)))]
+-    (keep #(d/entity db %) ids)))
++  (let [descendant-ids (common-initial-data/get-block-full-children-ids db (:db/id block))
++        children-by-parent (group-by #(:db/id (:block/parent %))
++                                     (keep #(d/entity db %) descendant-ids))
++        walk (fn walk [node]
++               (cons node (mapcat walk (ldb/sort-by-order
++                                        (get children-by-parent (:db/id node))))))]
++    (walk block)))
++
++(defn ^:api subtree-uuids
++  "Stable uuids of an entity and its ordered subtree, root first."
++  [db root]
++  (mapv (comp str :block/uuid) (block-subtree db root)))
+ 
+ (defn- block-children
+   [block]
+@@ -179,38 +190,74 @@
+                true
+                (maybe-assoc :logseq.property.recycle/original-order (:block/order page)))])))
+ 
++(def ^:private order-key-re #"[0-9A-Za-z]+")
++
++(defn- valid-order-key?
++  "Whether `order` is a well-formed fractional-index key. Guards against
++   reusing a corrupted `:logseq.property.recycle/original-order`."
++  [order]
++  (boolean
++   (and (string? order)
++        (re-matches order-key-re order)
++        (try
++          (db-order/validate-order-key? order)
++          (catch :default _ false)))))
++
++(defn- order-occupied?
++  "Whether `order` already belongs to a live sibling under `parent`."
++  [parent order]
++  (and (some? parent)
++       (valid-order-key? order)
++       (some #(= order (:block/order %)) (block-children parent))))
++
+ (defn- restore-order
+-  [target-parent]
+-  (next-child-order target-parent))
++  "Reuse the recycled root's original order only when it is a valid order key
++   and still free at the insertion point; otherwise generate a fresh sibling
++   key there. With no insertion parent (page-root restore) keep the valid
++   original order or nil rather than inventing an order."
++  [target-parent original-order]
++  (cond
++    (and (valid-order-key? original-order)
++         (not (order-occupied? target-parent original-order)))
++    original-order
++
++    (some? target-parent)
++    (next-child-order target-parent)
++
++    :else
++    nil))
+ 
+ (defn- restore-target
+   [db root]
+   (let [original-parent (resolve-entity db (:logseq.property.recycle/original-parent root))
+         original-page (resolve-entity db (:logseq.property.recycle/original-page root))
++        original-order (:logseq.property.recycle/original-order root)
+         parent-valid? (and original-parent
+                            (not (recycled? original-parent))
+                            (d/entity db (:db/id original-parent)))
++        original-page-valid? (and original-page
++                                  (d/entity db (:db/id original-page))
++                                  (not (recycled? original-page)))
+         parent-pending? (and original-parent (not parent-valid?))]
+     (cond
+       (ldb/page? root)
+       {:parent (when parent-valid? original-parent)
+        :page root
+-       :order (or (:logseq.property.recycle/original-order root)
+-                  (when parent-valid? (restore-order original-parent)))
++       :position (if parent-valid? :original-parent :page-root)
++       :order (restore-order (when parent-valid? original-parent) original-order)
+        :parent-pending? parent-pending?}
+ 
+       parent-valid?
+       {:parent original-parent
+        :page original-page
+-       :order (or (:logseq.property.recycle/original-order root)
+-                  (restore-order original-parent))}
++       :position :original-parent
++       :order (restore-order original-parent original-order)}
+ 
+-      (and original-page
+-           (d/entity db (:db/id original-page))
+-           (not (recycled? original-page)))
++      original-page-valid?
+       {:parent original-page
+        :page original-page
+-       :order (restore-order original-page)}
++       :position :original-page-fallback
++       :order (restore-order original-page original-order)}
+ 
+       :else
+       nil)))
+@@ -280,12 +327,96 @@
+                       (relink-waiting-children-tx db root))]
+       (concat clear-structure [root-tx] subtree-page-tx (remove nil? clear-meta) relink-tx))))
+ 
++(defn- restore-result
++  [db root target original-order]
++  (let [page? (ldb/page? root)
++        ids (if page?
++              (page-tree-ids db root)
++              (map :db/id (block-subtree db root)))
++        uuids (mapv #(some-> (d/entity db %) :block/uuid str) ids)
++        order (:order target)]
++    {:operation "restore"
++     :state "active"
++     :no-op false
++     :root-uuid (str (:block/uuid root))
++     :affected-uuids uuids
++     :affected-count (count uuids)
++     :page-uuid (some-> (:page target) :block/uuid str)
++     :parent-uuid (some-> (:parent target) :block/uuid str)
++     :position (case (:position target)
++                 :original-parent "original"
++                 :original-page-fallback "original-page-fallback"
++                 :page-root "page-root"
++                 (name (:position target)))
++     :order (if (and order (= order original-order)) "original" "regenerated")}))
++
+ (defn ^:api restore!
+   [conn root-uuid]
+-  (when-let [root (d/entity @conn [:block/uuid root-uuid])]
+-    (when-let [tx-data (seq (restore-tx-data @conn root))]
+-      (ldb/transact! conn tx-data {:outliner-op :restore-recycled})
+-      true)))
++  (if-let [root (d/entity @conn [:block/uuid root-uuid])]
++    (if-not (recycled? root)
++      {:error "Block is not recycled" :root-uuid (str root-uuid)}
++      (if-let [target (restore-target @conn root)]
++        (if-let [tx-data (seq (restore-tx-data @conn root))]
++          (let [original-order (:logseq.property.recycle/original-order root)]
++            (ldb/transact! conn tx-data {:outliner-op :restore-recycled})
++            (restore-result @conn (d/entity @conn [:block/uuid root-uuid]) target original-order))
++          {:error "No restore transaction data" :root-uuid (str root-uuid)})
++        {:error "No valid restore target for recycled block" :root-uuid (str root-uuid)}))
++    {:error (str "No block found for uuid " root-uuid)
++     :root-uuid (str root-uuid)}))
++
++(defn- ineligible-recycle-reason
++  [root]
++  (cond
++    (ldb/page? root) "Pages cannot be recycled by this API"
++    (ldb/class? root) "Tags/classes cannot be recycled by this API"
++    (ldb/property? root) "Properties cannot be recycled by this API"
++    (:logseq.property/built-in? root) "Built-in blocks cannot be recycled"
++    (:logseq.property/hide? root) "Hidden blocks cannot be recycled"
++    (:block/closed-value-property root) "Property value blocks cannot be recycled"
++    (:logseq.property/created-from-property root) "Property value blocks cannot be recycled"
++    :else nil))
++
++(defn- recycle-result
++  [db root no-op?]
++  (let [subtree (block-subtree db root)
++        recycle-page-entity (recycle-page db)]
++    (cond-> {:operation "recycle"
++             :state "recycled"
++             :no-op no-op?
++             :root-uuid (str (:block/uuid root))
++             :affected-uuids (mapv (comp str :block/uuid) subtree)
++             :affected-count (count subtree)
++             :deleted-at (:logseq.property/deleted-at root)
++             :page-uuid (some-> recycle-page-entity :block/uuid str)}
++      no-op?
++      (assoc :reason "already-recycled"))))
++
++(defn ^:api recycle!
++  "Soft delete an ordinary block root and its full subtree into the Recycle
++   page. Already-recycled roots are a no-op whose original location metadata is
++   left untouched. Non-ordinary roots and subtrees containing pages are rejected
++   before any write."
++  [conn root-uuid opts]
++  (if-let [root (d/entity @conn [:block/uuid root-uuid])]
++    (if-let [reason (ineligible-recycle-reason root)]
++      {:error reason :root-uuid (str root-uuid)}
++      (let [db @conn]
++        (cond
++          (recycled? root)
++          (recycle-result db root true)
++
++          (some #(ldb/page? %) (rest (block-subtree db root)))
++          {:error "Recycling a subtree that contains pages is not supported"
++           :root-uuid (str root-uuid)}
++
++          :else
++          (let [now-ms (or (:now-ms opts) (common-util/time-ms))
++                tx-data (recycle-blocks-tx-data db [root] (merge opts {:now-ms now-ms}))]
++            (ldb/transact! conn tx-data {:outliner-op :recycle-blocks})
++            (recycle-result @conn (d/entity @conn [:block/uuid root-uuid]) false)))))
++    {:error (str "No block found for uuid " root-uuid)
++     :root-uuid (str root-uuid)}))
+ 
+ (defn ^:api permanently-delete-tx-data
+   [db root]
+diff --git a/src/main/frontend/extensions/pdf/assets.cljs b/src/main/frontend/extensions/pdf/assets.cljs
+index 69f8e41c2c..02fe822683 100644
+--- a/src/main/frontend/extensions/pdf/assets.cljs
++++ b/src/main/frontend/extensions/pdf/assets.cljs
+@@ -10,6 +10,7 @@
+             [frontend.handler.editor :as editor-handler]
+             [frontend.handler.editor.assets :as editor-assets]
+             [frontend.handler.notification :as notification]
++            [frontend.handler.page :as page-handler]
+             [frontend.handler.property :as property-handler]
+             [frontend.handler.route :as route-handler]
+             [frontend.state :as state]
+@@ -17,6 +18,7 @@
+             [frontend.util :as util]
+             [frontend.util.ref :as ref]
+             [logseq.common.config :as common-config]
++            [logseq.common.util :as common-util]
+             [logseq.graph-parser.exporter :as gp-exporter]
+             [logseq.shui.hooks :as hooks]
+             [promesa.core :as p]
+@@ -44,7 +46,13 @@
+               (assets-handler/normalize-asset-resource-url (fs/asset-path-normalize href))
+ 
+               protocol-link?
+-              href
++              (if (and (util/electron?)
++                       (string/starts-with? href "file://"))
++                ;; Pass the whole file:// URI to the normalizer, which strips
++                ;; the protocol, drops the URI's empty-host slash (for
++                ;; file:///C:/…), and protects the Windows drive colon.
++                (assets-handler/normalize-asset-resource-url href)
++                href)
+ 
+               :else
+               (assets-handler/normalize-asset-resource-url original-path))
+@@ -67,6 +75,136 @@
+        :hls-file      (str "assets/" key ".edn")
+        :original-path original-path})))
+ 
++(defn- zotero-linked-source
++  [source]
++  (let [config (get-in (state/get-config) [:zotero/settings-v2 "default"])
++        base-directory (:zotero-linked-attachment-base-directory config)
++        source (some-> source common-util/safe-decode-uri-component)
++        normalize-path (fn [path]
++                         (-> path
++                             (string/replace-first #"^assets:///([A-Za-z])/logseq__colon/" "$1:/")
++                             (string/replace-first #"^file:///([A-Za-z]):/" "$1:/")
++                             (string/replace-first #"^file://([A-Za-z]):/" "$1:/")
++                             (string/replace #"[\\]+" "/")))
++        source (some-> source normalize-path)
++        base-directory (some-> base-directory normalize-path)]
++    (when (and (string? source)
++               (string? base-directory)
++               (not (string/blank? base-directory)))
++      (let [base-directory (string/replace base-directory #"/+$" "")
++            prefix (str base-directory "/")]
++        (when (string/starts-with? source prefix)
++          (str "zotero-link://" (subs source (count prefix))))))))
++
++(defn- <find-zotero-asset-by-source
++  [repo source]
++  (when-let [canonical-source (zotero-linked-source source)]
++    (db-async/<q repo {:transact-db? false}
++                  '[:find (pull ?b [:block/uuid
++                                     :logseq.property.asset/external-file-name]) .
++                    :in $ ?source
++                    :where
++                    [?b :logseq.property.asset/external-file-name ?source]]
++                  canonical-source)))
++
++(defn- <save-or-reuse-asset!
++  [repo files option-pairs checksum-source]
++  (p/let [blocks (apply editor-assets/db-based-save-assets!
++                         repo files option-pairs)]
++    (if (seq blocks)
++      blocks
++      (when-let [checksum (assets-handler/get-file-checksum checksum-source)]
++        (when-let [existing (db-async/<get-asset-with-checksum repo checksum)]
++          [existing])))))
++
++(defn- asset-source-key
++  [source]
++  (or (zotero-linked-source source) source))
++
++(defonce ^:private *asset-creation-in-flight (atom {}))
++
++(defn- <create-db-asset!
++  [pdf-current source]
++  (p/let [repo (state/get-current-repo)
++          page (page-handler/<create!
++                (str "hls__" (:key pdf-current))
++                {:redirect? false
++                 :edit? false})
++          imported-block (<find-zotero-asset-by-source repo source)
++          checksum (assets-handler/get-file-checksum source)
++          existing-block (or imported-block
++                             (when checksum
++                               (db-async/<get-asset-with-checksum repo checksum)))
++          _ (when existing-block
++              (editor-handler/move-blocks! [existing-block] page
++                                            {:sibling? false :bottom? true}))
++          blocks (if existing-block
++                   [existing-block]
++                   (<save-or-reuse-asset!
++                    repo
++                    [{:title (:filename pdf-current)
++                      :src   source}]
++                    [:save-to-page page]
++                    source))
++          block (first blocks)]
++    (if block
++      (inflate-asset source
++                     :href (:url pdf-current)
++                     :block block)
++      (throw (ex-info "Unable to create PDF asset record"
++                      {:path source})))))
++
++(defn- <share-db-asset-creation!
++  [key create!]
++  (let [resolve-gate (atom nil)
++        reject-gate (atom nil)
++        gate (js/Promise.
++              (fn [resolve reject]
++                (reset! resolve-gate resolve)
++                (reset! reject-gate reject)))
++        in-flight @*asset-creation-in-flight]
++    (if-let [existing (get in-flight key)]
++      existing
++      (if (compare-and-set! *asset-creation-in-flight
++                            in-flight
++                            (assoc in-flight key gate))
++        (do
++          (let [creation (try
++                           (create!)
++                           (catch :default error
++                             (p/rejected error)))]
++            (-> creation
++                (p/then (fn [result]
++                          (@resolve-gate result)
++                          result))
++                (p/catch (fn [error]
++                           (@reject-gate error)
++                           (throw error)))
++                (p/finally #(swap! *asset-creation-in-flight dissoc key))))
++          gate)
++        (<share-db-asset-creation! key create!)))))
++
++(defn ensure-db-asset!
++  "Create the database Asset record needed for PDF annotations.
++
++  The PDF remains external: db-based-save-assets! receives a source string,
++  so new-asset-block stores it as external-url without copying the file."
++  [pdf-current]
++  (if (:block pdf-current)
++    (p/resolved pdf-current)
++    (let [source (or (:original-path pdf-current)
++                     (:url pdf-current))]
++      (if-not (string? source)
++        (p/rejected (ex-info "PDF asset has no source path"
++                             {:key (:key pdf-current)
++                              :original-path (:original-path pdf-current)
++                              :url (:url pdf-current)}))
++        (let [repo (state/get-current-repo)
++              key [repo (asset-source-key source)]]
++          (<share-db-asset-creation!
++           key
++           #(<create-db-asset! pdf-current source)))))))
++
+ (defn <highlight-color-id
+   [repo color]
+   (when color
+@@ -78,37 +216,54 @@
+ 
+ (defn db-based-ensure-ref-block!
+   [pdf-current {:keys [id content page properties] :as hl} insert-opts]
+-  (when-let [pdf-block (:block pdf-current)]
+-    (p/let [ref-block (db-async/<get-block (state/get-current-repo) id {:children? false})]
++  (let [repo (state/get-current-repo)
++        pdf-block (:block pdf-current)]
++    (when-not pdf-block
++      (throw (ex-info "PDF annotation has no Asset block"
++                      {:highlight-id id})))
++    (p/let [ref-block (db-async/<get-block repo id {:children? false})]
+       (if (:block/title ref-block)
+         (do
+           (println "[existed ref block]" ref-block)
+           ref-block)
+         (p/let [ref-asset-id (:image content)
+                 image? (not (nil? ref-asset-id))
+-                text (if image? (i18n/locale-format-date (js/Date.))
+-                         (:text content))
+-                color-id (<highlight-color-id (state/get-current-repo) (:color properties))]
+-          (when color-id
+-            (let [properties (cond->
+-                              {:block/tags #{:logseq.class/Pdf-annotation}
+-                               :block/collapsed? image?
+-                               :logseq.property/ls-type  :annotation
+-                               :logseq.property.pdf/hl-color color-id
+-                               :logseq.property/asset (:db/id pdf-block)
+-                               :logseq.property.pdf/hl-page  page
+-                               :logseq.property.pdf/hl-value hl}
+-
+-                               image?
+-                               (assoc :logseq.property.pdf/hl-type :area
+-                                      :logseq.property.pdf/hl-image ref-asset-id))]
+-              (when (string? text)
+-                (editor-handler/api-insert-new-block!
+-                 text (merge {:block-uuid (:block/uuid pdf-block)
+-                              :sibling? false
+-                              :custom-uuid id
+-                              :properties properties}
+-                             (assoc insert-opts :edit-block? false)))))))))))
++                text (if image?
++                       (i18n/locale-format-date (js/Date.))
++                       (:text content))
++                color-id (<highlight-color-id repo (:color properties))]
++          (when-not color-id
++            (throw (ex-info "PDF annotation color is not configured"
++                            {:color (:color properties)
++                             :highlight-id id})))
++          (when-not (string? text)
++            (throw (ex-info "PDF annotation has no text"
++                            {:highlight-id id})))
++          (let [properties (cond->
++                             {:block/tags #{:logseq.class/Pdf-annotation}
++                              :block/collapsed? image?
++                              :logseq.property/ls-type :annotation
++                              :logseq.property.pdf/hl-color color-id
++                              :logseq.property/asset (:db/id pdf-block)
++                              :logseq.property.pdf/hl-page page
++                              :logseq.property.pdf/hl-value hl}
++
++                             image?
++                             (assoc :logseq.property.pdf/hl-type :area
++                                    :logseq.property.pdf/hl-image ref-asset-id))]
++            (p/let [_ (editor-handler/api-insert-new-block!
++                       text
++                       (merge {:block-uuid (:block/uuid pdf-block)
++                               :sibling? false
++                               :custom-uuid id
++                               :properties properties}
++                              (assoc insert-opts :edit-block? false)))
++                    created-block (db-async/<get-block repo id {:children? false})]
++              (if (:block/title created-block)
++                created-block
++                (throw (ex-info "PDF annotation transaction did not create a block"
++                                {:highlight-id id
++                                 :asset-id (:db/id pdf-block)}))))))))))
+ 
+ (defn ensure-ref-block!
+   [pdf-current hl insert-opts]
+@@ -140,7 +295,7 @@
+ (defn- db-based-persist-hl-area-image
+   [repo png]
+   (let [file (js/File. #js [png] "pdf area highlight.png")]
+-    (editor-assets/db-based-save-assets! repo [file] {:pdf-area? true})))
++    (<save-or-reuse-asset! repo [file] [:pdf-area? true] file)))
+ 
+ (defn- persist-hl-area-image
+   [repo-url _repo-dir _current _new-hl _old-hl png]
+@@ -150,7 +305,7 @@
+ (defn persist-hl-area-image$
+   "Save pdf highlight area image"
+   [^js viewer current new-hl old-hl {:keys [top left width height]}]
+-  (when-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
++  (if-let [^js canvas (and (:key current) (.-canvas (.getPageView viewer (dec (:page new-hl)))))]
+     (let [^js doc     (.-ownerDocument canvas)
+           ^js canvas' (.createElement doc "canvas")
+           dpr         js/window.devicePixelRatio
+@@ -162,22 +317,27 @@
+       (set! (. canvas' -width) dw)
+       (set! (. canvas' -height) dh)
+ 
+-      (when-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
+-        (set! (. ctx -imageSmoothingEnabled) false)
+-        (.drawImage
+-         ctx canvas
+-         (* left dpr) (* top dpr) (* width dpr) (* height dpr)
+-         0 0 dw dh)
+-
+-        (js/Promise.
+-         (fn [resolve reject]
+-           (.toBlob canvas'
+-                    (fn [^js png]
+-                      (p/catch
+-                       (resolve (persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
+-                       (fn [err]
+-                         (reject err)
+-                         (js/console.error "[write area image Error]" err)))))))))))
++      (if-let [^js ctx (.getContext canvas' "2d" #js{:alpha false})]
++        (do
++          (set! (. ctx -imageSmoothingEnabled) false)
++          (.drawImage
++           ctx canvas
++           (* left dpr) (* top dpr) (* width dpr) (* height dpr)
++           0 0 dw dh)
++
++          (js/Promise.
++           (fn [resolve reject]
++             (.toBlob canvas'
++                      (fn [^js png]
++                        (if png
++                          (-> (persist-hl-area-image repo-url repo-dir current new-hl old-hl png)
++                              (p/then resolve)
++                              (p/catch reject))
++                          (reject (ex-info "PDF area highlight canvas produced no image" {}))))))))
++        (p/rejected (ex-info "PDF area highlight canvas has no 2D context" {}))))
++    (p/rejected (ex-info "PDF area highlight page canvas is unavailable"
++                        {:page (:page new-hl)
++                         :asset-key (:key current)}))))
+ 
+ (defn update-hl-block!
+   [highlight]
+@@ -209,38 +369,71 @@
+         (editor-handler/delete-block-aux! block)))))
+ 
+ (defn copy-hl-ref!
+-  [highlight ^js viewer]
+-  (p/let [ref-block (ensure-ref-block! (state/get-current-pdf) highlight nil)]
+-    (when ref-block
+-      (util/copy-to-clipboard!
+-       (ref/->block-ref (:block/uuid ref-block))
+-       :owner-window (pdf-windows/resolve-own-window viewer)))))
++  ([highlight ^js viewer]
++   (copy-hl-ref! highlight viewer (state/get-current-pdf)))
++  ([highlight ^js viewer pdf-current]
++   (-> (p/let [ref-block (ensure-ref-block! pdf-current highlight nil)]
++         (when ref-block
++           (util/copy-to-clipboard!
++            (ref/->block-ref (:block/uuid ref-block))
++            :owner-window (pdf-windows/resolve-own-window viewer))))
++       (p/catch (fn [error]
++                  (js/console.error "[PDF annotation creation]" error)
++                  (notification/show!
++                   (t :pdf/annotation-create-error)
++                   :error
++                   false))))))
++
++(defn zotero-protocol-url?
++  [url]
++  (and (string? url)
++       (or (string/starts-with? url "zotero://")
++           (string/starts-with? url "zotero-link://")
++           (string/starts-with? url "zotero-path://"))))
+ 
+ (defn get-zotero-local-pdf-path
+   [path & {:keys [id]}]
+   (let [zotero-config (get-in (state/get-config) [:zotero/settings-v2 "default"])
+         zotero-data-directory (:zotero-data-directory zotero-config)
+         zotero-linked-attachment-base-directory (:zotero-linked-attachment-base-directory zotero-config)
+-        relative-path (subs path 14)]
+-    (cond
+-      (string/starts-with? path "zotero-link://")
+-      (str "file://" (util/node-path.join zotero-linked-attachment-base-directory relative-path))
+-
+-      (string/starts-with? path "zotero-path://")
+-      (str "file://" (util/node-path.join zotero-data-directory "storage" relative-path))
+-
+-      :else ;; compatible with commit 33db791
+-      (str "file://" (util/node-path.join zotero-data-directory "storage" id path)))))
++        relative-path (subs path 14)
++        local-path (cond
++                     (string/starts-with? path "zotero-link://")
++                     (util/node-path.join zotero-linked-attachment-base-directory relative-path)
++
++                     (string/starts-with? path "zotero-path://")
++                     (util/node-path.join zotero-data-directory "storage" relative-path)
++
++                     :else ;; compatible with commit 33db791
++                     (util/node-path.join zotero-data-directory "storage" id path))]
++    ;; normalize-asset-resource-url converts to assets:// on Electron,
++    ;; protecting Windows drive letters (C: -> C/logseq__colon/)
++    (if (util/electron?)
++      (assets-handler/normalize-asset-resource-url local-path)
++      (str "file://" local-path))))
++
++(defn resolve-external-pdf-url
++  [external-url external-file-name]
++  (let [source (or external-file-name
++                   (when (or (string/starts-with? external-url "zotero-link://")
++                             (string/starts-with? external-url "zotero-path://"))
++                     external-url))]
++    (if (and (zotero-protocol-url? external-url)
++             (string? source))
++      (get-zotero-local-pdf-path
++       source
++       :id (last (string/split external-url #"/")))
++      external-url)))
+ 
+ (defn db-based-open-block-ref!
+   [block]
+   (let [hl-value (:logseq.property.pdf/hl-value block)
+         asset (:logseq.property/asset block)
+         external-url (:logseq.property.asset/external-url asset)
+-        file-path (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
+-        file-path (if (string/starts-with? file-path "zotero://")
+-                    (get-zotero-local-pdf-path (:logseq.property.asset/external-file-name asset))
+-                    file-path)]
++        external-file-name (:logseq.property.asset/external-file-name asset)
++        file-path (resolve-external-pdf-url
++                   (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))
++                   external-file-name)]
+     (if asset
+       (->
+        (p/let [href (assets-handler/<make-asset-url file-path)]
+diff --git a/src/main/frontend/handler/assets.cljs b/src/main/frontend/handler/assets.cljs
+index 42ab573029..5dcfbfb880 100644
+--- a/src/main/frontend/handler/assets.cljs
++++ b/src/main/frontend/handler/assets.cljs
+@@ -106,7 +106,15 @@
+                             (common-config/protocol-path? path))]
+     (cond
+       protocol-link?
+-      path
++      (if (and (util/electron?)
++               (string/starts-with? path "file://"))
++        ;; Remove the URI prefix and the empty-host slash before a Windows
++        ;; drive, then reuse the existing absolute-path normalization.
++        (let [file-path (-> path
++                            (string/replace-first "file://" "")
++                            (string/replace-first #"^/(?=[A-Za-z]:[\\/])" ""))]
++          (normalize-asset-resource-url file-path))
++        path)
+ 
+       ;; BUG: avoid double encoding from PDF assets
+       (or (path/absolute? path)
+@@ -219,27 +227,26 @@
+      (let [repo (state/get-current-repo)
+            repo-dir (config/get-repo-dir repo)
+            local-asset? (common-config/local-relative-asset? path)
+-           ;; Hack for "../assets" path calculation
+-           rpath (string/replace path #"^(\.\.)?/" "./")
++           ;; Hack for path calculation
++           path (string/replace path #"^(\.\.)?/" "./")
+            js-url? (not (nil? js-url))]
+        (cond
+          js-url?
+          path                                               ;; just return the original
+ 
+          (and (alias-enabled?)
+-              (check-alias-path? rpath))
+-         (resolve-asset-real-path-url (state/get-current-repo) rpath)
++              (check-alias-path? path))
++         (resolve-asset-real-path-url (state/get-current-repo) path)
+ 
+           (util/electron?)
+           (let [full-path (if local-asset?
+-                            (path/path-join repo-dir rpath)
+-                            (local-file-path->absolute-path path repo-dir))]
++                            (path/path-join repo-dir path) path)]
+             ;; fullpath will be encoded
+             (path/prepend-protocol "assets:" (protect-windows-drive-in-assets-path full-path)))
+ 
+          :else
+-         (p/let [binary (fs/read-file-raw repo-dir rpath {})
+-                 svg? (string/ends-with? rpath ".svg")
++         (p/let [binary (fs/read-file-raw repo-dir path {})
++                 svg? (string/ends-with? path ".svg")
+                  type (if svg? "image/svg+xml" "image")
+                  blob (js/Blob. (array binary) (clj->js {:type type}))]
+            (when blob (js/URL.createObjectURL blob))))))))
+diff --git a/src/main/frontend/modules/outliner/op.cljs b/src/main/frontend/modules/outliner/op.cljs
+index 06d814c4c4..b6b8761159 100644
+--- a/src/main/frontend/modules/outliner/op.cljs
++++ b/src/main/frontend/modules/outliner/op.cljs
+@@ -190,6 +190,13 @@
+   (op-transact!
+    [:restore-recycled [root-uuid]]))
+ 
++(defn recycle-blocks!
++  ([root-uuid]
++   (recycle-blocks! root-uuid {}))
++  ([root-uuid opts]
++   (op-transact!
++    [:recycle-blocks [root-uuid (current-user-delete-opts opts)]])))
++
+ (defn recycle-delete-permanently!
+   [root-uuid]
+   (op-transact!
+diff --git a/src/main/frontend/worker/handler/cli.cljs b/src/main/frontend/worker/handler/cli.cljs
+index 0b902596ef..97241ea817 100644
+--- a/src/main/frontend/worker/handler/cli.cljs
++++ b/src/main/frontend/worker/handler/cli.cljs
+@@ -31,9 +31,19 @@
+     (cli-db-worker/list-nodes @conn options)))
+ 
+ (def-thread-api :thread-api/api-get-page-data
+-  [repo page-title]
++  [repo page-title options]
+   (let [conn (worker-state/get-datascript-conn repo)]
+-    (api-tools/get-page-data @conn page-title)))
++    (api-tools/get-page-data @conn page-title options)))
++
++(def-thread-api :thread-api/api-get-block
++  [repo uuid-string options]
++  (let [conn (worker-state/get-datascript-conn repo)]
++    (api-tools/get-block @conn uuid-string options)))
++
++(def-thread-api :thread-api/api-get-recycled-block
++  [repo uuid-string options]
++  (let [conn (worker-state/get-datascript-conn repo)]
++    (api-tools/get-recycled-block @conn uuid-string options)))
+ 
+ (def-thread-api :thread-api/api-list-properties
+   [repo options]
+@@ -51,6 +61,11 @@
+     (api-tools/list-pages @conn options)))
+ 
+ (def-thread-api :thread-api/api-build-upsert-nodes-edn
+-  [repo ops]
++  [repo ops options]
++  (let [conn (worker-state/get-datascript-conn repo)]
++    (api-tools/build-upsert-nodes-edn @conn ops options)))
++
++(def-thread-api :thread-api/api-read-upsert-blocks
++  [repo expected-blocks]
+   (let [conn (worker-state/get-datascript-conn repo)]
+-    (api-tools/build-upsert-nodes-edn @conn ops)))
++    (api-tools/read-upsert-blocks @conn expected-blocks)))

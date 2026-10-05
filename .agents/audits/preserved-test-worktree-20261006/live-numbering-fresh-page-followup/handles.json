@@ -1,0 +1,39 @@
+{
+  "repo": "e-zz/logseq",
+  "published_at": "2026-10-05T00:12:00+08:00",
+  "new_issue": {
+    "number": 20,
+    "url": "https://github.com/e-zz/logseq/issues/20",
+    "title": "Bug: live ordered-list numbering remains stale until application restart",
+    "state": "open",
+    "readback": {
+      "title_match": true,
+      "body_match": true,
+      "payload_file": ".agents/audits/live-numbering-fresh-page-followup/issue_payload.md",
+      "readback_file": ".agents/audits/live-numbering-fresh-page-followup/issue20_readback.json"
+    }
+  },
+  "comment_4": {
+    "id": 5981927250,
+    "url": "https://github.com/e-zz/logseq/issues/4#issuecomment-5981927250",
+    "state_of_issue": "open",
+    "readback": {
+      "found": true,
+      "body_match": true,
+      "payload_file": ".agents/audits/live-numbering-fresh-page-followup/comment4_final.md",
+      "readback_file": ".agents/audits/live-numbering-fresh-page-followup/issue4_comments_after.json"
+    }
+  },
+  "comment_11": {
+    "id": 5981927917,
+    "url": "https://github.com/e-zz/logseq/issues/11#issuecomment-5981927917",
+    "state_of_issue": "open",
+    "readback": {
+      "found": true,
+      "body_match": true,
+      "payload_file": ".agents/audits/live-numbering-fresh-page-followup/comment11_payload.md",
+      "readback_file": ".agents/audits/live-numbering-fresh-page-followup/issue11_comments_after.json"
+    }
+  },
+  "all_ok": true
+}

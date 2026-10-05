@@ -1,0 +1,12 @@
+{
+  "graph": "compat-pair-fixture",
+  "graph_id": "00000000-44f0-4f81-88e0-56d3e51f5932",
+  "page_one": "Compat Page One",
+  "page_two": "Compat Page Two",
+  "queries": [
+    "compatordinary45831",
+    "compatnested45831",
+    "compatotherpage45831"
+  ],
+  "provenance": "New synthetic B CLI seed, normal scoped worker stop, identical copies to U/B. No existing user graph."
+}

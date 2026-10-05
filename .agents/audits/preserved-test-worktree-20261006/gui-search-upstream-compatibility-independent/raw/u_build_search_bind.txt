@@ -1,0 +1,26 @@
+(defn- build-search-bind
+  [q input page limit use-namespace-last-part?]
+  (let [namespace? (and use-namespace-last-part?
+                        (ns-util/namespace-page? q))
+        last-part (when namespace?
+                    (some-> (text/get-namespace-last-part q)
+                            get-match-input))]
+    (cond
+      (and namespace? page)
+      [page input last-part limit]
+      page
+      [page input limit]
+      namespace?
+      [input last-part limit]
+      :else
+      [input limit])))
+
+(defn- search-blocks-aux
+  ([db sql q input page limit]
+   (search-blocks-aux db sql q input page limit false))
+  ([db sql q input page limit use-namespace-last-part?]
+   (try
+     (let [bind (build-search-bind q input page limit use-namespace-last-part?)
+           result (.exec db (bean/->js
+                             {:sql sql
+                              :bind bind

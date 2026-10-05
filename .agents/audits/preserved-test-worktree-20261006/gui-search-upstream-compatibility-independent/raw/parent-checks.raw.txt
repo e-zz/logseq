@@ -1,0 +1,194 @@
+U resolver occurrences: []
+
+U db listener:
+174: (defn- skip-search-sync?
+175:   [tx-meta]
+176:   (or (:from-disk? tx-meta)
+177:       (:logseq.graph-parser.exporter/imported-data? tx-meta)
+178:       (:logseq.db.sqlite.export/imported-data? tx-meta)))
+179: 
+180: (defmethod listen-db-changes :search
+181:   [_ {:keys [repo]} {:keys [tx-meta] :as tx-report}]
+182:   (when-not (skip-search-sync? tx-meta)
+183:     (p/do!
+184:      (let [{:keys [blocks-to-remove-set blocks-to-add]}
+185:            (search/sync-search-indice tx-report
+186:                                       {:include-vector-title? (some? (worker-state/get-vector-index repo))})]
+187:        (when (seq blocks-to-remove-set)
+188:          ((@thread-api/*thread-apis :thread-api/search-delete-blocks)
+189:           repo
+190:           blocks-to-remove-set))
+191:        (when (seq blocks-to-add)
+192:          ((@thread-api/*thread-apis :thread-api/search-upsert-blocks)
+193:           repo
+194:           blocks-to-add))))))
+195: 
+
+U GUI opts:
+81: (defn cmdk-block-search-options
+82:   [{:keys [filter-group dev? action page-uuid expanded?]}]
+83:   (let [nodes-limit (if expanded? 100 10)
+84:         nodes-base {:limit nodes-limit
+85:                     :search-limit 100
+86:                     :dev? dev?
+87:                     :built-in? true
+88:                     :enable-snippet? true
+89:                     :include-breadcrumb? true
+90:                     :include-matched-count? true}]
+91:     (case filter-group
+92:       :codes
+93:       (assoc nodes-base
+94:              :limit 20
+95:              ;; larger limit for code search since most of the results will be filtered out
+96:              :search-limit 300
+97:              :code-only? true)
+98: 
+99:       :current-page
+100:       (cond-> {:limit nodes-limit
+101:                :search-limit 100
+102:                :enable-snippet? true
+103:                :include-breadcrumb? true
+104:                :include-matched-count? true}
+105:         page-uuid
+106:         (assoc :page (str page-uuid)))
+107: 
+108:       ;; default to nodes behavior
+109:       (cond-> nodes-base
+110:         (contains? #{:move-blocks} action)
+111:         (assoc :page-only? true)))))
+
+B resolver occurrences: [(141, '(defn- resolve-active-visible-page-uuid'), (161, '(defn- resolve-active-visible-block'), (169, '    (let [page-uuid (resolve-active-visible-page-uuid db (:block/page result))]'), (173, '(def-thread-api :thread-api/search-block-uuid'), (175, '  (resolve-active-visible-block'), (179, '(def-thread-api :thread-api/search-page-uuid'), (181, '  (resolve-active-visible-page-uuid')]
+
+B db listener:
+174: (defn- skip-search-sync?
+175:   [tx-meta]
+176:   (or (:from-disk? tx-meta)
+177:       (:logseq.graph-parser.exporter/imported-data? tx-meta)
+178:       (and (:logseq.db.sqlite.export/imported-data? tx-meta)
+179:            (not (:logseq.outliner.op/runtime-write? tx-meta)))))
+180: 
+181: (defmethod listen-db-changes :search
+182:   [_ {:keys [repo]} {:keys [tx-meta] :as tx-report}]
+183:   (when-not (skip-search-sync? tx-meta)
+184:     (p/do!
+185:      (let [{:keys [blocks-to-remove-set blocks-to-add]}
+186:            (search/sync-search-indice tx-report
+187:                                       {:include-vector-title? (some? (worker-state/get-vector-index repo))})]
+188:        (when (seq blocks-to-remove-set)
+189:          ((@thread-api/*thread-apis :thread-api/search-delete-blocks)
+190:           repo
+191:           blocks-to-remove-set))
+192:        (when (seq blocks-to-add)
+193:          ((@thread-api/*thread-apis :thread-api/search-upsert-blocks)
+194:           repo
+195:           blocks-to-add))))))
+
+B GUI opts:
+81: (defn cmdk-block-search-options
+82:   [{:keys [filter-group dev? action page-uuid expanded?]}]
+83:   (let [nodes-limit (if expanded? 100 10)
+84:         nodes-base {:limit nodes-limit
+85:                     :search-limit 100
+86:                     :dev? dev?
+87:                     :built-in? true
+88:                     :enable-snippet? true
+89:                     :include-breadcrumb? true
+90:                     :include-matched-count? true}]
+91:     (case filter-group
+92:       :codes
+93:       (assoc nodes-base
+94:              :limit 20
+95:              ;; larger limit for code search since most of the results will be filtered out
+96:              :search-limit 300
+97:              :code-only? true)
+98: 
+99:       :current-page
+100:       (cond-> {:limit nodes-limit
+101:                :search-limit 100
+102:                :enable-snippet? true
+103:                :include-breadcrumb? true
+104:                :include-matched-count? true}
+105:         page-uuid
+106:         (assoc :page (str page-uuid)))
+107: 
+108:       ;; default to nodes behavior
+109:       (cond-> nodes-base
+110:         (contains? #{:move-blocks} action)
+111:         (assoc :page-only? true)))))
+
+U conditional migration:
+440:         (search/start-fts-rowid-migration! search-db)
+441:         (p/loop [after 0
+442:                  pause-ms 0]
+443:           (p/let [_ (js/Promise. (fn [resolve] (js/setTimeout resolve pause-ms)))
+444:                   _ (<wait-for-search-index-idle! repo build-id)]
+445:             (when (= fts-id-keyed-search-db-version (search-index-version search-db))
+446:               (let [batch-started-at (common-util/time-ms)]
+447:                 (if-let [after' (search/copy-fts-rowid-batch! search-db after search-index-build-batch-size)]
+448:                   (p/recur after' (* fts-rowid-migration-pause-ratio
+449:                                      (- (common-util/time-ms) batch-started-at)))
+450:                   (do
+451:                     (search/finish-fts-rowid-migration! search-db search-db-version)
+452:                     (log/info :search/fts-rowid-migration-done
+453:                               {:repo repo
+454:                                :ms (- (common-util/time-ms) started-at)})))))))))))
+455: 
+456: (defn- schedule-fts-rowid-migration!
+457:   [repo search-db]
+458:   (when-not (get @*search-index-build-ids repo)
+459:     (let [build-id (start-search-index-build! repo)]
+460:       (-> (<migrate-fts-to-rowid! repo search-db build-id)
+461:           (p/catch (fn [error]
+462:                      (when-not (= :search/stale-index-build (:type (ex-data error)))
+463:                        (log/error :search/fts-rowid-migration-failed {:repo repo
+464:                                                                       :error error}))))
+465:           (p/finally (fn []
+466:                        (clear-search-index-build! repo build-id)))))))
+467: 
+468: (def-thread-api :thread-api/search-build-blocks-indice-in-worker
+469:   [repo & [force?]]
+470:   (p/let [search-db (get-search-db repo)]
+471:     (when search-db
+472:       (let [version (search-index-version search-db)]
+473:         (cond
+474:           (and (= version search-db-version)
+475:                (not force?))
+476:           version
+477: 
+478:           ;; The index is complete, so search keeps working while it moves
+479:           (and (= version fts-id-keyed-search-db-version)
+480:                (not force?))
+481:           (do
+482:             (schedule-fts-rowid-migration! repo search-db)
+483:             version)
+484: 
+485:           :else
+486:           (when-let [conn (worker-state/get-datascript-conn repo)]
+487:             (let [build-id (start-search-index-build! repo)]
+488:               (-> (report-search-index-progress! repo {:build-id build-id
+489:                                                        :status :running
+490:                                                        :stage :search-index
+491:                                                        :progress 0
+492:                                                        :processed 0
+493:                                                        :total 0})
+494:                   (p/then (fn [_]
+495:                             (js/Promise. (fn [resolve] (js/setTimeout resolve 0)))))
+496:                   (p/then (fn [_]
+497:                             (<build-blocks-index! repo search-db conn build-id)))
+498:                   (p/catch (fn [error]
+499:                              (when-not (= :search/stale-index-build (:type (ex-data error)))
+500:                                (log/error :search/index-build-failed {:repo repo
+501:                                                                       :error error}))))
+502:                   (p/finally (fn []
+503:                                (when (= build-id (get @*search-index-build-ids repo))
+504:                                  (report-search-index-progress! repo {:build-id build-id
+505:                                                                       :status :idle}))
+506:                                (clear-search-index-build! repo build-id))))
+
+A/U renderer diff:
+ src/main/frontend/components/block/breadcrumb.cljs | 265 ++++++++++++++++++
+ .../components/block/breadcrumb_model.cljs         |  53 +++-
+ src/main/frontend/components/cmdk/core.cljs        |  65 +++--
+ src/main/frontend/components/cmdk/state.cljs       |   2 +-
+ .../frontend/worker/handler/block_breadcrumb.cljs  | 295 +++++++++++++++++----
+ 5 files changed, 595 insertions(+), 85 deletions(-)

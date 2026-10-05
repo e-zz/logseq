@@ -1,0 +1,26 @@
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> logseq@0.0.1 cljs:test D:\orca\workspaces\logseq\issue9-typed-properties
+> clojure -M:test compile db-worker-node test
+
+[:db-worker-node] Compiling ...
+git describe --long --always --dirty
+:shadow.hooks/build-metadata-hook {:revision "f2958757d2-dirty", :build-time "2026-10-03T03:24:23.343070600Z"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor (file:/C:/Users/zhang/.m2/repository/com/google/javascript/closure-compiler/v20250820/closure-compiler-v20250820.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.javascript.jscomp.jarjar.com.google.protobuf.UnsafeUtil$MemoryAccessor
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+[:db-worker-node] Build completed. (441 files, 0 compiled, 0 warnings, 7.21s)
+[:test] Compiling ...
+:shadow.hooks/build-metadata-hook {:revision "test-revision", :build-time "test-build-time"}
+[:test] Build completed. (1379 files, 7 compiled, 0 warnings, 9.97s)
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+
+> logseq@0.0.1 cljs:run-test D:\orca\workspaces\logseq\issue9-typed-properties
+> cross-env LOGSEQ_STABLE_IDENTS=1 bb dev:run-test-namespaces -r "^(?!logseq.db-sync.).*" -e fix-me "-n" "frontend.worker.pipeline-test"
+
+
+Testing frontend.worker.pipeline-test
+
+Ran 42 tests containing 194 assertions.
+0 failures, 0 errors.

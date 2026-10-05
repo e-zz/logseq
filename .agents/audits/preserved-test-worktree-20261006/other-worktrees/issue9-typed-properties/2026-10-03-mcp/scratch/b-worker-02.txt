@@ -1,0 +1,16 @@
+
+Testing frontend.worker.recycle-persistence-test
+Worker db transact: 297.931ms
+apply outliner ops: 45.753ms
+apply outliner ops: 50.326ms
+Worker db transact: 94.006ms
+apply outliner ops: 71.535ms
+Worker db transact: 81.055ms
+apply outliner ops: 62.659ms
+apply outliner ops: 72.549ms
+apply outliner ops: 114.752ms
+apply outliner ops: 130.1ms
+apply outliner ops: 54.774ms
+
+Ran 4 tests containing 162 assertions.
+0 failures, 0 errors.

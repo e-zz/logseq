@@ -1,0 +1,22 @@
+{
+  "tool": "getPage",
+  "input": {
+    "pageName": "CI-ISSUE9-Date-Reference"
+  },
+  "response": {
+    "entity": {
+      "index": true,
+      "type": "date",
+      "uuid": "00000002-5930-4674-3000-000000000000",
+      "valueType": "ref",
+      "updated-at": 1791114670948,
+      "created-at": 1791114670948,
+      "title": "CI-ISSUE9-Date-Reference",
+      "cardinality": "one",
+      "ident": "CI-ISSUE9-Date-Reference-EhgalqcB",
+      "order": "b20",
+      "name": "ci-issue9-date-reference"
+    },
+    "blocks": []
+  }
+}

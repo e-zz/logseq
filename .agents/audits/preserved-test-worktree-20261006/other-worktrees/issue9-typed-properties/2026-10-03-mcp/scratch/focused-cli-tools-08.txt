@@ -1,0 +1,7 @@
+
+Testing logseq.api.db-based.cli-test
+
+Testing logseq.api.db-based.tools-test
+
+Ran 58 tests containing 297 assertions.
+0 failures, 0 errors.

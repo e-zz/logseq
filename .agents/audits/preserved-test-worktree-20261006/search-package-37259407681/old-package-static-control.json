@@ -1,0 +1,27 @@
+{
+  "new": {
+    "path": "C:\\Users\\zhang\\Downloads\\logseq-ci-37203268496-x64\\Logseq-win-x64-2.0.2\\resources\\app.asar",
+    "asar_sha256": "e499eb2a719f01a17b947f6bd473c9cf6a6909d2beafe76d6afd0349cb2face3",
+    "package_name": "Logseq",
+    "package_version": "2.0.2",
+    "package_main": "electron.js",
+    "entries": {
+      "electron.js": {
+        "bytes": 2501436,
+        "sha256": "52a16ea513c4b34a2815d03bbd843587be06a74406d3397838be68a91de5f949",
+        "publish_result_key_present": false
+      },
+      "js/main.js": {
+        "bytes": 16171777,
+        "sha256": "c8db9d31aa1c06fd1dc7de6bb4b90c581f6b562389a83af3de1b1df98a759522",
+        "publish_result_key_present": false
+      },
+      "js/logseq-cli.js": {
+        "bytes": 1265129,
+        "sha256": "f985b92cdf7875ab75f8eecf618023c3ae526dd950b8a59e90429d4233e94d6b",
+        "publish_result_key_present": false
+      }
+    },
+    "claim_limit": "Exact file metadata and fingerprint only, not GUI/MCP behavior proof."
+  }
+}

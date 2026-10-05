@@ -1,0 +1,8 @@
+{
+  "number": 8,
+  "title": "MCP read/verify-side gaps: getPage strips :block/children (depth-1), searchBlocks has no page/uuid scope, upsertNodes receipt is input-echo not persist-proof",
+  "state": "closed",
+  "state_reason": "completed",
+  "closed_at": "2026-10-05T15:31:07Z",
+  "html_url": "https://github.com/e-zz/logseq/issues/8"
+}

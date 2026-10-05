@@ -1,0 +1,5 @@
+
+Testing electron.embedding-server-test
+
+Ran 9 tests containing 33 assertions.
+0 failures, 0 errors.

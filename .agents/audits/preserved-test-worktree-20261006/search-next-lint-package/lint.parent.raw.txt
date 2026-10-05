@@ -1,0 +1,14 @@
+Independent parent verification
+Official checksum freshly retrieved from clj-kondo/clj-kondo v2026.04.15: 0cae02590f03ce7c4dc14cde7b320c52ea26c1f7198c2164fd09e10a1ee36f08
+Zip and extracted executable verified.
+CWD: D:\orca\workspaces\logseq\issues-human-test-20261003
+VERSION: clj-kondo v2026.04.15
+
+COMMAND: ["D:\\orca\\workspaces\\logseq\\issues-human-test-20261003\\.agents\\audits\\search-next-lint-package\\clj-kondo.exe", "--cache", "false", "--parallel", "--lint", "src/main/frontend/handler/search.cljs", "src/electron/electron/mcp_search.cljs", "src/test/frontend/handler/search_test.cljs", "src/test/electron/mcp_server_test.cljs", "src/test/frontend/worker/search_test.cljs"]
+EXIT: 0
+STDOUT:
+src/test/electron/mcp_server_test.cljs:56:27: info: Redundant boolean coercion - expression already has type boolean
+linting took 209ms, errors: 0, warnings: 0
+
+STDERR:
+.....

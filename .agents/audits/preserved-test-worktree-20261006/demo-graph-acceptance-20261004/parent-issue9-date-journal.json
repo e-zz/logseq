@@ -1,0 +1,17 @@
+{
+  "tool": "getPage",
+  "input": {
+    "pageName": "00000001-2026-1004-0000-000000000000"
+  },
+  "response": {
+    "entity": {
+      "uuid": "00000001-2026-1004-0000-000000000000",
+      "updated-at": 1791077950412,
+      "created-at": 1791077950412,
+      "journal-day": 20261004,
+      "title": "Oct 4th, 2026",
+      "name": "oct 4th, 2026"
+    },
+    "blocks": []
+  }
+}

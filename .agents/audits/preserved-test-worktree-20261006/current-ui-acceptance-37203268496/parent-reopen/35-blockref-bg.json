@@ -1,0 +1,12 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "text": " ((ISSUE4-11-UI-ACCEPTANCE-B"
+  },
+  "tool": "type_text",
+  "started_at": "2026-10-04T23:41:05.345181+08:00",
+  "stdout": "{\n  \"code\": \"background_unavailable\",\n  \"escalation\": {\n    \"reason\": \"background input is dropped by this surface; retry this action with delivery_mode:\\\"foreground\\\".\",\n    \"recommended\": \"foreground\"\n  },\n  \"event_kind\": \"text_input\",\n  \"suggestion\": \"Retry this action with delivery_mode:\\\"foreground\\\".\",\n  \"target_class\": \"Chrome_WidgetWin_1\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

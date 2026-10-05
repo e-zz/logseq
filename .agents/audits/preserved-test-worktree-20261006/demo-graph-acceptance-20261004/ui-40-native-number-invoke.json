@@ -1,0 +1,10 @@
+{
+  "time": "2026-10-04T18:17:33.7810027+08:00",
+  "name": "Toggle number list",
+  "role": "ControlType.MenuItem",
+  "patterns": [
+    "InvokePatternIdentifiers.Pattern",
+    "ScrollItemPatternIdentifiers.Pattern"
+  ],
+  "result": "Invoke returned; must verify application readback"
+}

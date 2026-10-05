@@ -1,0 +1,13 @@
+{
+  "input": {
+    "pid": 26872,
+    "window_id": 462692,
+    "key": "escape",
+    "delivery_mode": "foreground"
+  },
+  "tool": "press_key",
+  "started_at": "2026-10-04T23:40:24.761004+08:00",
+  "stdout": "{\n  \"delivery\": {\n    \"mode\": \"foreground\"\n  },\n  \"effect\": \"unverifiable\",\n  \"route\": \"global_input\"\n}\n",
+  "stderr": "",
+  "exit_code": 0
+}

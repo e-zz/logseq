@@ -1,0 +1,29 @@
+port=51683 token=REDACTED
+removed search dir, exists=false
+MAIN-ERR: (node:31936) [DEP0176] DeprecationWarning: fs.W_OK is deprecated, use fs.constants.W_OK instead
+(Use `electron --trace-deprecation ...` to show where the warning was created)
+graph={"url":"logseq_db_Demo","name":"logseq_db_Demo","path":"D:/orca/workspaces/logseq/issue9-typed-properties/.tmp-electron-ipc/graphs/Demo"}
+page closed after graph poll? false
+MAIN-ERR: HARNESS +3s windowCount=1 urls=["lsp://logseq.com/index.html"]
+page closed after server start? false exited=null
+MCP connected; page closed? false
+session={"pageUuid":"879c6685-7d6d-446a-9372-5cf56059ed24","rootUuid":"b54961ac-6bac-4573-856b-9eba939ffd4c","childUuid":"e1e3a203-14f9-4cfd-b94e-3674056ed47d","statusPropUuid":"00000002-9072-1685-3000-000000000000"}
+persistedRoot={"uuid":"b54961ac-6bac-4573-856b-9eba939ffd4c","updated-at":1791023327563,"status":{"title":"Done","uuid":"00000002-1827-5820-8200-000000000000","ident":"logseq.property/status.done"},"refs":[{"title"
+[global] before: closed=false exited=null
+[global] blocks=["00000002-1381-8296-8200-000000000000","00000002-1412-0428-3700-000000000000","00000002-7279-3541-4000-000000000000","00000002-3194-0649-3000-000000000000","00000002-1225-9078-0000-000000000000","879c6685-7d6d-446a-9372-5cf56059ed24","00000002-5849-5546-3000-000000000000","b54961ac-6bac-4573-856b-9eba939ffd4c","e1e3a203-14f9-4cfd-b94e-3674056ed47d"]
+[pageScoped] before: closed=false exited=null
+[pageScoped] blocks=["879c6685-7d6d-446a-9372-5cf56059ed24","b54961ac-6bac-4573-856b-9eba939ffd4c","e1e3a203-14f9-4cfd-b94e-3674056ed47d"]
+[blockScoped] before: closed=false exited=null
+[blockScoped] blocks=["b54961ac-6bac-4573-856b-9eba939ffd4c"]
+recycleBlock -> "{\"operation\":\"recycle\",\"state\":\"recycled\",\"no-op\":false,\"root-uuid\":\"b54961ac-6bac-4573-856b-9eba939ffd4c\",\"affected-uuids\":[\"b54961ac-6bac-4573-856b-9eba939ffd4c\",\"e1e3a203-14f9-4cfd-b94e-3674056ed47d\"],\"affected-count\":2,\"deleted-at\":1791023476868,\"page-uuid\":\"00000004-
+[afterRecycle] before: closed=false exited=null
+[afterRecycle] blocks=["00000002-1381-8296-8200-000000000000","00000002-1412-0428-3700-000000000000","00000002-7279-3541-4000-000000000000","00000002-3194-0649-3000-000000000000","00000002-1225-9078-0000-000000000000","879c6685-7d6d-446a-9372-5cf56059ed24","00000002-5849-5546-3000-000000000000"]
+closed before restore? false exited=null
+restoreBlock -> "{\"affected-uuids\":[\"b54961ac-6bac-4573-856b-9eba939ffd4c\",\"e1e3a203-14f9-4cfd-b94e-3674056ed47d\"],\"operation\":\"restore\",\"state\":\"active\",\"affected-count\":2,\"no-op\":false,\"page-uuid\":\"879c6685-7d6d-446a-9372-5cf56059ed24\",\"root-uuid\":\"b54961ac-6bac-4573-856b-9eba939ffd4c\",\
+[afterRestore] before: closed=false exited=null
+[afterRestore] blocks=["00000002-1381-8296-8200-000000000000","00000002-1412-0428-3700-000000000000","00000002-7279-3541-4000-000000000000","00000002-3194-0649-3000-000000000000","00000002-1225-9078-0000-000000000000","879c6685-7d6d-446a-9372-5cf56059ed24","00000002-5849-5546-3000-000000000000","b54961ac-6bac-4573-856b-9eba939ffd4c","e1e3a203-14f9-4cfd-b94e-3674056ed47d"]
+done; page closed? false exited=null
+MAIN-ERR: Debugger ending on ws://127.0.0.1:62166/55b54729-26cf-49e3-9755-fa19045d301d
+For help, see: https://nodejs.org/en/docs/inspector
+PAGE close event
+APP EXIT code=0 sig=null

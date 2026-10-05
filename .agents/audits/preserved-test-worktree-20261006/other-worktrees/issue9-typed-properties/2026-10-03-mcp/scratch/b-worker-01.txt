@@ -1,0 +1,66 @@
+
+Testing frontend.worker.recycle-persistence-test
+Worker db transact: 131.203ms
+apply outliner ops: 58.654ms
+apply outliner ops: 46.568ms
+Worker db transact: 75.142ms
+apply outliner ops: 65.119ms
+Worker db transact: 82.57ms
+apply outliner ops: 34.799ms
+apply outliner ops: 77.072ms
+apply outliner ops: 108.141ms
+apply outliner ops: 115.744ms
+apply outliner ops: 59.443ms
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:466:26)
+expected: (= "Senior Researcher" (get-in page-before [:entity :user.property/description :logseq.property/value]))
+  actual: (not (= "Senior Researcher" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:468:26)
+expected: (= "https://example.org/people/alpha" (get-in page-before [:entity :user.property/cv :logseq.property/value]))
+  actual: (not (= "https://example.org/people/alpha" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:470:26)
+expected: (= "0000-0002-1825-0097" (get-in page-before [:entity :user.property/orcid :logseq.property/value]))
+  actual: (not (= "0000-0002-1825-0097" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:476:26)
+expected: (false? (get-in block-before [:user.property/enabled :logseq.property/value]))
+  actual: (not (false? nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:477:26)
+expected: (= "Block level description" (get-in block-before [:user.property/description :logseq.property/value]))
+  actual: (not (= "Block level description" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:494:30)
+page description value persists
+expected: (= "Senior Researcher" (get-in page-after [:entity :user.property/description :logseq.property/value]))
+  actual: (not (= "Senior Researcher" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:497:30)
+page cv URL value persists
+expected: (= "https://example.org/people/alpha" (get-in page-after [:entity :user.property/cv :logseq.property/value]))
+  actual: (not (= "https://example.org/people/alpha" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:500:30)
+page orcid value persists
+expected: (= "0000-0002-1825-0097" (get-in page-after [:entity :user.property/orcid :logseq.property/value]))
+  actual: (not (= "0000-0002-1825-0097" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:508:30)
+block checkbox enabled=false persists
+expected: (false? (get-in block-after [:user.property/enabled :logseq.property/value]))
+  actual: (not (false? nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:510:30)
+block description persists
+expected: (= "Block level description" (get-in block-after [:user.property/description :logseq.property/value]))
+  actual: (not (= "Block level description" nil))
+
+FAIL in (user-property-persists-across-worker-restart) (frontend/worker/recycle_persistence_test.cljs:516:30)
+block UUID is stable across restart
+expected: (= (str person-uuid) (:block/uuid block-after))
+  actual: (not (= "c3c9aa67-a2f4-4156-b44d-30200bc24acf" "14a68917-274a-4823-92b1-85efd5617972"))
+
+Ran 4 tests containing 162 assertions.
+11 failures, 0 errors.

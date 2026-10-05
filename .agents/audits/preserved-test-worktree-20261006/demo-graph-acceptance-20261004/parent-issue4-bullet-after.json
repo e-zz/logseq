@@ -1,0 +1,19 @@
+{
+  "tool": "getBlock",
+  "input": {
+    "uuid": "69c8cc2b-dc3a-40e1-b133-a0781a131cbb"
+  },
+  "response": {
+    "uuid": "69c8cc2b-dc3a-40e1-b133-a0781a131cbb",
+    "updated-at": 1791079006228,
+    "created-at": 1791078193103,
+    "title": "编号项一",
+    "order-list-type": {
+      "title": "number",
+      "uuid": "6ac1b25e-2986-4a8c-a736-bdc69e13ce48"
+    },
+    "order": "b1c",
+    "parent": "63bab91a-013d-44df-afb7-4c83026b03ef",
+    "page": "63bab91a-013d-44df-afb7-4c83026b03ef"
+  }
+}
