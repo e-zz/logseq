@@ -2775,3 +2775,67 @@
           (is (thrown? js/Error
                        (call-resource-raw api conn resource-key))
               (str "Expected fail-fast for " (pr-str resource-key))))))))
+
+
+(deftest render-snapshots-survives-child-lacking-block-order-test
+  "A parented child that lacks :block/order (and :block/page) — the issue #5
+   legacy row — must not fail the :thread-api/get-render-snapshots children
+   path. The response includes both children: the healthy sibling keeps its
+   order, the malformed child renders last with a nil order, and no throw
+   escapes. This exercises the real render path (render-engine/render-snapshots
+   -> block-handler/open-children-tree -> parent-membership), not a mock.
+   The fix lives in the direct-child comparator, so this is a regression guard
+   against reverting to the old sentinel sort."
+  (let [conn (db-test/create-conn)
+        page-uuid (random-uuid)
+        healthy-uuid (random-uuid)
+        malformed-uuid (random-uuid)]
+    (d/transact! conn
+                 [{:db/id -1
+                   :block/uuid page-uuid
+                   :block/tx-id 10
+                   :block/title "Render Page"
+                   :block/name "render page"
+                   :block/tags :logseq.class/Page}
+                  {:db/id -2
+                   :block/uuid healthy-uuid
+                   :block/tx-id 11
+                   :block/title "Healthy child"
+                   :block/page -1
+                   :block/parent -1
+                   :block/order "a0"}
+                  ;; Legacy malformed child: has a UUID and a parent but no
+                  ;; :block/order (and no :block/page). Must not fail the
+                  ;; render-snapshots children read.
+                  {:db/id -3
+                   :block/uuid malformed-uuid
+                   :block/tx-id 11
+                   :block/title "Malformed child"
+                   :block/parent -1}])
+    (let [response (render-engine/render-snapshots
+                    @conn
+                    {:blocks []
+                     :children [page-uuid]
+                     :resources []}
+                    {})
+          children-slot (get-in response [:slots [:children page-uuid]])
+          items (:items children-slot)]
+      (is (some? children-slot)
+          "The :children slot must be present for the requested parent")
+      (is (not (contains? (:slots response) [:error]))
+          "No error slot must be produced")
+      (is (= 2 (count items))
+          "Both children must appear in the snapshot")
+      (is (= healthy-uuid (first (first items)))
+          "Healthy sibling keeps its render position (first)")
+      (is (= "a0" (second (first items)))
+          "Healthy sibling keeps its real :block/order")
+      (is (= malformed-uuid (first (second items)))
+          "Malformed child renders last")
+      (is (nil? (second (second items)))
+          "Malformed child carries nil :block/order, never a fabricated key")
+      (is (some? (get-in response [:groups [:children page-uuid]]))
+          "The :children group is present for the requested parent")
+      ;; A transit round-trip must succeed with the nil order on the wire.
+      (is (= response
+             (-> response ldb/write-transit-str ldb/read-transit-str))))))
