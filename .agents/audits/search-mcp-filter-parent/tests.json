@@ -1,0 +1,74 @@
+{
+  "source_commit": "5c1b5e55740ff0e0979e153e24cb84a5f174f175",
+  "scope": "parent rerun of six focused compiled source namespaces; not packaged GUI/MCP end-to-end",
+  "suites": [
+    {
+      "namespace": "frontend.handler.search-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v frontend.handler.search-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.handler.search-test.txt",
+      "namespace_observed": true,
+      "tests": 13,
+      "assertions": 34,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "namespace": "frontend.worker.search-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v frontend.worker.search-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.search-test.txt",
+      "namespace_observed": true,
+      "tests": 79,
+      "assertions": 300,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "namespace": "frontend.worker.handler.search-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v frontend.worker.handler.search-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.handler.search-test.txt",
+      "namespace_observed": true,
+      "tests": 6,
+      "assertions": 19,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "namespace": "logseq.api.db-based.mcp-search-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v logseq.api.db-based.mcp-search-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/logseq.api.db-based.mcp-search-test.txt",
+      "namespace_observed": true,
+      "tests": 1,
+      "assertions": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "namespace": "electron.mcp-server-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v electron.mcp-server-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/electron.mcp-server-test.txt",
+      "namespace_observed": true,
+      "tests": 5,
+      "assertions": 22,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "namespace": "frontend.worker.db-listener-test",
+      "command": "bb dev:run-test-namespaces -r \"^(?!logseq.db-sync.).*\" -v frontend.worker.db-listener-test",
+      "exit": 0,
+      "log": ".agents/audits/search-mcp-filter-parent/frontend.worker.db-listener-test.txt",
+      "namespace_observed": true,
+      "tests": 15,
+      "assertions": 53,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "total_tests": 119,
+  "total_assertions": 431
+}

@@ -1,0 +1,4 @@
+Testing frontend.worker.handler.search-test
+
+Ran 6 tests containing 19 assertions.
+0 failures, 0 errors.

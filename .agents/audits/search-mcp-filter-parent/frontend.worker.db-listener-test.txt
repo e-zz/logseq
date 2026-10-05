@@ -1,0 +1,10 @@
+Testing frontend.worker.db-listener-test
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:stage :sync-db-to-main-thread, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :outliner-op :save-block, :tx-count 3, :pipeline-ms 0.119499999999789, :delta-ms 0.9762000000000626, :broadcast-ms 0.02250000000003638}, :line 45}
+[frontend.worker.db-listener] {:db-worker/outliner-op-perf {:outliner-op :save-block, :perf-id #uuid "22222222-2222-2222-2222-222222222222", :stage :db-listener-complete, :total-ms 4.0318999999999505, :tx-count 3, :handlers-ms [[:db-sync 0.038900000000467116]], :persist-ms 0.0500000000001819, :sync-main-ms 1.248199999999997, :checksum-ms 0.07769999999982247}, :line 45}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: deferred listener failed]}, :line 211}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :markdown-mirror, :outliner-op nil, :error #object[Error Error: async deferred listener failed]}, :line 211}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :update-checksum, :outliner-op nil, :error #object[Error Error: checksum failed]}, :line 211}
+[frontend.worker.db-listener] {:db-worker/post-commit-handler-failed {:repo "repo", :stage :persist-local-tx, :outliner-op nil, :error #object[Error Error: persist failed]}, :line 211}
+
+Ran 15 tests containing 53 assertions.
+0 failures, 0 errors.

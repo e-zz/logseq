@@ -1,0 +1,4 @@
+Testing electron.mcp-server-test
+
+Ran 5 tests containing 22 assertions.
+0 failures, 0 errors.

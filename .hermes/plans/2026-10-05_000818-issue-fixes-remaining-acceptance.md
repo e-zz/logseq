@@ -31,14 +31,18 @@
 
 ## 剩余推进任务（按顺序）
 
-### 1. 完成搜索兼容性修补与独立复核
+### 1. 搜索源码增量已复核，按 PARTIAL 收尾
 执行计划：`.hermes/plans/search-mcp-filter-upstream-compatibility.md`。
 - 目标固定：GUI 遵循对应 upstream 默认行为；MCP 默认排除回收实体；MCP 选项/结果发布不得污染 GUI 或共享状态。
 - 不能用“过滤条件已存在于 upstream”排除本轮索引/共享路径的间接影响；也不能为迎合旧行为记忆全局撤掉 upstream hidden/private 过滤。
-- 已核验模型为 OpenCode `baqis/deepseek-v4.1-flash`。第一轮因外部 `/tmp` 文件权限拒绝而中止，exit 0 不是完成；没有落盘报告或修补。已续接原会话，提供 worktree 内对照文件与 `.agents/briefs/search-mcp-filter-resume.md`。
-- Worker 完成标准：实际调查/修补报告，最小源码差异，真实执行的回归测试和准确计数；根因未证实须明确标注，禁止捏造 red/green。
-- 父代理独立检查默认策略、调用顺序/共享状态隔离、全量/增量索引、回收祖先、范围与限额、#11 新写入可检索，再重跑针对性测试。不能只采信 worker 摘要。
-- 若需要新包 GUI 验收，只针对已修补的直接路径另行形成 non-release CI 验收记录；不自行安装、操作用户图或重启当前应用。
+- 已核验模型为 OpenCode `baqis/deepseek-v4.1-flash`。第一轮权限拒绝后续接原会话；续接进程 exit 1，但实际提交 `5c1b5e55740ff0e0979e153e24cb84a5f174f175` 存在。父代理不以进程退出码或摘要直接判断功能完成；退出码 1 的具体原因尚未定位。
+- 源码核验：修补只新增 `:publish-result?` 调用方选项，默认 true；MCP 明确传 false，handler 调用 worker 前移除该选项。未改共享 hidden/recycled 谓词或索引监听逻辑。此修补尚未进入正在运行的 CI `37203268496` 包。
+- 实测（源码测试，非包内 GUI）：父代理逐一重跑六个针对性 namespace，共 119 tests / 431 assertions，0 failures / 0 errors。原始日志及逐项计数保存在 `.agents/audits/search-mcp-filter-parent/`，汇总为 `tests.json`。handler 测试使用 worker mock；worker 测试执行当前源码实现，不能包装成 packaged IPC/GUI 或 anchor/当前版运行对照。
+- 父代理已纠正 worker 报告中的两处过度结论：无条件发布 `:search/result` 在 upstream anchor 就存在，不能说本轮引入；相同回收谓词及同一当前 worker 上的选项组测试，不能排除索引/运行路径的间接影响。修订记录在 `.agents/reports/search-mcp-filter-worker.md` 与 `search-mcp-filter-investigation.md`。
+- 验收结论为 PARTIAL：MCP 结果状态发布隔离的针对性源码测试 PASS；用户报告的旧/新 GUI 回收搜索差异仍 UNRESOLVED，不能宣称“恢复旧行为”或“证明无回归”。缺旧包身份/同 fixture 运行对照，按收束方向保留该缺口，不全局解除 upstream 隐藏过滤，不自动扩展 GUI 测试。
+- Standards 缺口：worker 未执行 `bb lint:kondo-git-changes`，当前 PATH 未找到 clj-kondo；父代理 `git diff 5c1b5e5574^ 5c1b5e5574 --check` 通过，但不代替 lint。worker 的编译/RED 描述未由父代理重新复现，不冒称独立验收。
+- 父代理收尾报告已落盘：`.agents/reports/search-mcp-filter-parent-review.md`；本次对六份既有日志逐项复核并记录 SHA256，`evidence-verification.json` 与 `tests.json` 一致。未重复测试，也没有新增生产代码修改。
+- 搜索本轮结束边界：源码发布隔离与独立证据本地定向提交，PARTIAL/UNRESOLVED 和 lint/包内运行缺口移入最终验收表；不是整个 GUI 搜索兼容性需求完成。若另行开展新包 GUI 验收，只针对直接路径，不自行安装、操作用户图或重启当前应用。
 
 ### 2. 明确 #12 失败的处理边界
 实测反例已完成，不能再列为“未测”或 PASS：
@@ -47,9 +51,11 @@
 - fixture 按 disposable 约定保持缺文件状态，不自动恢复；未删除磁盘文件，未触碰当前 GUI 图。
 
 源码核验：当前 packaged worker 的初始化分支与 legacy `logseq.outliner.cli/init-conn` 是不同路径。推断：已有图跳过初始数据构建可解释缺文件未补齐，但包内没有分支 instrumentation，不能称实测根因。
-下一步只做有界判断：核对 #12 原承诺与实际调用路径，将“文件保留 PASS / packaged 缺文件 FAIL / legacy init-conn 与 Windows classpath NOT EXERCISED”明确分列。
-若现有承诺确实覆盖 packaged 缺文件补齐，才安排独立最小修补/针对性测试；否则作为独立跟进缺陷记录，不默认扩大本轮到 worker 初始化重构。无论采用哪一边界，保留原失败证据，不改写为通过。
-不为了运行 legacy 测试重编译整套应用；源码测试不能替代该路径的包内验收。
+承诺核对已完成（直接读取 GitHub #12 的原 issue 正文）：原 Expected 是打开已有图不得覆盖已存文件；Windows classpath 是单独列出的 contributing fault。正文的“只在不存在时创建文件”提案针对 legacy `init-conn` 初始化流程，不足以推出 packaged db-worker 在正常重开时承诺修复缺失文件。
+- 收束决定：`文件保留 PASS / packaged 缺文件补齐 FAIL / legacy init-conn 与 Windows classpath 包内 NOT EXERCISED` 分列；不把缺文件 FAIL 泛化为原文件保留修复失败，也不把 packaged 保留 PASS 泛化为 legacy 路径已验。
+- packaged 缺文件补齐作为独立运行路径的后续需求/缺陷记录保留；本轮不自动改 worker 初始化、不自动创建额外 issue、不扩大重编译或 GUI 测试。原反例与缺文件 fixture 保留。
+- 原 issue 状态本轮读回为 OPEN；本地边界判断不是关闭授权，也没有向远程发布本轮新结论。
+- 不为了运行 legacy 测试重编译整套应用；源码测试不能替代该路径的包内验收。
 
 ### 3. 冻结覆盖缺口与阻塞项
 - #14 同名 active/recycled 与 UUID/歧义矩阵：BLOCKED by #21。不得直接改 SQLite、擅自恢复或静默写回收页造 fixture。

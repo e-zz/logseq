@@ -14,7 +14,7 @@
 - Existing untracked audit/brief/integration-input files belong to previous work; preserve them. No broad git add, reset, clean, checkout, stash, or deletion.
 
 ## Evidence status and uncertainty
-源码核验：GUI and MCP share renderer handler/worker search paths. Handler, scope predicates, SQL scope and index-listener runtime-write behavior were changed against the anchor.
+源码核验：MCP 与已检查的 Cmd-K 路径共享底层 worker；Cmd-K 直接调用 block-search，不经 MCP 所用 renderer 聚合 handler。不得把共享 worker 写成共享完整 GUI 调用链。此前 handler/scope/SQL/index-listener 的 fork 改动仍需与本次两文件的发布隔离修补分别归属。
 源码核验：the inspected diff does not add recycled visibility predicates; these already existed at the anchor. This does NOT exclude an indirect behavior change.
 用户实测：previous GUI search could show recycled matching entities with recycle labels; current package could not find the recycled test page. Exact previous application SHA/search mode is not established.
 推测：shared index changes may make existing visibility predicates effective sooner, or shared search options/state may leak between callers. Neither is a confirmed root cause.
@@ -94,3 +94,14 @@ Parent independently inspect worker diff, rerun focused tests, check default/cal
 
 ## Completion criteria
 Plan saved, worker actually launched with verified model. Implementation acceptance additionally requires reviewed minimal diff plus real executed tests, with packaged GUI gaps clearly marked. Preserve uncertainty rather than redefining upstream to satisfy a guess.
+
+## 收尾状态（父代理已核验，原需求仍 PARTIAL）
+
+- 源码提交：`5c1b5e55740ff0e0979e153e24cb84a5f174f175`；只增量隔离 MCP 结果状态发布，未改共享回收/隐藏过滤。
+- 实测：父代理此前独立运行六个针对性 namespace，119 tests / 431 assertions，0 failures/errors。本次只对既有原始日志、计数及源码版本对账，不重复测试；记录见 `.agents/audits/search-mcp-filter-parent/evidence-verification.json`。
+- 父代理验收：`.agents/reports/search-mcp-filter-parent-review.md`。handler 的 worker mock、当前 worker fixture 与包内 GUI/IPC/anchor 差分分别标注，不混用。
+- 原 Task 1 的 anchor/current 同 fixture 运行对照尚未完成；原 Task 2 的反向调用顺序等要求不是新测试的独立覆盖。源码发布隔离已验，不等于整个要求矩阵通过。
+- 原 GUI 回收搜索差异 UNRESOLVED；旧包身份、受控旧/新路径运行对照、包内新补丁验收与 clj-kondo lint 缺口随报告保留。不自动扩大测试、移除 upstream hidden 规则或新建公开 includeRecycled 搜索 API。
+- CI `37203268496` / build `fb5eb4eb43cdb3be7a29d816b969d45c127d4861` 没有本搜索修补。当前 app/graph 不操作，源码收尾不等于包内验收或 issue 可关闭。
+- worker 报告的 fork-introduction/no-regression 过度归因已纠正；dispatcher exit 1 单独记为未定位，不用于定义验收结论。
+- 根据用户采纳的收束方向，搜索源码增量与独立证据定向本地提交；随后仅将 PARTIAL 及未决项汇入最终 issue 验收表。本轮无 push、公开评论或自动关闭。
