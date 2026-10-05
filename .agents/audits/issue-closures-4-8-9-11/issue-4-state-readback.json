@@ -1,0 +1,8 @@
+{
+  "number": 4,
+  "title": "FR: MCP upsertNodes cannot create ordered/numbered lists (no way to set a block's list type) + other write-API gaps",
+  "state": "closed",
+  "state_reason": "completed",
+  "closed_at": "2026-10-05T15:31:02Z",
+  "html_url": "https://github.com/e-zz/logseq/issues/4"
+}

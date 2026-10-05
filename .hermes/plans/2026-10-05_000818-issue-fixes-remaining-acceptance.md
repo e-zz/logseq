@@ -97,3 +97,20 @@
 实测：五文件clj-kondo v2026.04.15父重跑0errors/0warnings（1info）。CI37259407681 success，compile实际checkout SHA精确匹配；x64包已下载，精确ASAR核验新旧指纹。独立真实DB图中新包renderer默认发布、MCP返回、异查询未持续覆盖sentinel、Cmd-K精确节点，以及普通块回收/恢复后MCP和Cmd-K可见性全部通过，最终14条检查PASS（非14独立场景）。结论PASS_WITH_OBSERVATION_LIMIT：状态采样不证明零瞬时/同值写入，GUI测试是重新发起查询而非打开结果自动刷新。
 
 隔离实例已正常quit并读回其三个测试端口关闭，fixture保留；原应用/图未操作。旧/新GUI回收可见性根因仍UNRESOLVED，未完成同fixture两包运行对照，整体原需求仍PARTIAL。既有issue证据不移用到新包，不自动关单。完整报告 .agents/reports/search-package-37259407681-parent-acceptance.md，真实结果 .agents/audits/search-package-37259407681/parent-runtime/behavior-parent.json。
+
+## 2026-10-05 issue 关闭（用户授权 ok，仅 #4/#8/#9/#11）
+
+用户在本会话对“可以先关 #4、#8、#9、#11”的建议回复 `ok`，授权范围仅这四个 issue；#5/#12/#14/#20/#21 与本轮其他结论不自动关闭。
+
+执行：每个 issue 先发布一条复核过的验收/限制说明，再以 `completed` 关闭；评论正文来自已审阅文件，发布后逐条读回比对。未改产品代码、工作流、图或索引，未 push。
+
+远端读回（2026-10-05，UTC）：
+- #4 closed/completed 15:31:02Z，comment 5997654250，https://github.com/e-zz/logseq/issues/4#issuecomment-5997654250
+- #8 closed/completed 15:31:07Z，comment 5997655714，https://github.com/e-zz/logseq/issues/8#issuecomment-5997655714
+- #9 closed/completed 15:31:12Z，comment 5997657210，https://github.com/e-zz/logseq/issues/9#issuecomment-5997657210
+- #11 closed/completed 15:31:18Z，comment 5997658668，https://github.com/e-zz/logseq/issues/11#issuecomment-5997658668
+
+`verification.json`：comment 正文逐一 `body_match=true`；`non_target_state_changes` 为空，即 #6/#7 及 #5/#12/#14/#20/#21 状态未动。评论内保留实际构建归属（#4 静态/早期证据属 CI 37134185100，非新包全量重跑；后续 API/搜索证据属 CI 37203268496，source fb5eb4eb43cdb3be7a29d816b969d45c127d4861）及各项未支持/未验边界（#4 removal/bullet、#8 receipt 非磁盘持久、#9 remove/empty-many、#11 新页独立跳转）。
+
+证据目录：`.agents/audits/issue-closures-4-8-9-11/`（README.md、payloads.json、issue-*-closure.md、close_verified.py、states-*-.json、issue-*-comment-readback.json）。
+

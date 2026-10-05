@@ -1,0 +1,36 @@
+{
+  "repository": "e-zz/logseq",
+  "visibility_observed": "public",
+  "authorized_targets": [
+    4,
+    8,
+    9,
+    11
+  ],
+  "authorized_action": "post the reviewed acceptance/limits comment and close as completed; read back exact comments and states",
+  "authorization": "User ok immediately after recommendation to close exactly #4/#8/#9/#11",
+  "no_source_or_graph_changes": true,
+  "no_push": true,
+  "early_ci_workflow_head_observed": "eb69c1bd179fa4582ff1f59506d43338dfab9190",
+  "early_ci_head_is_not_new_compile_checkout_verification": true,
+  "B_acceptance_source": "fb5eb4eb43cdb3be7a29d816b969d45c127d4861",
+  "privacy_checks": {
+    "4": {
+      "limited_privacy_scan": "PASS",
+      "explicit_limits_present": true
+    },
+    "8": {
+      "limited_privacy_scan": "PASS",
+      "explicit_limits_present": true
+    },
+    "9": {
+      "limited_privacy_scan": "PASS",
+      "explicit_limits_present": true
+    },
+    "11": {
+      "limited_privacy_scan": "PASS",
+      "explicit_limits_present": true
+    }
+  },
+  "privacy_regex_note": "Initial drive-path pattern falsely matched https URLs; corrected with an alphanumeric left boundary before any publication."
+}

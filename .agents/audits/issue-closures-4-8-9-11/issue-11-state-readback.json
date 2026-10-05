@@ -1,0 +1,8 @@
+{
+  "number": 11,
+  "title": "Bug: MCP upsertNodes adds blocks without updating the search index",
+  "state": "closed",
+  "state_reason": "completed",
+  "closed_at": "2026-10-05T15:31:18Z",
+  "html_url": "https://github.com/e-zz/logseq/issues/11"
+}
