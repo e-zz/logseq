@@ -6,8 +6,10 @@
   searchable is the companion marker `:logseq.outliner.op/runtime-write?`, which
   `db-listener/skip-search-sync?` treats as an incremental runtime write. A
   genuine bulk import carries `imported-data?` WITHOUT `runtime-write?` and is
-  therefore skipped. That predicate is transaction-wide, so the skip decision is
-  per-transaction, not per-op. The transport is stubbed: the worker round-trip is
+  therefore skipped. The runtime marker is NOT a universal override: it only
+  defeats the SQLite `imported-data?` skip, so a transaction that also carries
+  `:from-disk?` or the graph-parser `imported-data?` stays skipped. The skip
+  decision is transaction-wide, not per-op. The transport is stubbed: the worker round-trip is
   replaced by a direct `api-tools/build-upsert-nodes-edn` call, and the real
   `cli-api/upsert-nodes` caller runs underneath."
   (:require ["node:fs" :as fs]
@@ -134,7 +136,7 @@
   [db title]
   (d/entity db (d/q '[:find ?e . :in $ ?title :where [?e :block/title ?title]] db title)))
 
-(deftest mcp-upsert-marker-reaches-final-transaction
+(deftest runtime-write-marker-reaches-final-transaction
   (let [conn (make-conn)
         [op tx-meta] (runtime-write-op @conn "Marker Unit Block")
         metas (committed-tx-metas!
@@ -163,7 +165,7 @@
     (is (not (:logseq.outliner.op/runtime-write? final)) (pr-str final))
     (is (some? (:block/uuid (block-by-title @conn "Genuine Import Block"))))))
 
-(deftest mixed-batch-imports-when-transaction-carries-runtime-write
+(deftest mixed-batch-runtime-marker-disables-sqlite-import-search-skip
   (let [conn (make-conn)
         [op tx-meta] (runtime-write-op @conn "Small Upsert Block")
         metas (committed-tx-metas!
@@ -173,6 +175,8 @@
                  tx-meta))]
     (is (= 1 (count metas)))
     (is (true? (::sqlite-export/imported-data? (first metas))) (pr-str metas))
+    (is (true? (:logseq.outliner.op/runtime-write? (first metas)))
+        "the committed metadata must actually carry the runtime marker")
     ;; `skip-search-sync?` is transaction-wide (db_listener.cljs:174-179): the
     ;; runtime-write marker suppresses the import skip for the WHOLE transaction,
     ;; so bulk-import ops batched with a runtime write are indexed too.
@@ -271,7 +275,7 @@
           (p/finally done)))))
 
 (deftest mixed-batch-indexing-follows-the-transaction-marker
-  ;; Behavioural counterpart to `mixed-batch-imports-when-transaction-carries-runtime-write`:
+  ;; Behavioural counterpart to `mixed-batch-runtime-marker-disables-sqlite-import-search-skip`:
   ;; the skip decision is transaction-wide, so bulk-import ops batched with a
   ;; runtime write ARE indexed, even though a standalone bulk import is not
   ;; (see `genuine-import-block-is-not-indexed`).
@@ -284,11 +288,15 @@
              (outliner-op/apply-ops!
               conn [op (import-block-op @conn "Mixedimport bulk block" {:validate-scope :tx})]
               tx-meta)
-             (p/let [_ (p/delay 0)]
-               (is (some? (:block/uuid (block-by-title @conn "Mixedupsert runtime block"))))
-               (is (some? (:block/uuid (block-by-title @conn "Mixedimport bulk block"))))
-               (is (= 1 (count (fts-hit-ids db "Mixedupsert"))))
+             (p/let [_ (p/delay 0)
+                     runtime-id (:block/uuid (block-by-title @conn "Mixedupsert runtime block"))
+                     import-id (:block/uuid (block-by-title @conn "Mixedimport bulk block"))]
+               (is (some? runtime-id))
+               (is (some? import-id))
+               ;; Assert identity, not just a hit count: a row indexed under the wrong
+               ;; id would still satisfy `(= 1 (count ...))`.
+               (is (= [(str runtime-id)] (fts-hit-ids db "Mixedupsert")))
                ;; Indexed despite being a bulk import op: the tx carries runtime-write?.
-               (is (= 1 (count (fts-hit-ids db "Mixedimport")))))))
+               (is (= [(str import-id)] (fts-hit-ids db "Mixedimport"))))))
           (p/catch (fn [error] (is false (str "unexpected error: " error))))
           (p/finally done)))))
