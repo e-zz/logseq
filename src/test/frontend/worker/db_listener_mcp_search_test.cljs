@@ -6,8 +6,10 @@
   searchable is the companion marker `:logseq.outliner.op/runtime-write?`, which
   `db-listener/skip-search-sync?` treats as an incremental runtime write. A
   genuine bulk import carries `imported-data?` WITHOUT `runtime-write?` and is
-  therefore skipped. Only renderer/worker transport and unrelated post-commit
-  effects are stubbed."
+  therefore skipped. That predicate is transaction-wide, so the skip decision is
+  per-transaction, not per-op. The transport is stubbed: the worker round-trip is
+  replaced by a direct `api-tools/build-upsert-nodes-edn` call, and the real
+  `cli-api/upsert-nodes` caller runs underneath."
   (:require ["node:fs" :as fs]
             ["node:os" :as os]
             ["node:path" :as node-path]
@@ -161,7 +163,7 @@
     (is (not (:logseq.outliner.op/runtime-write? final)) (pr-str final))
     (is (some? (:block/uuid (block-by-title @conn "Genuine Import Block"))))))
 
-(deftest mixed-batch-keeps-genuine-import-skip
+(deftest mixed-batch-imports-when-transaction-carries-runtime-write
   (let [conn (make-conn)
         [op tx-meta] (runtime-write-op @conn "Small Upsert Block")
         metas (committed-tx-metas!
@@ -170,7 +172,11 @@
                  conn [op (import-block-op @conn "Full Import Block" {})]
                  tx-meta))]
     (is (= 1 (count metas)))
-    (is (true? (::sqlite-export/imported-data? (first metas))) (pr-str metas))))
+    (is (true? (::sqlite-export/imported-data? (first metas))) (pr-str metas))
+    ;; `skip-search-sync?` is transaction-wide (db_listener.cljs:174-179): the
+    ;; runtime-write marker suppresses the import skip for the WHOLE transaction,
+    ;; so bulk-import ops batched with a runtime write are indexed too.
+    (is (false? (#'db-listener/skip-search-sync? (first metas))) (pr-str metas))))
 
 (deftest mcp-upsert-created-block-is-searchable
   (async done
@@ -211,27 +217,43 @@
     (let [conn (make-conn)
           before "Astronomyquasar original block"
           after "Biochemistryenzyme retitled block"]
-      (outliner-op/apply-ops! conn [(import-block-op @conn before {})] {})
-      (let [block-id (:block/uuid (block-by-title @conn before))]
-        (-> (<with-search-db
-             conn
-             (fn [db _open-db! _close-db!]
-               ;; Seed the old index once, before the edit under test.
-               (search/upsert-blocks! db (clj->js (search/build-blocks-indice @conn)))
-               (is (= [(str block-id)] (fts-hit-ids db "Astronomyquasar")))
-               (p/let [_ (<upsert-nodes conn [{:operation "edit"
-                                             :entityType "block"
-                                             :id (str block-id)
-                                             :data {:title after}}] {})
-                       _ (p/delay 0)]
-                 (is (= after (:block/title (d/entity @conn [:block/uuid block-id]))))
-                 (is (= block-id (:block/uuid (block-by-title @conn after))) "Edit must not add a second block")
-                 (is (empty? (fts-hit-ids db "Astronomyquasar")) "Old title must leave the FTS index")
-                 (is (= [(str block-id)] (fts-hit-ids db "Biochemistryenzyme")))
-                 (is (= [block-id]
-                        (mapv :block/uuid (search-handler/search-blocks test-repo "Biochemistryenzyme" {})))))))
-            (p/catch (fn [error] (is false (str "unexpected error: " error))))
-            (p/finally done))))))
+      (-> (p/let [_ (<upsert-nodes conn [{:operation "add"
+                                          :entityType "block"
+                                          :data {:title before
+                                                 :page-id (str seed-page-id)}}] {})]
+            (let [block-id (:block/uuid (block-by-title @conn before))]
+              (<with-search-db
+               conn
+               (fn [db _open-db! _close-db!]
+                 ;; Seed the old index once, before the edit under test.
+                 (search/upsert-blocks! db (clj->js (search/build-blocks-indice @conn)))
+                 (is (= [(str block-id)] (fts-hit-ids db "Astronomyquasar")))
+                 (p/let [_ (<upsert-nodes conn [{:operation "edit"
+                                                 :entityType "block"
+                                                 :id (str block-id)
+                                                 :data {:title after}}] {})
+                         _ (p/delay 0)]
+                   (is (= after (:block/title (d/entity @conn [:block/uuid block-id]))))
+                   ;; The edit must not append a block: the seeded page's block set
+                   ;; stays exactly `{block-id}`. A re-find by title would miss a
+                   ;; duplicate.
+                   (is (= [block-id]
+                          (->> (d/q '[:find [?u ...]
+                                      :in $ ?page-uuid
+                                      :where [?p :block/uuid ?page-uuid]
+                                             [?b :block/uuid ?u]
+                                             [?b :block/page ?p]]
+                                    @conn seed-page-id)
+                               sort
+                               vec))
+                       "Edit must not add a second block")
+                   (is (empty? (fts-hit-ids db "Astronomyquasar")) "Old title must leave the FTS index")
+                   (is (= [(str block-id)] (fts-hit-ids db "Biochemistryenzyme")))
+                   (is (= [block-id]
+                          (mapv :block/uuid
+                                (search-handler/search-blocks test-repo "Biochemistryenzyme" {})))))))))
+          (p/catch (fn [error] (is false (str "unexpected error: " error))))
+          (p/finally done)))))
 
 (deftest genuine-import-block-is-not-indexed
   (async done
@@ -245,5 +267,28 @@
              (p/let [_ (p/delay 0)]
                (is (some? (:block/uuid (block-by-title @conn title))))
                (is (empty? (fts-hit-ids db "Genuineimport"))))))
+          (p/catch (fn [error] (is false (str "unexpected error: " error))))
+          (p/finally done)))))
+
+(deftest mixed-batch-indexing-follows-the-transaction-marker
+  ;; Behavioural counterpart to `mixed-batch-imports-when-transaction-carries-runtime-write`:
+  ;; the skip decision is transaction-wide, so bulk-import ops batched with a
+  ;; runtime write ARE indexed, even though a standalone bulk import is not
+  ;; (see `genuine-import-block-is-not-indexed`).
+  (async done
+    (let [conn (make-conn)
+          [op tx-meta] (runtime-write-op @conn "Mixedupsert runtime block")]
+      (-> (<with-search-db
+           conn
+           (fn [db _open-db! _close-db!]
+             (outliner-op/apply-ops!
+              conn [op (import-block-op @conn "Mixedimport bulk block" {:validate-scope :tx})]
+              tx-meta)
+             (p/let [_ (p/delay 0)]
+               (is (some? (:block/uuid (block-by-title @conn "Mixedupsert runtime block"))))
+               (is (some? (:block/uuid (block-by-title @conn "Mixedimport bulk block"))))
+               (is (= 1 (count (fts-hit-ids db "Mixedupsert"))))
+               ;; Indexed despite being a bulk import op: the tx carries runtime-write?.
+               (is (= 1 (count (fts-hit-ids db "Mixedimport")))))))
           (p/catch (fn [error] (is false (str "unexpected error: " error))))
           (p/finally done)))))
