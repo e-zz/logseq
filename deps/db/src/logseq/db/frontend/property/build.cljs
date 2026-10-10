@@ -70,7 +70,7 @@
   ident and its property value. Takes the following options:
    * :block-uuid - :block/uuid for property value entity
    * :properties - Additional properties and attributes to add to entity"
-  [block property value & {:keys [block-uuid properties]}]
+  [block property value & {:keys [block-uuid properties retract-attributes]}]
   (let [block-id (or (:db/id block) (:db/ident block))]
     (cond->
      (merge
@@ -90,7 +90,9 @@
       true
       common-util/block-with-timestamps
       properties
-      (merge properties))))
+      (merge properties)
+      (seq retract-attributes)
+      (assoc :build/retract-attributes retract-attributes))))
 
 (defn build-property-values-tx-m
   "Builds a map of property names to their property value blocks to be
@@ -119,6 +121,8 @@
                         (cond-> {}
                           (and pvalue-map? (seq (:attributes v')))
                           (assoc :properties (:attributes v'))
+                          (and pvalue-map? (seq (:build/retract-attributes v')))
+                          (assoc :retract-attributes (:build/retract-attributes v'))
                           pure?
                           (assoc :block-uuid
                                  (common-uuid/gen-uuid :builtin-block-uuid

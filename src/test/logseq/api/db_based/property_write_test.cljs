@@ -49,7 +49,8 @@
      :closed-property (str (:block/uuid (d/entity db :user.property/closed)))}))
 
 (defn- json-ops [ops]
-  (js/JSON.parse (js/JSON.stringify (clj->js ops))))
+  (js/JSON.parse (js/JSON.stringify
+                  (clj->js ops :keyword-fn (fn [k] (subs (str k) 1))))))
 
 (defn- upsert [ops options]
   (p/then (p/resolved nil) (fn [_] (cli-api/upsert-nodes ops options))))
@@ -1238,4 +1239,474 @@
                (is (re-find #"does not match" (str (:error (first (verify {text "nope"})))))
                    "an unobserved property value is rejected"))))
            (p/catch #(is false (str "receipt verifier negative test failed: " %)))
+           (p/finally done)))))
+
+;; Issue #22: the API should be able to write a simple query onto a block via
+;; the built-in hidden `logseq.property/query` property. The value is a
+;; property-value node titled with the query content. Current gate rejects
+;; hidden properties, so this test is expected RED until that is implemented.
+(deftest controlled-query-simple-write
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [receipt* (upsert
+                               (json-ops [{:operation "edit" :entityType "block" :id block
+                                           :data {:properties {"logseq.property/query"
+                                                               {:mode "simple" :content "(task Todo)"}}}}])
+                               #js {:receipt true})
+                     receipt (js->clj receipt* :keywordize-keys true)]
+               (is (= "verified" (:mode receipt))
+                   "the controlled query write succeeds and returns a verified receipt")
+               (let [db (conn/get-db)
+                     edited (d/entity db [:block/uuid (uuid block)])
+                     query-val (:logseq.property/query edited)]
+                 (is (some? query-val) "block now carries a query property value")
+                 (is (= "(task Todo)"
+                        (:block/title (if (:block/uuid query-val)
+                                        query-val
+                                        (d/entity db query-val))))
+                     "query property value node title is the query content")))))
+           (p/catch #(is false (str "controlled query simple write failed: " %)))
+           (p/finally done)))))
+
+;; Focused contract tests for the controlled query write (issue #22).
+(defn- query-value-node
+  "The stored query property value node of an edited block, or nil.
+   Pull results and entities may return the value node as a bare {:db/id n}
+   stub, so always re-resolve through the db."
+  [db block-uuid-str]
+  (when-let [block (d/entity db [:block/uuid (uuid block-uuid-str)])]
+    (when-let [v (:logseq.property/query block)]
+      (cond
+        (:db/id v) (d/entity db (:db/id v))
+        (map? v) v
+        :else (d/entity db v)))))
+
+(defn- query-write-rejected?
+  "Runs one query property upsert and returns [rejected? error-str db-after]."
+  [block-uuid-str value]
+  (p/let [before (vec (d/datoms (conn/get-db) :eavt))
+          result (-> (upsert
+                      (json-ops [{:operation "edit" :entityType "block" :id block-uuid-str
+                                  :data {:properties {"logseq.property/query" value}}}])
+                      #js {})
+                     (p/then (fn [receipt*]
+                               [false (js->clj receipt* :keywordize-keys true)]))
+                     (p/catch (fn [error] [true (str error)])))
+          [rejected? payload] result
+          db-after (conn/get-db)]
+    [rejected? payload db-after before]))
+
+(deftest controlled-query-advanced-write-and-same-mode-edit
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [receipt* (upsert
+                               (json-ops [{:operation "edit" :entityType "block" :id block
+                                           :data {:properties {"logseq.property/query"
+                                                               {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                               #js {:receipt true})
+                     receipt (js->clj receipt* :keywordize-keys true)
+                     _ (is (= "verified" (:mode receipt)) "advanced write receipt is verified")
+                     entity (get-in receipt [:operations 0 :entity])
+                     observed (get (:properties entity) :logseq.property/query)]
+               (is (= {:mode "advanced" :content "{:query [(task Todo)]}"} observed)
+                   "the receipt readback verifies content and mode from actual storage")
+               (let [db (conn/get-db)
+                     node (query-value-node db block)
+                     uuid-before (:block/uuid node)]
+                 (is (some? node) "advanced write creates the value node")
+                 (is (= :code (:logseq.property.node/display-type node))
+                     "advanced value node carries the code display type")
+                 (is (string? (:logseq.property.code/lang node))
+                     "advanced value node carries a code lang")
+                 ;; same-mode edit: content changes, lang survives, uuid preserved
+                 (p/let [receipt2* (upsert
+                                    (json-ops [{:operation "edit" :entityType "block" :id block
+                                                :data {:properties {"logseq.property/query"
+                                                                    {:mode "advanced" :content "{:query [(task Doing)]}"}}}}])
+                                    #js {:receipt true})
+                         receipt2 (js->clj receipt2* :keywordize-keys true)
+                         node2 (query-value-node (conn/get-db) block)]
+                   (is (= "{:query [(task Doing)]}" (get-in receipt2 [:operations 0 :entity :properties :logseq.property/query :content]))
+                       "the same-mode advanced edit updates the content")
+                   (is (= uuid-before (:block/uuid node2))
+                       "the same-mode advanced edit preserves the value node uuid")
+                   (is (= :code (:logseq.property.node/display-type node2))
+                       "the same-mode advanced edit keeps the code display type")
+                   (is (= "clojure" (:logseq.property.code/lang node2))
+                       "the same-mode advanced edit keeps the exact clojure lang"))))))
+           (p/catch #(is false (str "controlled query advanced write failed: " %)))
+           (p/finally done)))))
+
+(deftest controlled-query-mode-switches-retract-and-preserve
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {"logseq.property/query"
+                                                        {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                        #js {})
+                        node1 (query-value-node (conn/get-db) block)
+                        uuid1 (:block/uuid node1)
+                        _ (is (some? (:logseq.property.node/display-type node1))
+                              "advanced mode has code metadata before the switch")
+                        ;; advanced -> simple: stale metadata retracted, uuid preserved
+                        receipt* (upsert
+                                  (json-ops [{:operation "edit" :entityType "block" :id block
+                                              :data {:properties {"logseq.property/query"
+                                                                  {:mode "simple" :content "(task Todo)"}}}}])
+                                  #js {:receipt true})
+                        receipt (js->clj receipt* :keywordize-keys true)
+                        observed (get-in receipt [:operations 0 :entity :properties :logseq.property/query])]
+               (is (= {:mode "simple" :content "(task Todo)"} observed)
+                   "the switch receipt reads back a metadata-free simple mode from storage")
+               (let [db (conn/get-db)
+                     node2 (query-value-node db block)]
+                 (is (= uuid1 (:block/uuid node2))
+                     "the advanced->simple switch preserves the value node uuid")
+                 (is (nil? (:logseq.property.node/display-type node2))
+                     "the switch retracts the stale code display type")
+                 (is (nil? (:logseq.property.code/lang node2))
+                     "the switch retracts the stale code lang")
+                 (is (= "(task Todo)" (:block/title node2))
+                     "the switch keeps the new simple content on the same node")
+                 ;; simple -> advanced: metadata seeded, uuid still preserved
+                 (p/let [receipt3* (upsert
+                                    (json-ops [{:operation "edit" :entityType "block" :id block
+                                                :data {:properties {"logseq.property/query"
+                                                                    {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                                    #js {:receipt true})
+                         receipt3 (js->clj receipt3* :keywordize-keys true)]
+                   (is (= "advanced" (get-in receipt3 [:operations 0 :entity :properties :logseq.property/query :mode]))
+                       "the simple->advanced switch reads back advanced mode")
+                   (let [node3 (query-value-node (conn/get-db) block)]
+                     (is (= uuid1 (:block/uuid node3))
+                         "the simple->advanced switch preserves the value node uuid")
+                     (is (= :code (:logseq.property.node/display-type node3))
+                         "the switch seeds the code display type")
+                     (is (string? (:logseq.property.code/lang node3))
+                         "the switch seeds a code lang")))))))
+           (p/catch #(is false (str "controlled query mode switch failed: " %)))
+           (p/finally done)))))
+
+(deftest controlled-query-rejects-malformed-input-and-invalid-contexts
+  (async done
+    (let [{:keys [block page]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (p/doseq [[label value pattern]
+                                 [["bare string" "(task Todo)" #"envelope"]
+                                  ["missing mode" {:content "(task Todo)"} #"envelope"]
+                                  ["unknown mode" {:mode "query" :content "(task Todo)"} #"envelope"]
+                                  ["missing content" {:mode "simple"} #"envelope"]
+                                  ["non-string content" {:mode "simple" :content 42} #"envelope"]
+                                  ["blank content" {:mode "simple" :content "   "} #"non-empty string"]
+                                  ["advanced non-map-edn" {:mode "advanced" :content "(task Todo)"} #":query key"]
+                                  ["advanced not-a-query-map" {:mode "advanced" :content "{:rules []}"} #":query key"]
+                                  ["advanced unevalable-form" {:mode "advanced" :content "#=(js/alert 1)"} #"query EDN"]]]
+                      (p/let [[rejected? error db-after before] (query-write-rejected? block value)]
+                        (is rejected? (str label " is rejected: " (pr-str error)))
+                        (when rejected?
+                          (is (re-find pattern error)
+                              (str label " rejection mentions the contract: " (pr-str error)))
+                          (is (= before (vec (d/datoms db-after :eavt)))
+                              (str label " rejection leaves db unchanged")))))
+                     ;; the query property stays rejected on page operations
+                     _ (-> (upsert
+                            (json-ops [{:operation "edit" :entityType "page" :id page
+                                        :data {:properties {"logseq.property/query"
+                                                            {:mode "simple" :content "(task Todo)"}}}}])
+                            #js {})
+                          (p/then (fn [_] (is false "a page query write must be rejected")))
+                          (p/catch (fn [error]
+                                     (is (re-find #"only on add/edit block operations" (str error))
+                                         "a page query write is rejected before any write"))))]
+               nil)))
+           (p/catch #(is false (str "controlled query rejects test failed: " %)))
+           (p/finally done)))))
+
+(deftest controlled-query-write-on-add-block
+  (async done
+    (let [{:keys [page]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "add" :entityType "block"
+                                    :data {:page-id page :title "query carrier"
+                                           :properties {"logseq.property/query"
+                                                        {:mode "simple" :content "(task Doing)"}}}}])
+                        #js {})
+                     db (conn/get-db)
+                     page-ent (ldb/get-page db page)
+                     added (first (filter #(= "query carrier" (:block/title %))
+                                          (ldb/get-page-blocks db (:db/id page-ent))))
+                     node (when added
+                            (when-let [v (:logseq.property/query added)]
+                              (cond
+                                (:db/id v) (d/entity db (:db/id v))
+                                (map? v) v
+                                :else (d/entity db v))))]
+               (is (some? added) "the block with a query add op was created")
+               (is (some? node) "the add op creates the query value node")
+               (is (= "(task Doing)" (:block/title node))
+                   "the add op value node carries the query content")
+               (is (nil? (:logseq.property.node/display-type node))
+                   "a simple add op value node carries no code metadata")
+               (is (nil? (:logseq.property.code/lang node))
+                   "a simple add op value node carries no code lang"))))
+           (p/catch #(is false (str "controlled query add write failed: " %)))
+           (p/finally done)))))
+
+;; A value node whose existing lang is anything but clojure is not valid
+;; advanced query configuration: an advanced write must overwrite it to the
+;; exact UI contract (display-type :code, lang clojure).
+(deftest controlled-query-advanced-overwrites-stale-lang
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {"logseq.property/query"
+                                                        {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                        #js {})
+                     ;; Simulate a node that carries a foreign lang (e.g. from a
+                     ;; corrupted or manually edited state) via the import seam.
+                     _ (let [conn (conn/get-db nil false)
+                             node (query-value-node (conn/get-db) block)]
+                         (ldb/transact! conn [[:db/retract (:db/id node) :logseq.property.code/lang]
+                                              [:db/add (:db/id node) :logseq.property.code/lang "javascript"]]))
+                     _ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {"logseq.property/query"
+                                                        {:mode "advanced" :content "{:query [(task Doing)]}"}}}}])
+                        #js {})
+                     node2 (query-value-node (conn/get-db) block)]
+               (is (= "clojure" (:logseq.property.code/lang node2))
+                   "an advanced write normalizes a stale non-clojure lang to clojure")
+               (is (= :code (:logseq.property.node/display-type node2))
+                   "an advanced write keeps the code display type"))))
+           (p/catch #(is false (str "stale lang test failed: " %)))
+           (p/finally done)))))
+
+;; The receipt verifier measures what the worker actually stored. Exact
+;; :code + clojure means advanced; BOTH metadata keys absent means simple;
+;; any inconsistent combination must fail the receipt.
+(deftest controlled-query-receipt-modes-are-strict
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_upsert-result (upsert
+                                     (json-ops [{:operation "edit" :entityType "block" :id block
+                                                 :data {:properties {"logseq.property/query"
+                                                                     {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                                     #js {})
+                      node (query-value-node (conn/get-db) block)
+                      node-id (:db/id node)
+                      ;; Observe through the PUBLIC worker readback path: an
+                      ;; advanced claim verifies only against exact :code +
+                      ;; clojure metadata; anything else fails the receipt.
+                      verify-mode (fn []
+                                    (let [result (first (db-tools/read-upsert-blocks
+                                                         (conn/get-db)
+                                                         [{:uuid block
+                                                           :properties {"logseq.property/query"
+                                                                        {:mode "advanced" :content "{:query [(task Todo)]}"}}}]))]
+                                      (if (:error result) :simple :advanced)))
+                      ;; consistent advanced observes advanced
+                      _check-adv (is (= :advanced (verify-mode))
+                                  "exact :code + clojure metadata verifies advanced")
+                      ;; lang-only is NOT advanced
+                      _check1 (ldb/transact! (conn/get-db nil false)
+                                             [[:db/retract node-id :logseq.property.node/display-type]])
+                      _check2 (is (= :simple (verify-mode))
+                                  "a lang without display-type does not verify advanced")
+                      ;; display-type :code with absent lang is NOT advanced
+                      _check3 (ldb/transact! (conn/get-db nil false)
+                                             [[:db/add node-id :logseq.property.node/display-type :code]
+                                              [:db/retract node-id :logseq.property.code/lang]])
+                      _check4 (is (= :simple (verify-mode))
+                                  "a display-type without lang does not verify advanced")
+                      ;; both present but wrong lang is NOT advanced
+                      _check5 (ldb/transact! (conn/get-db nil false)
+                                             [[:db/add node-id :logseq.property.code/lang "javascript"]])
+                      _check6 (is (= :simple (verify-mode))
+                                  "a non-clojure lang does not verify advanced")
+                      ;; fully absent metadata is simple
+                      _check7 (ldb/transact! (conn/get-db nil false)
+                                             [[:db/retract node-id :logseq.property.node/display-type]
+                                              [:db/retract node-id :logseq.property.code/lang]])
+                      _check8 (is (= :simple (verify-mode))
+                                  "no metadata observes simple mode")])))
+           (p/catch #(is false (str "receipt strictness test failed: " %)))
+           (p/finally done)))))
+
+
+(deftest controlled-query-receipt-rejects-inconsistent-metadata
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {"logseq.property/query"
+                                                        {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                        #js {:receipt true})
+                     db (conn/get-db)
+                     node (query-value-node db block)
+                     node-id (:db/id node)
+                     ;; A simple-mode claim against metadata that IS present
+                     ;; must fail the receipt readback: force an inconsistent
+                     ;; state by dropping the lang from the live node.
+                     _ (ldb/transact! (conn/get-db nil false)
+                                      [[:db/retract node-id :logseq.property.code/lang]])
+                     result (db-tools/read-upsert-blocks
+                             (conn/get-db)
+                             [{:uuid block
+                               :properties {"logseq.property/query"
+                                            {:mode "simple" :content "{:query [(task Todo)]}"}}}])]
+               (is (re-find #"does not match" (str (:error (first result))))
+                   "a simple claim against present code metadata fails the receipt")
+               ;; and a foreign lang under an advanced claim fails too
+               (ldb/transact! (conn/get-db nil false)
+                              [[:db/add node-id :logseq.property.code/lang "javascript"]])
+               (let [result2 (db-tools/read-upsert-blocks
+                              (conn/get-db)
+                              [{:uuid block
+                                :properties {"logseq.property/query"
+                                             {:mode "advanced" :content "{:query [(task Todo)]}"}}}])]
+                 (is (re-find #"does not match" (str (:error (first result2))))
+                     "an advanced claim against a non-clojure lang fails the receipt")))))
+           (p/catch #(is false (str "receipt inconsistency test failed: " %)))
+           (p/finally done)))))
+
+;; The backend must attach the :logseq.class/Query tag on query add/edit
+;; (matching the UI's advanced-query command) WITHOUT replacing other tags.
+(deftest controlled-query-attaches-query-class-preserving-tags
+  (async done
+    (let [task-uuid "00000002-1282-1814-5700-000000000000"
+          {:keys [page block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "add" :entityType "block"
+                                    :data {:page-id page :title "tagged query carrier"
+                                           :tags [task-uuid]
+                                           :properties {"logseq.property/query"
+                                                        {:mode "advanced" :content "{:query [(task Todo)]}"}}}}
+                                   {:operation "edit" :entityType "block" :id block
+                                    :data {:properties {"logseq.property/query"
+                                                        {:mode "simple" :content "(task Todo)"}}}}])
+                        #js {})
+                     db (conn/get-db)
+                     page-ent (ldb/get-page db page)
+                     added (d/entity db (:db/id (first (filter #(= "tagged query carrier" (:block/title %))
+                                                               (ldb/get-page-blocks db (:db/id page-ent))))))
+                     edited (d/entity db [:block/uuid (uuid block)])
+                     tag-idents (fn [b] (set (map :db/ident (:block/tags b))))]
+               (is (contains? (tag-idents added) :logseq.class/Query)
+                   "a query add attaches the Query class")
+               (is (contains? (tag-idents added) :logseq.class/Task)
+                   "a query add preserves the block's other tags")
+               (is (contains? (tag-idents edited) :logseq.class/Query)
+                   "a query edit attaches the Query class"))))
+           (p/catch #(is false (str "query class test failed: " %)))
+           (p/finally done)))))
+
+;; A dry-run query write performs no transaction.
+(deftest controlled-query-dry-run-performs-no-write
+  (async done
+    (let [{:keys [block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [before (vec (d/datoms (conn/get-db) :eavt))
+                     receipt* (upsert
+                               (json-ops [{:operation "edit" :entityType "block" :id block
+                                           :data {:properties {"logseq.property/query"
+                                                               {:mode "advanced" :content "{:query [(task Todo)]}"}}}}])
+                               #js {:receipt true :dry-run true})
+                     receipt (js->clj receipt* :keywordize-keys true)
+                     after (vec (d/datoms (conn/get-db) :eavt))]
+               (is (= "dry-run" (:mode receipt)) "the dry-run receipt reports dry-run mode")
+               (is (= "advanced" (get-in receipt [:operations 0 :properties :logseq.property/query :mode]))
+                   "the dry-run receipt still echoes the requested query envelope")
+               (is (= before after) "a dry-run query write leaves the db unchanged"))))
+           (p/catch #(is false (str "dry run test failed: " %)))
+           (p/finally done)))))
+
+;; One failing operation in a mixed batch must reject the whole batch before
+;; any write, leaving the db byte-identical.
+(deftest controlled-query-mixed-batch-failure-is-atomic
+  (async done
+    (let [{:keys [page block]} (fixture!)]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [before (vec (d/datoms (conn/get-db) :eavt))
+                     result (-> (upsert
+                                 (json-ops [{:operation "add" :entityType "block"
+                                             :data {:page-id page :title "innocent sibling"}}
+                                            {:operation "edit" :entityType "block" :id block
+                                             :data {:properties {"logseq.property/query"
+                                                                 {:mode "advanced" :content "(task Todo)"}}}}])
+                                 #js {})
+                                (p/then (fn [_] :written))
+                                (p/catch (fn [error] [:rejected (str error)])))
+                     outcome result]
+               (is (vector? outcome) "the mixed batch rejects")
+               (is (= :rejected (first outcome))
+                   "a batch with an invalid query envelope is rejected")
+               (is (re-find #"query EDN|:query key" (second outcome))
+                   "the rejection names the advanced EDN contract")
+               (is (= before (vec (d/datoms (conn/get-db) :eavt)))
+                   "the rejected batch leaves the db byte-identical (no partial add)"))))
+           (p/catch #(is false (str "mixed batch test failed: " %)))
+           (p/finally done)))))
+
+;; Editing a block with an existing query preserves host identity and
+;; unrelated properties; the value node keeps a stable uuid property key.
+(deftest controlled-query-edit-preserves-host-and-node-identity
+  (async done
+    (let [{:keys [block ident]} (fixture!)
+          query-key "logseq.property/query"]
+      (-> (api-test/with-plugin-api
+           (fn []
+             (p/let [_ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {ident 11
+                                                        query-key {:mode "advanced"
+                                                                   :content "{:query [(task Todo)]}"}}}}])
+                        #js {})
+                     db1 (conn/get-db)
+                     host1 (d/entity db1 [:block/uuid (uuid block)])
+                     node1 (query-value-node db1 block)
+                     uuid1 (:block/uuid node1)
+                     order1 (:block/order host1)
+                     parent1 (:block/uuid (:block/parent host1))
+                     _ (upsert
+                        (json-ops [{:operation "edit" :entityType "block" :id block
+                                    :data {:properties {query-key {:mode "advanced"
+                                                                   :content "{:query [(task Doing)]}"}}}}])
+                        #js {})
+                     db2 (conn/get-db)
+                     host2 (d/entity db2 [:block/uuid (uuid block)])
+                     node2 (query-value-node db2 block)]
+               (is (= uuid1 (:block/uuid node2))
+                   "the query edit reuses the same value node uuid")
+               (is (= (:block/order node1) (:block/order node2))
+                   "the query value node order is preserved")
+               (is (= (:block/created-at node1) (:block/created-at node2))
+                   "the query value node creation timestamp is preserved")
+               (is (= order1 (:block/order host2)) "the host block order is preserved")
+               (is (= parent1 (:block/uuid (:block/parent host2)))
+                   "the host block parent is preserved")
+               (is (= 11 (some-> (get host2 ident) :logseq.property/value))
+                   "the unrelated numeric property is preserved")
+               (is (uuid? uuid1) "the value node is identified by its uuid property"))))
+           (p/catch #(is false (str "identity preservation test failed: " %)))
            (p/finally done)))))

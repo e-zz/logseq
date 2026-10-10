@@ -151,14 +151,15 @@
                                                 %)
                                              prop-val))
                                    :else
-                                   prop-val)))))]
+                                   prop-val)))))
+        retract-attrs (seq (:build/retract-attributes v))]
     {:attributes
      (when (:build/property-value v)
        (merge (:build/properties v)
               nested-pvalue-tx-m
               {:block/tags (mapv #(hash-map :db/ident (get-ident all-idents %))
                                  (:build/tags v))}
-              (select-keys v [:block/created-at :block/updated-at :build/children])
+              (select-keys v [:block/order :block/created-at :block/updated-at :build/children])
               {:block/uuid pvalue-uuid}))
      :value
      (cond
@@ -167,7 +168,8 @@
        (:build/property-value v)
        (or (:logseq.property/value v) (:block/title v))
        :else
-       v)}))
+       v)
+     :build/retract-attributes retract-attrs}))
 
 (defn- ->property-value-tx-m
   "Given a new block and its properties, creates a map of properties which have values of property value tx.
@@ -224,7 +226,11 @@
 (declare ->block-tx)
 
 (defn- pvalue-tx->txs
-  "Builds tx maps from property value tx maps and handles nested property value children."
+  "Builds tx maps from property value tx maps and handles nested property value children.
+  A property value map may carry :build/retract-attributes (a coll of db attribute keywords):
+  each is emitted as an explicit [:db/retract [(:block/uuid pvalue) attr]] datom so an
+  existing property value node can drop stale attributes (e.g. advanced-query code metadata)
+  in the same transaction. Retracting an attribute the node does not have is a no-op."
   [pvalue-tx-m page-uuids all-idents options]
   (mapcat (fn [pvalue]
             (if (map? pvalue)
@@ -232,9 +238,14 @@
                     (when-let [children (seq (:build/children pvalue))]
                       (let [children' (expand-build-children children (:block/uuid pvalue))]
                         (mapcat #(->block-tx % page-uuids all-idents (:block/page pvalue) options)
-                                children')))]
-                (cond-> [(dissoc pvalue :build/children)]
-                  (seq children-tx) (into children-tx)))
+                                children')))
+                    retract-txs
+                    (when-let [attrs (seq (:build/retract-attributes pvalue))]
+                      (mapv (fn [attr] [:db/retract [:block/uuid (:block/uuid pvalue)] attr])
+                            attrs))]
+                (cond-> [(dissoc pvalue :build/children :build/retract-attributes)]
+                  (seq children-tx) (into children-tx)
+                  (seq retract-txs) (into retract-txs)))
               [pvalue]))
           (mapcat #(if (set? %) % [%]) (vals pvalue-tx-m))))
 
@@ -745,7 +756,9 @@
 (defn- split-blocks-tx
   "Splits a vec of maps tx into maps that can immediately be transacted,
   :init-tx, and maps that need to be transacted after :init-tx, :block-props-tx, in order to use
-   the correct schema e.g. user properties with :db/cardinality"
+   the correct schema e.g. user properties with :db/cardinality
+   Non-map elements (e.g. explicit [:db/retract ..] datoms emitted for property value nodes)
+   pass through to :init-tx unchanged."
   [blocks-tx properties]
   (let [property-idents (concat (keep #(when (:db/cardinality %) (:db/ident %)) blocks-tx)
                                 ;; add properties for :build-existing-tx? since they aren't in blocks-tx
@@ -755,7 +768,7 @@
                   (let [props (select-keys m property-idents)]
                     [(if (map? m)
                        (conj init-tx* (apply dissoc m property-idents))
-                       init-tx*)
+                       (conj init-tx* m))
                      (if (seq props)
                        (conj block-props-tx*
                              (merge {:block/uuid (or (:block/uuid m)

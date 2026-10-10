@@ -2,10 +2,12 @@
   "Shared helpers for db-based API calls."
   (:require [clojure.set :as set]
             [clojure.string :as string]
+            [cljs.reader :as reader]
             [datascript.core :as d]
             [logseq.api.db-based.util :as api-util]
             [logseq.common.util :as common-util]
             [logseq.common.util.date-time :as date-time-util]
+            [logseq.common.util.page-ref :as page-ref]
             [logseq.db :as ldb]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.content :as db-content]
@@ -490,12 +492,122 @@
     (throw (ex-info (str "Property " (pr-str property-id) " is recycled and is not writable")
                     {:property property-id})))
   (when (and (entity-util/hidden? prop)
-             (not= (:db/ident prop) :logseq.property/order-list-type))
+             (not= (:db/ident prop) :logseq.property/order-list-type)
+             (not= (:db/ident prop) :logseq.property/query))
     (throw (ex-info (str "Property " (pr-str property-id) " is hidden and is not writable")
                     {:property property-id})))
   (when (:logseq.property/created-from-property prop)
     (throw (ex-info (str "Property " (pr-str property-id) " is a property-value entity and is not writable")
                     {:property property-id}))))
+
+;; ====================
+;; Controlled query property (issue #22): the built-in hidden
+;; :logseq.property/query property is writable through an explicit
+;; {"mode" "simple"|"advanced", "content" string} envelope only. Simple mode
+;; stores the query text as the property value node's title and guarantees the
+;; node carries no advanced-mode code metadata. Advanced mode stores EDN query
+;; text (validated by parsing only, never eval) plus the code metadata the UI
+;; expects on the value node. Mode switches retract stale metadata atomically
+;; via :build/retract-attributes on the property value node.
+(def ^:private query-advanced-config
+  "The exact advanced-query code metadata the UI writes (frontend.commands
+   advanced-query-steps sets BOTH). A node is advanced-mode only when it
+   carries exactly these values; any other metadata state is not valid
+   advanced query configuration and reads back as inconsistent."
+  {:logseq.property.node/display-type :code
+   :logseq.property.code/lang "clojure"})
+
+(def ^:private query-property-advanced-code-metadata
+  "Advanced queries render through code metadata on the property value node.
+  A simple-mode query node must carry none of these."
+  [:logseq.property.node/display-type :logseq.property.code/lang])
+
+(defn- query-node-mode
+  "Reads the observed query mode off a property value node: \"advanced\" only
+   for the exact :code + clojure metadata pair, \"simple\" only when BOTH
+   metadata keys are absent. Partial or foreign metadata (a lang without
+   display-type, a non-clojure lang, a foreign display-type) is not valid
+   advanced query configuration and reads back as \"inconsistent\", which can
+   never verify a receipt claim."
+  [node]
+  (let [observed (select-keys node [:logseq.property.node/display-type
+                                    :logseq.property.code/lang])]
+    (cond
+      (= query-advanced-config observed) "advanced"
+      (empty? observed) "simple"
+      :else "inconsistent")))
+
+(defn- resolve-query-property-value
+  "Validates the controlled query envelope and returns the importer property
+   value map. Reuses the existing structured property-value import
+   (`:build/property-value :block`): the value node is titled with the query
+   content, its :block/uuid is preserved across edits, and advanced code
+   metadata lives on the value node only. `block` is the entity whose query
+   value is being replaced (nil for block adds)."
+  [_db _prop property-id value block]
+  (when-not (and (map? value)
+                 (= #{:mode :content} (set (keys value)))
+                 (contains? #{"simple" "advanced"} (:mode value))
+                 (string? (:content value)))
+    (throw (ex-info (str "Query property " (pr-str property-id)
+                         " requires a {\"mode\" \"simple\"|\"advanced\", \"content\" string} envelope")
+                    {:property property-id :value value})))
+  (let [content (:content value)
+        mode (:mode value)]
+    (when (string/blank? content)
+      (throw (ex-info (str "Query property " (pr-str property-id)
+                           " content must be a non-empty string; removal is not supported")
+                      {:property property-id :value value})))
+    (let [;; The CURRENT value node of the edited block (nil for block adds).
+          ;; Both modes reuse it: its :block/uuid rides along so the importer
+          ;; upserts the existing node instead of creating a new one, keeping
+          ;; the node's position and creation stamp stable across mode switches.
+          ;; The ref may resolve to a datascript Entity, so read fields through
+          ;; lookups rather than map destructuring.
+          current-value (when block
+                          (:logseq.property/query block))
+          current-value-uuid (when current-value
+                               (:block/uuid current-value))
+          preserved (cond-> {}
+                       current-value-uuid
+                       (merge (select-keys current-value [:block/uuid :block/order :block/created-at])))]
+      (if (= mode "simple")
+        ;; Mode switch retraction: drop stale advanced code metadata in the
+        ;; same tx as the content write. Always present in simple mode —
+        ;; retracting an absent attribute is a no-op.
+        (cond-> {:build/property-value :block
+                 :block/title content
+                 :build/retract-attributes query-property-advanced-code-metadata}
+          current-value-uuid
+          (merge preserved))
+        (let [;; Parse-only validation: a malformed advanced query must be rejected
+              ;; before any write, and never eval'd.
+              form (try
+                     (reader/read-string
+                      {:readers {'tag page-ref/->page-ref}
+                       :read-eval false}
+                      content)
+                     (catch :default e
+                       (throw (ex-info (str "Query property " (pr-str property-id)
+                                            " advanced content is not valid query EDN: "
+                                            (ex-message e))
+                                       {:property property-id :value value}))))
+              _ (when-not (and (map? form)
+                               (contains? form :query))
+                  (throw (ex-info (str "Query property " (pr-str property-id)
+                                       " advanced content must be a map with a :query key")
+                                  {:property property-id :value value})))
+              ;; Advanced mode ALWAYS ensures the exact UI contract metadata
+              ;; (frontend.commands advanced-query-steps sets BOTH display-type
+              ;; :code and lang clojure). A node whose existing lang is absent
+              ;; or anything but clojure is not valid advanced query
+              ;; configuration, so an advanced write normalizes it instead of
+              ;; preserving it.
+              advanced-metadata query-advanced-config]
+          (merge {:build/property-value :block
+                  :block/title content}
+                 preserved
+                 {:build/properties advanced-metadata}))))))
 
 (defn- uuid-envelope->uuid
   "A stable reference value is an unambiguous `{:uuid \"...\"}` envelope, never a
@@ -671,11 +783,18 @@
   "Resolve and validate one property pair against the real property metadata.
    Returns [ident encoded-value] for the importer, or throws. The value contract
    is driven entirely by the property's existing type/cardinality/closed values;
-   the property type is never guessed from the key."
-  [db prop property-id value]
-  (let [type (:logseq.property/type prop)
-        ident (:db/ident prop)]
-    (cond
+   the property type is never guessed from the key. `block` (optional) is the
+   entity whose property is being replaced; the controlled query contract uses
+   it to preserve advanced metadata on the current value node."
+  ([db prop property-id value]
+   (resolve-property-value db prop property-id value nil))
+  ([db prop property-id value block]
+   (let [type (:logseq.property/type prop)
+         ident (:db/ident prop)]
+     (cond
+       (= ident :logseq.property/query)
+       [ident (resolve-query-property-value db prop property-id value block)]
+
       (= ident :logseq.property/order-list-type)
       (do
         (when-not (and (string? value) (= (string/lower-case value) "number"))
@@ -728,7 +847,7 @@
           (throw (ex-info (str "Property " (pr-str property-id)
                                " does not accept null; removal is not supported")
                           {:property property-id})))
-        [ident (resolve-typed-scalar db prop property-id type value)]))))
+        [ident (resolve-typed-scalar db prop property-id type value)])))))
 
 (defn- visible-page
   "Resolves an existing, non-recycled page by uuid for a property write."
@@ -750,7 +869,7 @@
    (fn [{:keys [operation entityType data id] :as op}]
      (if-not (contains? data :properties)
        op
-       (do
+       (let [query-edit-ids (atom #{})]
          (when-not (and (contains? #{"block" "page"} entityType)
                         (contains? #{"add" "edit"} operation))
            (throw (ex-info "Properties are supported only on add/edit blocks and pages" {})))
@@ -759,13 +878,26 @@
          (when (and (= "block" entityType) (= "edit" operation)
                     (:error (get-block db id {})))
            (throw (ex-info "Property edit requires an ordinary visible block" {:id id})))
-         (assoc op ::typed-properties
+         (assoc op
+                ::typed-properties
                 (into {}
                       (map (fn [[key value]]
-                             (let [prop (property-key->entity db key)]
+                             (let [prop (property-key->entity db key)
+                                   ;; The controlled query contract resolves advanced
+                                   ;; metadata against the edited block's current value node.
+                                   block (when (and (= "block" entityType) (= "edit" operation))
+                                           (d/entity db [:block/uuid (uuid id)]))]
                                (assert-writable-property! prop key)
-                               (resolve-property-value db prop key value)))
-                           (:properties data)))))))
+                               (when (and (= (:db/ident prop) :logseq.property/query)
+                                          (not= entityType "block"))
+                                 (throw (ex-info (str "Query property " (pr-str key)
+                                                      " is supported only on add/edit block operations")
+                                                 {:property key :entity-type entityType})))
+                               (when (= (:db/ident prop) :logseq.property/query)
+                                 (swap! query-edit-ids conj id))
+                               (resolve-property-value db prop key value block)))
+                           (:properties data)))
+                ::query-tag? (seq @query-edit-ids)))))
    operations))
 
 (defn- get-ident [idents title]
@@ -845,8 +977,10 @@
                          (assoc :build/properties (::typed-properties op))
                          (::receipt-uuid op)
                          (assoc :block/uuid (::receipt-uuid op) :build/keep-uuid? true)
-                         (:tags data)
-                         (assoc :build/tags (mapv #(get-ident class-idents %) (:tags data)))
+                         (or (:tags data) (::query-tag? op))
+                         (assoc :build/tags (cond-> (mapv #(get-ident class-idents %) (:tags data))
+                                              (::query-tag? op)
+                                              (conj :logseq.class/Query)))
                          (and (:parent-id data) (not (contains? index->parent i)))
                          (assoc :block/parent {:db/id [:block/uuid (uuid (:parent-id data))]})
                          (seq (get children i))
@@ -886,11 +1020,15 @@
              :blocks (into (build-block-tree operations index->parent (get adds-by-page page-id) idents)
                            (map (fn [op]
                                   (cond-> {:block/uuid (uuid (:id op))
-                                           :block/title (if (contains? (:data op) :title)
-                                                          (get-in op [:data :title])
-                                                          (:block/title (d/entity db [:block/uuid (uuid (:id op))])))}
-                                    (seq (::typed-properties op))
-                                    (assoc :build/properties (::typed-properties op))))
+                                             :block/title (if (contains? (:data op) :title)
+                                                            (get-in op [:data :title])
+                                                            (:block/title (d/entity db [:block/uuid (uuid (:id op))])))}
+                                      (seq (::typed-properties op))
+                                      (assoc :build/properties (::typed-properties op))
+                                      ;; Tags are cardinality-many; this assertion adds
+                                      ;; Query without resolving or replacing other tags.
+                                      (::query-tag? op)
+                                      (assoc :build/tags [:logseq.class/Query])))
                                 (get edits-by-page page-id)))})
           page-ids)))
 
@@ -1152,21 +1290,31 @@
 (defn- canonical-expected-property
   "Canonical comparison form for a requested property value. Reuses the write
    resolver so the receipt measures exactly what the importer stores: ref values
-   become uuid strings and many values stay sets."
+   become uuid strings and many values stay sets. The controlled query property
+   canonicalizes to its mode/content envelope so the receipt verifies both."
   [db key value]
   (let [prop (property-key->entity db key)
         _ (assert-writable-property! prop key)
-        [_ encoded] (resolve-property-value db prop key value)
-        canonical (fn canonical [v]
-                    (cond
-                      (and (vector? v) (= :block/uuid (first v))) (str (second v))
-                      (set? v) (set (map canonical v))
-                      :else v))]
-    (canonical encoded)))
+        [_ encoded] (resolve-property-value db prop key value)]
+    (if (= (:db/ident prop) :logseq.property/query)
+      {:mode (:mode value)
+       :content (:block/title encoded)}
+      (let [canonical (fn canonical [v]
+                        (cond
+                          (and (vector? v) (= :block/uuid (first v))) (str (second v))
+                          (set? v) (set (map canonical v))
+                          ;; Structured property values (the controlled query) store
+                          ;; their content as the value node's title.
+                          (and (map? v) (:build/property-value v)) (:block/title v)
+                          :else v))]
+        (canonical encoded)))))
 
 (defn- observed-property-values
   "Canonical observed value(s) for one property on an entity, matching the shape
-   produced by `canonical-expected-property`."
+   produced by `canonical-expected-property`. The controlled query property
+   observes the full mode/content envelope read back from actual storage:
+   content is the value node's title and mode is derived from whether the node
+   carries advanced code metadata."
   [db entity prop]
   (let [ident (:db/ident prop)
         type (:logseq.property/type prop)
@@ -1181,10 +1329,16 @@
                   value-ref? (if (contains? e :logseq.property/value)
                                (:logseq.property/value e)
                                (:block/title e))
-                  :else e)))]
-    (if (= :db.cardinality/many (:db/cardinality prop))
-      (set (map one (get entity ident)))
-      (one (get entity ident)))))
+                  :else e)))
+        observed (if (= :db.cardinality/many (:db/cardinality prop))
+                   (set (map one (get entity ident)))
+                   (one (get entity ident)))]
+    (if (= ident :logseq.property/query)
+      (when-let [node (get entity ident)]
+        (let [node (if (and (map? node) (:db/id node)) (d/entity db (:db/id node)) node)]
+          {:mode (query-node-mode node)
+           :content (:block/title node)}))
+      observed)))
 
 (defn- verify-requested-properties
   "Compares each requested property value against observed post-write state.

@@ -362,3 +362,96 @@
     (is (= another-class-properties-c3
            (get-in export-map [:classes :user.class/AnotherC3 :build/class-properties]))
         "Later class-level ordering constraint :p6 before :p5 is preserved")))
+
+;; Regression tests for the retract seam on property value nodes (issue #22):
+;; a property value map may carry :build/retract-attributes so an existing
+;; value node drops stale attributes (e.g. advanced-query code metadata) in
+;; the same import transaction.
+(defn- retract-seam-fixture!
+  []
+  (let [conn (db-test/create-conn-with-blocks
+              {:pages-and-blocks
+               [{:page {:block/title "Retract Seam Page"}
+                 :blocks [{:block/title "Todo query"
+                           :build/tags [:logseq.class/Query]
+                           :build/properties
+                           {:logseq.property/query
+                            {:build/property-value :block
+                             :block/title "{:query (task Todo)}"
+                             :build/properties
+                             {:logseq.property.code/lang "clojure"
+                              :logseq.property.node/display-type :code}}}}]}]})]
+    conn))
+
+(defn- query-pvalue-node
+  [conn]
+  (db-test/find-block-by-content @conn "{:query (task Todo)}"))
+
+(defn- upsert-query-pvalue
+  "Re-imports the query property value node in place, optionally with extra
+  :build/properties and/or :build/retract-attributes. Mirrors the real caller
+  (api db-based tools resolve-query-property-value): the pvalue map reuses the
+  existing node's :block/uuid so the importer upserts that node instead of
+  creating a new one."
+  [conn {:keys [title properties retract-attributes]}]
+  (let [node (query-pvalue-node conn)
+        txs
+        (sqlite-build/build-blocks-tx
+         {:pages-and-blocks
+          [{:page (select-keys (:block/page node) [:block/uuid])
+            :blocks [(cond-> {:block/title (or title (:block/title node))
+                              :block/uuid (:block/uuid node)
+                              :build/keep-uuid? true}
+                       true
+                       (assoc :build/properties
+                              {:logseq.property/query
+                               (merge {:build/property-value :block
+                                       :block/title (or title (:block/title node))
+                                       :block/uuid (:block/uuid node)}
+                                      (when properties {:build/properties properties})
+                                      (when retract-attributes
+                                        {:build/retract-attributes retract-attributes}))}))]}]
+          :build-existing-tx? true})]
+    (d/transact! conn (:init-tx txs))
+    (d/transact! conn (:block-props-tx txs))))
+
+(deftest pvalue-retract-attributes-drop-stale-metadata
+  (let [conn (retract-seam-fixture!)]
+    (is (= {:logseq.property.code/lang "clojure"
+            :logseq.property.node/display-type :code}
+           (select-keys (query-pvalue-node conn)
+                        [:logseq.property.code/lang :logseq.property.node/display-type]))
+        "fixture seeds the advanced metadata")
+    (upsert-query-pvalue conn
+                         {:title "(task Todo)"
+                          :retract-attributes [:logseq.property.node/display-type
+                                               :logseq.property.code/lang]})
+    (let [node (db-test/find-block-by-content @conn "(task Todo)")]
+      (is (some? node) "the upserted value node keeps its identity via uuid")
+      (is (nil? (:logseq.property.node/display-type node))
+          "the retract datom drops the stale display type in the same import")
+      (is (nil? (:logseq.property.code/lang node))
+          "the retract datom drops the stale code lang in the same import"))))
+
+(deftest pvalue-retract-and-write-in-one-import
+  (let [conn (retract-seam-fixture!)]
+    ;; Drop the lang but keep (re-seed) display-type in the SAME import.
+    (upsert-query-pvalue conn
+                         {:title "{:query (task Doing)}"
+                          :properties {:logseq.property.node/display-type :code}
+                          :retract-attributes [:logseq.property.code/lang]})
+    (let [node (db-test/find-block-by-content @conn "{:query (task Doing)}")]
+      (is (some? node) "the rewritten node is findable by its new title")
+      (is (= :code (:logseq.property.node/display-type node))
+          "the same import re-seeds the display type")
+      (is (nil? (:logseq.property.code/lang node))
+          "the same import retracts the stale lang"))))
+
+(deftest pvalue-retract-absent-attribute-is-a-no-op
+  (let [conn (retract-seam-fixture!)]
+    ;; Retract an attribute the node does not carry: must not throw.
+    (upsert-query-pvalue conn
+                         {:title "{:query (task Todo)}"
+                          :retract-attributes [:logseq.property.background-color]})
+    (is (some? (query-pvalue-node conn))
+        "retracting an absent attribute leaves the node intact")))

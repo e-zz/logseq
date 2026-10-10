@@ -172,7 +172,12 @@
                       :status status}
                (and (= "add" (:operation operation))
                     (some? (:id operation)))
-               (assoc :op-id (:id operation)))]
+               (assoc :op-id (:id operation))
+               ;; A dry-run receipt echoes the requested properties so the
+               ;; caller can confirm exactly what would be written.
+               (and (= :dry-run status)
+                    (seq (get-in operation [:data :properties])))
+               (assoc :properties (json-property-map (get-in operation [:data :properties]))))]
     (case status
       :verified
       (let [entity (cond-> {:uuid (:block/uuid readback)
